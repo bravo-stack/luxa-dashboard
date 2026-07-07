@@ -15,7 +15,7 @@ export function LeadScoreBadge({
         ? 'border-accent-teal/30 bg-accent-teal/12 text-accent-teal'
         : score >= 55
           ? 'border-primary/30 bg-primary/12 text-primary'
-          : 'border-border bg-white/3 text-muted-foreground';
+          : 'border-border bg-muted/50 text-muted-foreground';
 
   return <Badge className={cn('font-mono', intent, className)}>{score}</Badge>;
 }

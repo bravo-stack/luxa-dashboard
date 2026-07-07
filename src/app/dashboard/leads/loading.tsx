@@ -10,7 +10,7 @@ export default function Loading() {
           <LoadingCard key={index} rows={3} />
         ))}
       </div>
-      <div className="surface-premium rounded-3xl p-5">
+      <div className="surface-premium rounded-lg p-5">
         <div className="flex flex-col gap-3 xl:flex-row">
           <Skeleton className="h-11 flex-1" />
           <Skeleton className="h-11 w-36" />

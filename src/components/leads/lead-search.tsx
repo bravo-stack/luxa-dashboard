@@ -21,7 +21,7 @@ export function LeadSearch({ value, onValueChange }: LeadSearchProps) {
         value={value}
         onChange={(event) => onValueChange(event.target.value)}
         placeholder="Search name, email, company, website, project type"
-        className="h-11 rounded-2xl pl-9"
+        className="h-11 rounded-lg pl-9"
       />
     </label>
   );

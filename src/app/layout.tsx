@@ -1,5 +1,9 @@
 import type { Metadata } from 'next';
 import { Geist_Mono, Instrument_Serif, Plus_Jakarta_Sans } from 'next/font/google';
+import Script from 'next/script';
+
+import { themeBootstrapScript, ThemeProvider } from '@/components/theme/theme-provider';
+import { TelemetryProvider } from '@/lib/analytics/provider';
 
 import './globals.css';
 
@@ -37,8 +41,18 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${jakartaSans.variable} ${instrumentSerif.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
-      <body className="flex min-h-full flex-col">{children}</body>
+      <body className="flex min-h-full flex-col">
+        <Script
+          id="luxa-theme-bootstrap"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{ __html: themeBootstrapScript }}
+        />
+        <ThemeProvider>
+          <TelemetryProvider>{children}</TelemetryProvider>
+        </ThemeProvider>
+      </body>
     </html>
   );
 }

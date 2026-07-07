@@ -21,8 +21,8 @@ export function DateRangePicker({ defaultValue = '7d' }: DateRangePickerProps) {
   const [value, setValue] = React.useState<DateRangeKey>(defaultValue);
 
   return (
-    <div className="flex items-center gap-2 rounded-2xl border border-border bg-white/3 p-1.5">
-      <div className="hidden size-8 items-center justify-center rounded-xl bg-primary/10 text-primary sm:flex">
+    <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/50 p-1.5">
+      <div className="hidden size-8 items-center justify-center rounded-md bg-primary/10 text-primary sm:flex">
         <CalendarDays className="size-4" aria-hidden="true" />
       </div>
       <Select

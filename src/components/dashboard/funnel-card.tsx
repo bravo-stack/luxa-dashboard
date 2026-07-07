@@ -14,7 +14,7 @@ export function FunnelStep({ step, index }: { step: FunnelStepSummary; index: nu
           </span>
           <span className="text-sm font-semibold text-foreground">{step.label}</span>
         </div>
-        <div className="mt-2 h-2 rounded-full bg-white/6">
+        <div className="mt-2 h-2 rounded-full bg-muted/80">
           <div
             className="h-2 rounded-full bg-primary"
             style={{ width: `${Math.min(100, step.rate)}%` }}
@@ -33,7 +33,7 @@ export function FunnelStep({ step, index }: { step: FunnelStepSummary; index: nu
 
 export function FunnelCard({ steps }: FunnelCardProps) {
   return (
-    <section className="surface-elevated rounded-3xl p-5 sm:p-6">
+    <section className="surface-elevated rounded-lg p-5 sm:p-6">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-xs font-semibold text-accent-violet uppercase">
@@ -44,7 +44,7 @@ export function FunnelCard({ steps }: FunnelCardProps) {
           </h2>
         </div>
         <p className="text-sm text-muted-foreground">
-          PostHog data will hydrate this through server route handlers.
+          Supabase snapshots hydrate this through server route handlers.
         </p>
       </div>
       <div className="mt-6 space-y-5">

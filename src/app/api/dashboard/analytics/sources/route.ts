@@ -1,9 +1,16 @@
-import { getSourcePerformance } from '@/lib/dashboard/queries';
+import { getAnalyticsOverview } from '@/lib/dashboard/queries';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const sources = await getSourcePerformance();
+  const analytics = await getAnalyticsOverview();
 
-  return Response.json({ data: sources, source: 'mock' });
+  return Response.json({
+    data: {
+      ctaSources: analytics.ctaClicksBySource,
+      referrers: analytics.topReferrers,
+      campaigns: analytics.utmCampaignPerformance,
+    },
+    source: analytics.source,
+  });
 }

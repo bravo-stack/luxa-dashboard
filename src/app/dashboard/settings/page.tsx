@@ -9,7 +9,7 @@ export default function SettingsPage() {
       <DashboardHeader
         eyebrow="Admin settings"
         title="Dashboard preferences"
-        description="Connection and account controls are prepared for the Supabase auth layer and PostHog reporting sync."
+        description="Connection and account controls are prepared for Supabase auth and snapshot-based reporting."
       />
       <section className="grid gap-4 lg:grid-cols-3">
         <InsightCard
@@ -21,8 +21,8 @@ export default function SettingsPage() {
         />
         <InsightCard
           title="Analytics connection"
-          value="Mock"
-          description="PostHog reads should flow through server route handlers before charts use live data."
+          value="Snapshots"
+          description="Cached Supabase snapshots feed the dashboard, with mock data retained for local fallback."
           icon={Database}
           tone="violet"
         />

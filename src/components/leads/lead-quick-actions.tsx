@@ -53,7 +53,7 @@ export function LeadQuickActions({
 
   return (
     <aside className="space-y-4">
-      <section className="surface-premium rounded-3xl p-5">
+      <section className="surface-premium rounded-lg p-5">
         <p className="text-xs font-semibold text-primary uppercase">Status card</p>
         <div className="mt-4 flex items-center justify-between gap-3">
           <LeadStatusBadge status={status} />
@@ -92,7 +92,7 @@ export function LeadQuickActions({
           </div>
         </div>
       </section>
-      <section className="surface-elevated rounded-3xl p-5">
+      <section className="surface-elevated rounded-lg p-5">
         <p className="text-xs font-semibold text-accent-teal uppercase">Quick actions</p>
         <div className="mt-4 space-y-3">
           <Button
@@ -192,9 +192,9 @@ export function LeadQuickActions({
           </Button>
         </div>
       </section>
-      <section className="surface-glass rounded-3xl p-5">
+      <section className="rounded-lg border border-border bg-card p-5">
         <div className="flex items-start gap-3">
-          <div className="flex size-10 items-center justify-center rounded-2xl bg-accent-warm/10 text-accent-warm">
+          <div className="flex size-10 items-center justify-center rounded-lg bg-accent-warm/10 text-accent-warm">
             <UserRound className="size-4" aria-hidden="true" />
           </div>
           <div>

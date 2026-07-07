@@ -14,8 +14,8 @@ export function ErrorState({
   className,
 }: ErrorStateProps) {
   return (
-    <div className={cn('surface-premium rounded-3xl p-8 text-center', className)}>
-      <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-2xl border border-destructive/25 bg-destructive/10 text-destructive">
+    <div className={cn('surface-premium rounded-lg p-8 text-center', className)}>
+      <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-lg border border-destructive/25 bg-destructive/10 text-destructive">
         <AlertTriangle className="size-5" aria-hidden="true" />
       </div>
       <h2 className="text-xl font-semibold text-foreground">{title}</h2>

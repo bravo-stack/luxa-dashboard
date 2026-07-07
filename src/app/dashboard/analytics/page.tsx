@@ -103,7 +103,7 @@ export default async function AnalyticsPage() {
         />
         <AnalyticsChartCard
           title="CTA clicks by source"
-          description="Allowed CTA source values only, prepared for PostHog route handlers."
+          description="Allowed CTA source values only, backed by provider-neutral telemetry."
           data={analytics.ctaClicksBySource}
           variant="bar"
           color="var(--chart-1)"

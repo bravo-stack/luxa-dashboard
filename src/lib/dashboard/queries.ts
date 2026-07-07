@@ -1,3 +1,4 @@
+import { getAnalyticsSnapshot } from './analytics-snapshots';
 import {
   analyticsSummary,
   auditSubmissions,
@@ -174,29 +175,47 @@ export async function getLeadDetail(id: string): Promise<LeadDetail | null> {
 }
 
 export async function getAnalyticsOverview(dateRange: DateRangeKey = '7d') {
+  const snapshot = await getAnalyticsSnapshot(dateRange);
+
+  if (snapshot) {
+    return {
+      ...snapshot,
+      dateRange: getDateRange(dateRange),
+    };
+  }
+
   return {
     ...analyticsSummary,
     dateRange: getDateRange(dateRange),
+    source: 'mock' as const,
   };
 }
 
 export async function getAnalyticsSummary() {
-  return analyticsSummary.metrics;
+  const overview = await getAnalyticsOverview();
+
+  return overview.metrics;
 }
 
 export async function getAnalyticsFunnel() {
-  return analyticsSummary.funnel;
+  const overview = await getAnalyticsOverview();
+
+  return overview.funnel;
 }
 
 export async function getRoutePerformance() {
-  return analyticsSummary.topLandingPages;
+  const overview = await getAnalyticsOverview();
+
+  return overview.topLandingPages;
 }
 
 export async function getSourcePerformance() {
+  const overview = await getAnalyticsOverview();
+
   return {
-    ctaSources: analyticsSummary.ctaClicksBySource,
-    referrers: analyticsSummary.topReferrers,
-    campaigns: analyticsSummary.utmCampaignPerformance,
+    ctaSources: overview.ctaClicksBySource,
+    referrers: overview.topReferrers,
+    campaigns: overview.utmCampaignPerformance,
   };
 }
 

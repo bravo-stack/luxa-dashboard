@@ -73,7 +73,7 @@ function ChartTooltipContent({
   }
 
   return (
-    <div className="surface-glass min-w-36 rounded-xl p-3 text-sm shadow-xl">
+    <div className="min-w-36 rounded-md border border-border bg-popover p-3 text-sm shadow-xl">
       {label ? <div className="mb-2 font-semibold text-foreground">{label}</div> : null}
       <div className="space-y-1.5">
         {payload.map((item) => (

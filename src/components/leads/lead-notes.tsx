@@ -20,7 +20,7 @@ export function LeadNotes({ leadId, notes }: LeadNotesProps) {
   }
 
   return (
-    <section className="surface-elevated rounded-3xl p-5 sm:p-6">
+    <section className="surface-elevated rounded-lg p-5 sm:p-6">
       <div>
         <p className="text-xs font-semibold text-accent-warm uppercase">Internal notes</p>
         <h2 className="mt-2 text-xl font-semibold text-foreground">
@@ -40,7 +40,7 @@ export function LeadNotes({ leadId, notes }: LeadNotesProps) {
           notes.map((note) => (
             <article
               key={note.id}
-              className="rounded-2xl border border-border bg-white/2.5 p-4"
+              className="rounded-lg border border-border bg-muted/45 p-4"
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <h3 className="text-sm font-semibold text-foreground">

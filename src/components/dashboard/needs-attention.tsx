@@ -11,7 +11,7 @@ type NeedsAttentionProps = {
 
 export function NeedsAttention({ items }: NeedsAttentionProps) {
   return (
-    <section className="surface-premium rounded-3xl p-5 sm:p-6">
+    <section className="surface-premium rounded-lg p-5 sm:p-6">
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-xs font-semibold text-accent-warm uppercase">
@@ -27,13 +27,10 @@ export function NeedsAttention({ items }: NeedsAttentionProps) {
       </div>
       <div className="mt-6 space-y-3">
         {items.map((item) => (
-          <div
-            key={item.id}
-            className="rounded-2xl border border-border bg-white/2.5 p-4"
-          >
+          <div key={item.id} className="rounded-lg border border-border bg-muted/45 p-4">
             <div className="flex items-start justify-between gap-4">
               <div className="flex gap-3">
-                <div className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-2xl border border-accent-warm/25 bg-accent-warm/10 text-accent-warm">
+                <div className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg border border-accent-warm/25 bg-accent-warm/10 text-accent-warm">
                   <AlertCircle className="size-4" aria-hidden="true" />
                 </div>
                 <div>

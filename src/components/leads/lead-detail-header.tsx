@@ -15,7 +15,7 @@ type LeadDetailHeaderProps = {
 
 export function LeadDetailHeader({ lead, owner }: LeadDetailHeaderProps) {
   return (
-    <header className="surface-liquid-glass gradient-border-panel rounded-3xl p-5 sm:p-7">
+    <header className="surface-premium rounded-lg border-primary/30 p-5 sm:p-7">
       <Button asChild variant="ghost" size="sm" className="mb-6">
         <Link href="/dashboard/leads">
           <ArrowLeft className="size-4" />
@@ -27,7 +27,7 @@ export function LeadDetailHeader({ lead, owner }: LeadDetailHeaderProps) {
           <div className="flex flex-wrap items-center gap-2">
             <LeadStatusBadge status={lead.status} />
             <LeadScoreBadge score={lead.qualification_score} />
-            <span className="rounded-full border border-border bg-white/3 px-2.5 py-1 text-xs text-muted-foreground">
+            <span className="rounded-full border border-border bg-muted/50 px-2.5 py-1 text-xs text-muted-foreground">
               Created {formatDate(lead.created_at)}
             </span>
           </div>

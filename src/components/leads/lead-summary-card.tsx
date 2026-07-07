@@ -19,8 +19,8 @@ function SummaryLine({
   icon: typeof UserRound;
 }) {
   return (
-    <div className="flex items-start gap-3 rounded-2xl border border-border bg-white/2.5 p-4">
-      <div className="flex size-9 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+    <div className="flex items-start gap-3 rounded-lg border border-border bg-muted/45 p-4">
+      <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
         <Icon className="size-4" aria-hidden="true" />
       </div>
       <div className="min-w-0">
@@ -33,7 +33,7 @@ function SummaryLine({
 
 export function LeadSummaryCard({ lead, owner, latestSubmission }: LeadSummaryCardProps) {
   return (
-    <section className="surface-premium rounded-3xl p-5 sm:p-6">
+    <section className="surface-premium rounded-lg p-5 sm:p-6">
       <div>
         <p className="text-xs font-semibold text-primary uppercase">Lead summary</p>
         <h2 className="mt-2 text-xl font-semibold text-foreground">Account context</h2>
@@ -52,11 +52,11 @@ export function LeadSummaryCard({ lead, owner, latestSubmission }: LeadSummaryCa
         />
       </div>
       <div className="mt-5 grid gap-3 sm:grid-cols-3">
-        <div className="rounded-2xl border border-border bg-white/2.5 p-4">
+        <div className="rounded-lg border border-border bg-muted/45 p-4">
           <p className="text-xs font-semibold text-muted-foreground uppercase">Source</p>
           <p className="mt-2 text-sm font-semibold text-foreground">{lead.source}</p>
         </div>
-        <div className="rounded-2xl border border-border bg-white/2.5 p-4">
+        <div className="rounded-lg border border-border bg-muted/45 p-4">
           <p className="text-xs font-semibold text-muted-foreground uppercase">
             Last contacted
           </p>
@@ -64,7 +64,7 @@ export function LeadSummaryCard({ lead, owner, latestSubmission }: LeadSummaryCa
             {formatRelativeTime(lead.last_contacted_at)}
           </p>
         </div>
-        <div className="rounded-2xl border border-border bg-white/2.5 p-4">
+        <div className="rounded-lg border border-border bg-muted/45 p-4">
           <p className="text-xs font-semibold text-muted-foreground uppercase">Owner</p>
           <p className="mt-2 text-sm font-semibold text-foreground">
             {owner?.name ?? 'No owner assigned'}
@@ -72,7 +72,7 @@ export function LeadSummaryCard({ lead, owner, latestSubmission }: LeadSummaryCa
         </div>
       </div>
       {latestSubmission ? (
-        <div className="mt-5 rounded-2xl border border-primary/20 bg-primary/10 p-4">
+        <div className="mt-5 rounded-lg border border-primary/20 bg-primary/10 p-4">
           <p className="text-xs font-semibold text-primary uppercase">
             Latest submission
           </p>

@@ -1,4 +1,4 @@
-export const posthogEventNames = [
+export const analyticsEventNames = [
   'page_viewed',
   'cta_clicked',
   'lead_quick_start_started',
@@ -16,7 +16,7 @@ export const posthogEventNames = [
   'lead_exported',
 ] as const;
 
-export type PosthogEventName = (typeof posthogEventNames)[number];
+export type AnalyticsEventName = (typeof analyticsEventNames)[number];
 
 export const allowedAnalyticsProperties = [
   'lead_id',
@@ -53,4 +53,8 @@ export function sanitizeAnalyticsProperties(
 
     return safeProperties;
   }, {});
+}
+
+export function isAnalyticsEventName(eventName: string): eventName is AnalyticsEventName {
+  return analyticsEventNames.includes(eventName as AnalyticsEventName);
 }

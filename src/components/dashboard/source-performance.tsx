@@ -22,9 +22,9 @@ function SourceColumn({
   const max = Math.max(...items.map((item) => item.value), 1);
 
   return (
-    <div className="rounded-2xl border border-border bg-white/2.5 p-4">
+    <div className="rounded-lg border border-border bg-muted/45 p-4">
       <div className="flex items-center gap-2">
-        <div className="flex size-8 items-center justify-center rounded-xl bg-primary/10 text-primary">
+        <div className="flex size-8 items-center justify-center rounded-md bg-primary/10 text-primary">
           <Icon className="size-4" aria-hidden="true" />
         </div>
         <h3 className="text-sm font-semibold text-foreground">{title}</h3>
@@ -40,7 +40,7 @@ function SourceColumn({
                 {item.value.toLocaleString()}
               </span>
             </div>
-            <div className="mt-2 h-1.5 rounded-full bg-white/6">
+            <div className="mt-2 h-1.5 rounded-full bg-muted/80">
               <div
                 className="h-1.5 rounded-full bg-primary"
                 style={{ width: `${Math.max(8, (item.value / max) * 100)}%` }}
@@ -62,7 +62,7 @@ export function SourcePerformance({
   devices,
 }: SourcePerformanceProps) {
   return (
-    <section className="surface-elevated rounded-3xl p-5 sm:p-6">
+    <section className="surface-elevated rounded-lg p-5 sm:p-6">
       <div>
         <p className="text-xs font-semibold text-accent-teal uppercase">
           Source performance

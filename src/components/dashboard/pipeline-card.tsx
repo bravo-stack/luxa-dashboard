@@ -6,7 +6,7 @@ type PipelineCardProps = {
 };
 
 const intentClasses: Record<PipelineStageSummary['intent'], string> = {
-  neutral: 'bg-white/12 text-muted-foreground',
+  neutral: 'bg-muted text-muted-foreground',
   primary: 'bg-primary text-primary-foreground',
   violet: 'bg-accent-violet text-background',
   teal: 'bg-accent-teal text-background',
@@ -29,7 +29,7 @@ export function PipelineStage({
         <span className="text-sm font-semibold text-foreground">{stage.label}</span>
         <span className="font-mono text-sm text-muted-foreground">{stage.value}</span>
       </div>
-      <div className="h-2 rounded-full bg-white/6">
+      <div className="h-2 rounded-full bg-muted/80">
         <div
           className={cn('h-2 rounded-full', intentClasses[stage.intent])}
           style={{ width: `${width}%` }}
@@ -46,7 +46,7 @@ export function PipelineCard({ stages }: PipelineCardProps) {
   const maxCount = Math.max(...stages.map((stage) => stage.count));
 
   return (
-    <section className="surface-premium rounded-3xl p-5 sm:p-6">
+    <section className="surface-premium rounded-lg p-5 sm:p-6">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-xs font-semibold text-primary uppercase">Pipeline health</p>

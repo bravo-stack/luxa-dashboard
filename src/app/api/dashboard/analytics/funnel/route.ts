@@ -1,9 +1,9 @@
-import { getAnalyticsFunnel } from '@/lib/dashboard/queries';
+import { getAnalyticsOverview } from '@/lib/dashboard/queries';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const funnel = await getAnalyticsFunnel();
+  const analytics = await getAnalyticsOverview();
 
-  return Response.json({ data: funnel, source: 'mock' });
+  return Response.json({ data: analytics.funnel, source: analytics.source });
 }

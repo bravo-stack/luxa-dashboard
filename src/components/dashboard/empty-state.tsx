@@ -16,8 +16,10 @@ export function EmptyState({
   className,
 }: EmptyStateProps) {
   return (
-    <div className={cn('surface-glass rounded-2xl p-6 text-center', className)}>
-      <div className="mx-auto mb-4 flex size-11 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary">
+    <div
+      className={cn('rounded-lg border border-border bg-card p-6 text-center', className)}
+    >
+      <div className="mx-auto mb-4 flex size-11 items-center justify-center rounded-lg border border-primary/20 bg-primary/10 text-primary">
         <Icon className="size-5" aria-hidden="true" />
       </div>
       <h3 className="text-base font-semibold text-foreground">{title}</h3>

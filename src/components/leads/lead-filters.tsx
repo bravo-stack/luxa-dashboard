@@ -69,9 +69,9 @@ export function LeadFilters({
     Object.values(filters).some((value) => value !== 'all') || sort !== 'newest';
 
   return (
-    <div className="surface-glass rounded-3xl p-3">
+    <div className="rounded-lg border border-border bg-card p-3">
       <div className="flex flex-wrap items-center gap-2">
-        <div className="flex h-10 items-center gap-2 rounded-2xl border border-border bg-white/3 px-3 text-sm font-semibold text-muted-foreground">
+        <div className="flex h-10 items-center gap-2 rounded-lg border border-border bg-muted/50 px-3 text-sm font-semibold text-muted-foreground">
           <SlidersHorizontal className="size-4" aria-hidden="true" />
           Filters
         </div>

@@ -46,7 +46,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
           onClick={onNavigate}
           className="group flex items-center gap-3"
         >
-          <span className="flex size-11 items-center justify-center rounded-2xl border border-primary/25 bg-primary/12 text-primary shadow-[0_0_34px_rgba(76,201,240,0.12)]">
+          <span className="flex size-10 items-center justify-center rounded-lg border border-sidebar-border bg-sidebar-accent text-sidebar-primary">
             <Sparkles className="size-5" aria-hidden="true" />
           </span>
           <span>
@@ -73,9 +73,9 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
                   href={item.href}
                   onClick={onNavigate}
                   className={cn(
-                    'flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-semibold text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground',
+                    'flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-semibold text-sidebar-foreground/72 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
                     isActive &&
-                      'border border-primary/20 bg-primary/12 text-primary shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]',
+                      'border border-sidebar-border bg-sidebar-accent text-sidebar-accent-foreground',
                   )}
                 >
                   <Icon className="size-4" aria-hidden="true" />
@@ -98,7 +98,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
                   key={item.href}
                   href={item.href}
                   onClick={onNavigate}
-                  className="flex items-center justify-between rounded-2xl px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground"
+                  className="flex items-center justify-between rounded-md px-3 py-2.5 text-sm font-medium text-sidebar-foreground/72 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                 >
                   <span className="flex items-center gap-3">
                     <Icon className="size-4" aria-hidden="true" />
@@ -112,9 +112,9 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         </div>
       </nav>
       <div className="p-4">
-        <div className="surface-glass rounded-3xl p-4">
+        <div className="rounded-lg border border-sidebar-border bg-sidebar-accent p-4">
           <div className="flex items-center gap-3">
-            <div className="flex size-10 items-center justify-center rounded-2xl bg-accent-warm/12 text-sm font-semibold text-accent-warm">
+            <div className="flex size-10 items-center justify-center rounded-md bg-sidebar text-sm font-semibold text-sidebar-primary">
               LA
             </div>
             <div>
@@ -125,7 +125,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
           <Link
             href="/dashboard/leads"
             onClick={onNavigate}
-            className="mt-4 flex items-center justify-between rounded-2xl border border-border bg-white/3 px-3 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground"
+            className="mt-4 flex items-center justify-between rounded-md border border-sidebar-border bg-sidebar px-3 py-2 text-xs font-semibold text-sidebar-foreground/75 hover:text-sidebar-foreground"
           >
             Needs attention
             <BookOpenText className="size-3.5" aria-hidden="true" />

@@ -28,7 +28,7 @@ export type TrendDirection = 'up' | 'down' | 'flat';
 
 export type DateRangeKey = '7d' | '14d' | '30d' | '90d';
 
-export type AnalyticsSource = 'supabase' | 'posthog' | 'mock';
+export type AnalyticsSource = 'supabase' | 'umami' | 'mock';
 
 export interface DateRange {
   key: DateRangeKey;
@@ -81,9 +81,10 @@ export interface AuditSubmission {
 
 export interface LeadEvent {
   id: string;
-  lead_id: string;
+  lead_id: string | null;
   created_at: string;
   event_type: LeadEventType;
+  event_name?: string;
   source: string;
   metadata: Record<string, string | number | boolean | null>;
 }

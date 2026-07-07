@@ -8,7 +8,7 @@ type LoadingCardProps = {
 
 export function LoadingCard({ className, rows = 4 }: LoadingCardProps) {
   return (
-    <div className={cn('surface-elevated rounded-2xl p-5', className)}>
+    <div className={cn('surface-elevated rounded-lg p-5', className)}>
       <Skeleton className="h-4 w-32" />
       <Skeleton className="mt-4 h-8 w-20" />
       <div className="mt-6 space-y-3">

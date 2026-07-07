@@ -38,7 +38,7 @@ export function LeadTimeline({ events }: LeadTimelineProps) {
   }
 
   return (
-    <section className="surface-elevated rounded-3xl p-5 sm:p-6">
+    <section className="surface-elevated rounded-lg p-5 sm:p-6">
       <div>
         <p className="text-xs font-semibold text-accent-teal uppercase">Timeline</p>
         <h2 className="mt-2 text-xl font-semibold text-foreground">Lead events</h2>
@@ -50,7 +50,7 @@ export function LeadTimeline({ events }: LeadTimelineProps) {
           return (
             <div key={event.id} className="flex gap-4">
               <div className="flex flex-col items-center">
-                <span className="flex size-10 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary">
+                <span className="flex size-10 items-center justify-center rounded-lg border border-primary/20 bg-primary/10 text-primary">
                   <Icon className="size-4" aria-hidden="true" />
                 </span>
                 <span className="mt-2 h-full w-px bg-border" aria-hidden="true" />
@@ -60,7 +60,7 @@ export function LeadTimeline({ events }: LeadTimelineProps) {
                   <h3 className="text-sm font-semibold text-foreground">
                     {getEventLabel(event.event_type)}
                   </h3>
-                  <span className="rounded-full border border-border bg-white/3 px-2.5 py-1 text-xs text-muted-foreground">
+                  <span className="rounded-full border border-border bg-muted/50 px-2.5 py-1 text-xs text-muted-foreground">
                     {event.source}
                   </span>
                 </div>

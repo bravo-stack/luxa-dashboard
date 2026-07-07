@@ -25,11 +25,11 @@ export function InsightCard({
   tone = 'primary',
 }: InsightCardProps) {
   return (
-    <article className="surface-elevated rounded-2xl p-5">
+    <article className="surface-elevated rounded-lg p-5">
       <div className="flex items-center justify-between gap-4">
         <div
           className={cn(
-            'flex size-10 items-center justify-center rounded-2xl border',
+            'flex size-10 items-center justify-center rounded-lg border',
             toneClasses[tone],
           )}
         >

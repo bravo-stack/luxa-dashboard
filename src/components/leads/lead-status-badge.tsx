@@ -11,7 +11,7 @@ const statusClasses: Record<LeadStatus, string> = {
   proposal_ready: 'border-accent-warm/35 bg-accent-warm/12 text-accent-warm',
   won: 'border-accent-teal/35 bg-accent-teal/12 text-accent-teal',
   lost: 'border-destructive/35 bg-destructive/12 text-destructive',
-  archived: 'border-border bg-white/3 text-muted-foreground',
+  archived: 'border-border bg-muted/50 text-muted-foreground',
 };
 
 export function LeadStatusBadge({

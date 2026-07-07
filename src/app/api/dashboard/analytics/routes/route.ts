@@ -1,9 +1,9 @@
-import { getRoutePerformance } from '@/lib/dashboard/queries';
+import { getAnalyticsOverview } from '@/lib/dashboard/queries';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const routes = await getRoutePerformance();
+  const analytics = await getAnalyticsOverview();
 
-  return Response.json({ data: routes, source: 'mock' });
+  return Response.json({ data: analytics.topLandingPages, source: analytics.source });
 }

@@ -21,8 +21,8 @@ export function MetricCard({ metric, icon: Icon, emphasis }: MetricCardProps) {
   return (
     <article
       className={cn(
-        'surface-elevated card-lift rounded-2xl p-5',
-        emphasis && 'surface-premium gradient-border-panel rounded-3xl',
+        'surface-elevated card-lift rounded-lg p-5',
+        emphasis && 'surface-premium border-primary/35',
       )}
     >
       <div className="flex items-start justify-between gap-4">
@@ -32,7 +32,7 @@ export function MetricCard({ metric, icon: Icon, emphasis }: MetricCardProps) {
             {metric.value}
           </p>
         </div>
-        <div className="flex size-11 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary">
+        <div className="flex size-11 items-center justify-center rounded-lg border border-primary/20 bg-primary/10 text-primary">
           <Icon className="size-5" aria-hidden="true" />
         </div>
       </div>
@@ -45,7 +45,7 @@ export function MetricCard({ metric, icon: Icon, emphasis }: MetricCardProps) {
             metric.trendDirection === 'down' &&
               'border-accent-warm/35 bg-accent-warm/10 text-accent-warm',
             metric.trendDirection === 'flat' &&
-              'border-border bg-white/3 text-muted-foreground',
+              'border-border bg-muted/50 text-muted-foreground',
           )}
         >
           <TrendIcon className="size-3.5" aria-hidden="true" />

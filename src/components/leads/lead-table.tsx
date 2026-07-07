@@ -395,7 +395,7 @@ export function LeadTable({ leads }: LeadTableProps) {
         <LeadSearch value={search} onValueChange={setSearch} />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="secondary" className="h-11 rounded-2xl">
+            <Button variant="secondary" className="h-11 rounded-lg">
               <Columns3 className="size-4" />
               Columns
             </Button>
@@ -427,7 +427,7 @@ export function LeadTable({ leads }: LeadTableProps) {
         onFiltersChange={setFilters}
         onSortChange={setSort}
       />
-      <div className="surface-premium overflow-hidden rounded-3xl">
+      <div className="surface-premium overflow-hidden rounded-lg">
         {table.getRowModel().rows.length ? (
           <Table>
             <TableHeader>
@@ -475,7 +475,7 @@ export function LeadTable({ leads }: LeadTableProps) {
           />
         )}
       </div>
-      <div className="flex flex-col gap-3 rounded-3xl border border-border bg-white/2.5 p-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 rounded-lg border border-border bg-muted/45 p-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-muted-foreground">
           Showing{' '}
           <span className="font-mono text-foreground">
@@ -494,7 +494,7 @@ export function LeadTable({ leads }: LeadTableProps) {
             <ChevronLeft className="size-4" />
             Previous
           </Button>
-          <span className="rounded-xl border border-border bg-white/3 px-3 py-2 text-sm text-muted-foreground">
+          <span className="rounded-md border border-border bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
             Page {table.getState().pagination.pageIndex + 1} of{' '}
             {table.getPageCount() || 1}
           </span>

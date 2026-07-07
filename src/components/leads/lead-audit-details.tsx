@@ -10,7 +10,7 @@ type LeadAuditDetailsProps = {
 
 function DetailBlock({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-2xl border border-border bg-white/2.5 p-4">
+    <div className="rounded-lg border border-border bg-muted/45 p-4">
       <h3 className="text-sm font-semibold text-foreground">{title}</h3>
       <div className="mt-2 text-sm leading-6 text-muted-foreground">{children}</div>
     </div>
@@ -31,7 +31,7 @@ export function LeadAuditDetails({ submissions }: LeadAuditDetailsProps) {
   }
 
   return (
-    <section className="surface-elevated rounded-3xl p-5 sm:p-6">
+    <section className="surface-elevated rounded-lg p-5 sm:p-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-xs font-semibold text-accent-violet uppercase">
@@ -47,7 +47,7 @@ export function LeadAuditDetails({ submissions }: LeadAuditDetailsProps) {
             submitted {formatDateTime(latestSubmission.created_at)}
           </p>
         </div>
-        <div className="rounded-2xl border border-border bg-white/3 px-4 py-3 text-sm text-muted-foreground">
+        <div className="rounded-lg border border-border bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
           {latestSubmission.industry_segment}
         </div>
       </div>
@@ -64,7 +64,7 @@ export function LeadAuditDetails({ submissions }: LeadAuditDetailsProps) {
         <DetailBlock title="Extra context">{latestSubmission.extra_context}</DetailBlock>
       </div>
       {submissions.length > 1 ? (
-        <div className="mt-5 rounded-2xl border border-border bg-white/2.5 p-4">
+        <div className="mt-5 rounded-lg border border-border bg-muted/45 p-4">
           <h3 className="text-sm font-semibold text-foreground">Previous submissions</h3>
           <div className="mt-3 space-y-2">
             {submissions.slice(1).map((submission) => (

@@ -5,7 +5,9 @@ const buildEslintCommand = (files) =>
 
 const buildPrettierCommand = (files) => `prettier --write ${files.map(quote).join(' ')}`;
 
-export default {
+const lintStagedConfig = {
   '*.{js,jsx,ts,tsx}': [buildEslintCommand, buildPrettierCommand],
   '*.{json,css,md,mdx,yml,yaml}': [buildPrettierCommand],
 };
+
+export default lintStagedConfig;

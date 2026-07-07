@@ -22,7 +22,7 @@ export function MetricCard({ metric, icon: Icon, emphasis }: MetricCardProps) {
     <article
       className={cn(
         'surface-elevated card-lift rounded-lg p-5',
-        emphasis && 'surface-premium border-primary/35',
+        emphasis && 'surface-premium',
       )}
     >
       <div className="flex items-start justify-between gap-4">
@@ -32,18 +32,18 @@ export function MetricCard({ metric, icon: Icon, emphasis }: MetricCardProps) {
             {metric.value}
           </p>
         </div>
-        <div className="flex size-11 items-center justify-center rounded-lg border border-primary/20 bg-primary/10 text-primary">
+        <div className="flex size-10 items-center justify-center rounded-md border border-border bg-muted text-muted-foreground">
           <Icon className="size-5" aria-hidden="true" />
         </div>
       </div>
       <div className="mt-5 flex items-center justify-between gap-3">
         <div
           className={cn(
-            'inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold',
+            'inline-flex items-center gap-1 rounded-md border px-2.5 py-1 text-xs font-semibold',
             metric.trendDirection === 'up' &&
-              'border-accent-teal/30 bg-accent-teal/10 text-accent-teal',
+              'border-success/25 bg-success/10 text-success',
             metric.trendDirection === 'down' &&
-              'border-accent-warm/35 bg-accent-warm/10 text-accent-warm',
+              'border-warning/25 bg-warning/10 text-warning',
             metric.trendDirection === 'flat' &&
               'border-border bg-muted/50 text-muted-foreground',
           )}
@@ -52,15 +52,6 @@ export function MetricCard({ metric, icon: Icon, emphasis }: MetricCardProps) {
           {metric.trend}
         </div>
         <p className="truncate text-xs text-muted-foreground">{metric.note}</p>
-      </div>
-      <div className="mt-5 flex h-8 items-end gap-1" aria-hidden="true">
-        {[34, 48, 42, 66, 58, 78, 72].map((height, index) => (
-          <span
-            key={index}
-            className="flex-1 rounded-t-sm bg-primary/20"
-            style={{ height: `${height}%` }}
-          />
-        ))}
       </div>
     </article>
   );

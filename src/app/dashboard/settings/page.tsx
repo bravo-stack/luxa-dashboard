@@ -24,14 +24,14 @@ export default function SettingsPage() {
           value="Snapshots"
           description="Cached Supabase snapshots feed the dashboard, with mock data retained for local fallback."
           icon={Database}
-          tone="violet"
+          tone="neutral"
         />
         <InsightCard
           title="Admin access"
           value="Prepared"
           description="Supabase dashboard auth can guard this route without changing the UI structure."
           icon={ShieldCheck}
-          tone="teal"
+          tone="success"
         />
       </section>
     </>

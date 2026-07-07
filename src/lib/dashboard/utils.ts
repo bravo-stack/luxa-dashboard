@@ -139,11 +139,22 @@ export function formatRelativeTime(value: string | null) {
 export function getEventLabel(eventType: string) {
   const labels: Record<string, string> = {
     quick_start_submitted: 'Quick-start submitted',
+    lead_quick_start_submitted: 'Quick-start submitted',
     audit_submitted: 'Full audit submitted',
+    lead_audit_submitted: 'Full audit submitted',
+    lead_audit_started: 'Audit started',
+    lead_audit_step_completed: 'Audit step completed',
     schedule_clicked: 'Schedule clicked',
     email_clicked: 'Email clicked',
+    cta_clicked: 'CTA clicked',
+    selected_work_clicked: 'Selected work clicked',
+    pricing_clicked: 'Pricing clicked',
+    page_viewed: 'Page viewed',
+    dashboard_viewed: 'Dashboard viewed',
     status_changed: 'Status changed',
+    lead_status_changed: 'Status changed',
     note_added: 'Note added',
+    lead_note_added: 'Note added',
     proposal_sent: 'Proposal sent',
   };
 

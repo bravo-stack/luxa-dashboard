@@ -14,9 +14,7 @@ export function NeedsAttention({ items }: NeedsAttentionProps) {
     <section className="surface-premium rounded-lg p-5 sm:p-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold text-accent-warm uppercase">
-            Needs attention
-          </p>
+          <p className="text-xs font-semibold text-warning uppercase">Needs attention</p>
           <h2 className="mt-2 text-xl font-semibold text-foreground">
             Follow-up control
           </h2>
@@ -30,7 +28,7 @@ export function NeedsAttention({ items }: NeedsAttentionProps) {
           <div key={item.id} className="rounded-lg border border-border bg-muted/45 p-4">
             <div className="flex items-start justify-between gap-4">
               <div className="flex gap-3">
-                <div className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg border border-accent-warm/25 bg-accent-warm/10 text-accent-warm">
+                <div className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg border border-warning/25 bg-warning/10 text-warning">
                   <AlertCircle className="size-4" aria-hidden="true" />
                 </div>
                 <div>

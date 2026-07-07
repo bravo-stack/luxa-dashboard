@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Download, FileCheck2, MailQuestion, Sparkles, UsersRound } from 'lucide-react';
+import { Download, FileCheck2, MailQuestion, TrendingUp, UsersRound } from 'lucide-react';
 
 import { DashboardHeader } from '@/components/dashboard/dashboard-header';
 import { DateRangePicker } from '@/components/dashboard/date-range-picker';
@@ -8,6 +8,8 @@ import { LeadTable } from '@/components/leads/lead-table';
 import { Button } from '@/components/ui/button';
 import { getLeads } from '@/lib/dashboard/queries';
 import { isAwaitingReply, isQualifiedLead } from '@/lib/dashboard/utils';
+
+export const dynamic = 'force-dynamic';
 
 export default async function LeadsPage() {
   const leads = await getLeads();
@@ -48,22 +50,22 @@ export default async function LeadsPage() {
           title="Qualified leads"
           value={leads.filter(isQualifiedLead).length}
           description="Score meets the current Luxa qualification threshold."
-          icon={Sparkles}
-          tone="warm"
+          icon={TrendingUp}
+          tone="warning"
         />
         <InsightCard
           title="Awaiting reply"
           value={leads.filter(isAwaitingReply).length}
           description="New or qualified leads with no contact timestamp."
           icon={MailQuestion}
-          tone="violet"
+          tone="neutral"
         />
         <InsightCard
           title="Full audits"
           value={fullAuditCount}
           description="Leads with deeper context ready for review."
           icon={FileCheck2}
-          tone="teal"
+          tone="success"
         />
       </section>
       <LeadTable leads={leads} />

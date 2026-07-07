@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Geist_Mono, Instrument_Serif, Plus_Jakarta_Sans } from 'next/font/google';
+import { Geist_Mono, IBM_Plex_Sans } from 'next/font/google';
 import Script from 'next/script';
 
 import { themeBootstrapScript, ThemeProvider } from '@/components/theme/theme-provider';
@@ -7,17 +7,10 @@ import { TelemetryProvider } from '@/lib/analytics/provider';
 
 import './globals.css';
 
-const jakartaSans = Plus_Jakarta_Sans({
-  variable: '--font-jakarta-sans',
+const ibmPlexSans = IBM_Plex_Sans({
+  variable: '--font-ibm-plex-sans',
   subsets: ['latin'],
-  display: 'swap',
-});
-
-const instrumentSerif = Instrument_Serif({
-  variable: '--font-instrument-serif',
-  subsets: ['latin'],
-  weight: '400',
-  style: ['normal', 'italic'],
+  weight: ['400', '500', '600', '700'],
   display: 'swap',
 });
 
@@ -40,7 +33,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${jakartaSans.variable} ${instrumentSerif.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${ibmPlexSans.variable} ${geistMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <body className="flex min-h-full flex-col">

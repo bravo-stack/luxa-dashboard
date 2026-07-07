@@ -6,13 +6,13 @@ import { usePathname } from 'next/navigation';
 import {
   BarChart3,
   BookOpenText,
+  BriefcaseBusiness,
   CalendarClock,
   ExternalLink,
   Home,
   LayoutDashboard,
   Menu,
   Settings2,
-  Sparkles,
   UsersRound,
   Workflow,
   X,
@@ -30,7 +30,7 @@ const primaryNav = [
 
 const secondaryNav = [
   { label: 'Funnel', href: '/audit', icon: Workflow },
-  { label: 'Selected Work', href: '/selected-work', icon: Sparkles },
+  { label: 'Selected Work', href: '/selected-work', icon: BriefcaseBusiness },
   { label: 'Book Call', href: '/book-call', icon: CalendarClock },
   { label: 'Public Site', href: '/', icon: Home },
 ];
@@ -44,15 +44,12 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         <Link
           href="/dashboard"
           onClick={onNavigate}
-          className="group flex items-center gap-3"
+          className="block rounded-md px-3 py-2 transition-colors hover:bg-sidebar-accent"
         >
-          <span className="flex size-10 items-center justify-center rounded-lg border border-sidebar-border bg-sidebar-accent text-sidebar-primary">
-            <Sparkles className="size-5" aria-hidden="true" />
+          <span className="block text-lg font-semibold text-sidebar-foreground">
+            Luxa
           </span>
-          <span>
-            <span className="block text-lg font-semibold text-foreground">Luxa</span>
-            <span className="text-xs text-muted-foreground">Lead command</span>
-          </span>
+          <span className="text-xs text-sidebar-foreground/64">Lead command</span>
         </Link>
       </div>
       <nav className="flex-1 space-y-7 px-3 py-2" aria-label="Dashboard navigation">
@@ -113,15 +110,8 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
       </nav>
       <div className="p-4">
         <div className="rounded-lg border border-sidebar-border bg-sidebar-accent p-4">
-          <div className="flex items-center gap-3">
-            <div className="flex size-10 items-center justify-center rounded-md bg-sidebar text-sm font-semibold text-sidebar-primary">
-              LA
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-foreground">Luxa Admin</p>
-              <p className="text-xs text-muted-foreground">Ops workspace</p>
-            </div>
-          </div>
+          <p className="text-sm font-semibold text-sidebar-foreground">Luxa Admin</p>
+          <p className="text-xs text-sidebar-foreground/64">Ops workspace</p>
           <Link
             href="/dashboard/leads"
             onClick={onNavigate}
@@ -150,18 +140,18 @@ export function DashboardSidebar() {
       >
         <Menu className="size-5" />
       </Button>
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-72 border-r border-sidebar-border bg-sidebar/92 text-sidebar-foreground backdrop-blur-xl lg:block">
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-72 border-r border-sidebar-border bg-sidebar text-sidebar-foreground lg:block">
         <SidebarContent />
       </aside>
       {open ? (
         <div className="fixed inset-0 z-50 lg:hidden">
           <button
             type="button"
-            className="absolute inset-0 bg-background/78 backdrop-blur-sm"
+            className="absolute inset-0 bg-background/90"
             aria-label="Close dashboard navigation"
             onClick={() => setOpen(false)}
           />
-          <aside className="relative h-full w-[min(86vw,20rem)] border-r border-sidebar-border bg-sidebar text-sidebar-foreground shadow-2xl">
+          <aside className="relative h-full w-[min(86vw,20rem)] border-r border-sidebar-border bg-sidebar text-sidebar-foreground shadow-none">
             <Button
               variant="ghost"
               size="icon"

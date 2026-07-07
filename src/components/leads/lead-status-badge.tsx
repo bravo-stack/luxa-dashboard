@@ -5,11 +5,11 @@ import { cn } from '@/lib/utils';
 
 const statusClasses: Record<LeadStatus, string> = {
   new: 'border-primary/30 bg-primary/12 text-primary',
-  qualified: 'border-accent-warm/35 bg-accent-warm/12 text-accent-warm',
-  contacted: 'border-accent-violet/30 bg-accent-violet/12 text-accent-violet',
-  scheduled: 'border-accent-teal/30 bg-accent-teal/12 text-accent-teal',
-  proposal_ready: 'border-accent-warm/35 bg-accent-warm/12 text-accent-warm',
-  won: 'border-accent-teal/35 bg-accent-teal/12 text-accent-teal',
+  qualified: 'border-warning/35 bg-warning/12 text-warning',
+  contacted: 'border-muted-foreground/30 bg-muted-foreground/12 text-muted-foreground',
+  scheduled: 'border-success/30 bg-success/12 text-success',
+  proposal_ready: 'border-warning/35 bg-warning/12 text-warning',
+  won: 'border-success/35 bg-success/12 text-success',
   lost: 'border-destructive/35 bg-destructive/12 text-destructive',
   archived: 'border-border bg-muted/50 text-muted-foreground',
 };

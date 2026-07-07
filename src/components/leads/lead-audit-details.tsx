@@ -34,7 +34,7 @@ export function LeadAuditDetails({ submissions }: LeadAuditDetailsProps) {
     <section className="surface-elevated rounded-lg p-5 sm:p-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className="text-xs font-semibold text-accent-violet uppercase">
+          <p className="text-xs font-semibold text-muted-foreground uppercase">
             Audit submission
           </p>
           <h2 className="mt-2 text-xl font-semibold text-foreground">

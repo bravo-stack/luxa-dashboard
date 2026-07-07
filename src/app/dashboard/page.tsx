@@ -6,7 +6,6 @@ import {
   FileCheck2,
   MailQuestion,
   MousePointerClick,
-  Sparkles,
   Target,
   TrendingUp,
   UserPlus,
@@ -25,6 +24,8 @@ import { SourcePerformance } from '@/components/dashboard/source-performance';
 import { Button } from '@/components/ui/button';
 import { getDashboardOverview } from '@/lib/dashboard/queries';
 
+export const dynamic = 'force-dynamic';
+
 const metricIcons = [
   UserPlus,
   UsersRound,
@@ -41,11 +42,7 @@ export default async function DashboardPage() {
     <>
       <DashboardHeader
         eyebrow="Luxa operations"
-        title={
-          <>
-            Command <span className="serif-accent text-primary">center</span>
-          </>
-        }
+        title="Command center"
         description="Control the inbound funnel, audit review queue, sales pipeline, and next actions from one calm operational surface."
         actions={
           <>
@@ -109,8 +106,8 @@ export default async function DashboardPage() {
             title={item.label}
             value={item.value}
             description={item.context}
-            icon={index === 0 ? Sparkles : index === 1 ? MailQuestion : Target}
-            tone={index === 0 ? 'warm' : index === 1 ? 'primary' : 'teal'}
+            icon={index === 0 ? TrendingUp : index === 1 ? MailQuestion : Target}
+            tone={index === 0 ? 'warning' : index === 1 ? 'primary' : 'success'}
           />
         ))}
       </section>

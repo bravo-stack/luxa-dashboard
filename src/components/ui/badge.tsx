@@ -10,9 +10,9 @@ const badgeVariants = cva(
       variant: {
         default: 'border-primary/30 bg-primary/12 text-primary',
         secondary: 'border-border bg-secondary text-secondary-foreground',
-        violet: 'border-accent-violet/30 bg-accent-violet/12 text-accent-violet',
-        teal: 'border-accent-teal/30 bg-accent-teal/12 text-accent-teal',
-        warm: 'border-accent-warm/35 bg-accent-warm/12 text-accent-warm',
+        violet: 'border-muted-foreground/30 bg-muted-foreground/12 text-muted-foreground',
+        teal: 'border-success/30 bg-success/12 text-success',
+        warm: 'border-warning/35 bg-warning/12 text-warning',
         destructive: 'border-destructive/35 bg-destructive/12 text-destructive',
         outline: 'border-border text-foreground',
       },

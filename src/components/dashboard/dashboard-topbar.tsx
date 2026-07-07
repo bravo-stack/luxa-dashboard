@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 
 export function DashboardTopbar() {
   return (
-    <div className="sticky top-0 z-30 border-b border-border/70 bg-background/82 backdrop-blur-xl lg:ml-0">
+    <div className="sticky top-0 z-30 border-b border-border bg-background lg:ml-0">
       <div className="mx-auto flex h-16 max-w-375 items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
         <div className="ml-12 flex min-w-0 items-center gap-3 lg:ml-0">
           <div className="hidden h-9 min-w-72 items-center gap-2 rounded-lg border border-border bg-muted/50 px-3 text-sm text-muted-foreground md:flex">

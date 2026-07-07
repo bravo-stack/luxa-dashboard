@@ -27,7 +27,7 @@ export function LeadDetailHeader({ lead, owner }: LeadDetailHeaderProps) {
           <div className="flex flex-wrap items-center gap-2">
             <LeadStatusBadge status={lead.status} />
             <LeadScoreBadge score={lead.qualification_score} />
-            <span className="rounded-full border border-border bg-muted/50 px-2.5 py-1 text-xs text-muted-foreground">
+            <span className="rounded-md border border-border bg-muted/50 px-2.5 py-1 text-xs text-muted-foreground">
               Created {formatDate(lead.created_at)}
             </span>
           </div>

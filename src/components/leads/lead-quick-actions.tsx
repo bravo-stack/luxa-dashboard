@@ -93,7 +93,7 @@ export function LeadQuickActions({
         </div>
       </section>
       <section className="surface-elevated rounded-lg p-5">
-        <p className="text-xs font-semibold text-accent-teal uppercase">Quick actions</p>
+        <p className="text-xs font-semibold text-success uppercase">Quick actions</p>
         <div className="mt-4 space-y-3">
           <Button
             className="w-full justify-start"
@@ -194,7 +194,7 @@ export function LeadQuickActions({
       </section>
       <section className="rounded-lg border border-border bg-card p-5">
         <div className="flex items-start gap-3">
-          <div className="flex size-10 items-center justify-center rounded-lg bg-accent-warm/10 text-accent-warm">
+          <div className="flex size-10 items-center justify-center rounded-lg bg-warning/10 text-warning">
             <UserRound className="size-4" aria-hidden="true" />
           </div>
           <div>

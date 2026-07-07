@@ -40,9 +40,9 @@ function SourceColumn({
                 {item.value.toLocaleString()}
               </span>
             </div>
-            <div className="mt-2 h-1.5 rounded-full bg-muted/80">
+            <div className="mt-2 h-1.5 rounded-md bg-muted/80">
               <div
-                className="h-1.5 rounded-full bg-primary"
+                className="h-1.5 rounded-md bg-primary"
                 style={{ width: `${Math.max(8, (item.value / max) * 100)}%` }}
               />
             </div>
@@ -64,9 +64,7 @@ export function SourcePerformance({
   return (
     <section className="surface-elevated rounded-lg p-5 sm:p-6">
       <div>
-        <p className="text-xs font-semibold text-accent-teal uppercase">
-          Source performance
-        </p>
+        <p className="text-xs font-semibold text-success uppercase">Source performance</p>
         <h2 className="mt-2 text-xl font-semibold text-foreground">
           Where qualified demand is forming
         </h2>

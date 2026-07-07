@@ -16,14 +16,19 @@ type LeadTimelineProps = {
   events: LeadEvent[];
 };
 
-const eventIcons: Record<LeadEventType, typeof FileCheck2> = {
+const eventIcons: Partial<Record<LeadEventType, typeof FileCheck2>> = {
   quick_start_submitted: FileCheck2,
+  lead_quick_start_submitted: FileCheck2,
   audit_submitted: FileCheck2,
+  lead_audit_submitted: FileCheck2,
   schedule_clicked: CalendarCheck,
   email_clicked: Mail,
   status_changed: Shuffle,
+  lead_status_changed: Shuffle,
   note_added: MessageSquarePlus,
+  lead_note_added: MessageSquarePlus,
   proposal_sent: Send,
+  cta_clicked: MousePointerClick,
 };
 
 export function LeadTimeline({ events }: LeadTimelineProps) {
@@ -40,12 +45,12 @@ export function LeadTimeline({ events }: LeadTimelineProps) {
   return (
     <section className="surface-elevated rounded-lg p-5 sm:p-6">
       <div>
-        <p className="text-xs font-semibold text-accent-teal uppercase">Timeline</p>
+        <p className="text-xs font-semibold text-success uppercase">Timeline</p>
         <h2 className="mt-2 text-xl font-semibold text-foreground">Lead events</h2>
       </div>
       <div className="mt-6 space-y-4">
         {events.map((event) => {
-          const Icon = eventIcons[event.event_type];
+          const Icon = eventIcons[event.event_type] ?? MousePointerClick;
 
           return (
             <div key={event.id} className="flex gap-4">
@@ -60,7 +65,7 @@ export function LeadTimeline({ events }: LeadTimelineProps) {
                   <h3 className="text-sm font-semibold text-foreground">
                     {getEventLabel(event.event_type)}
                   </h3>
-                  <span className="rounded-full border border-border bg-muted/50 px-2.5 py-1 text-xs text-muted-foreground">
+                  <span className="rounded-md border border-border bg-muted/50 px-2.5 py-1 text-xs text-muted-foreground">
                     {event.source}
                   </span>
                 </div>

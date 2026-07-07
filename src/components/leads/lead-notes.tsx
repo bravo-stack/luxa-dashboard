@@ -22,7 +22,7 @@ export function LeadNotes({ leadId, notes }: LeadNotesProps) {
   return (
     <section className="surface-elevated rounded-lg p-5 sm:p-6">
       <div>
-        <p className="text-xs font-semibold text-accent-warm uppercase">Internal notes</p>
+        <p className="text-xs font-semibold text-warning uppercase">Internal notes</p>
         <h2 className="mt-2 text-xl font-semibold text-foreground">
           Private follow-up context
         </h2>

@@ -10,10 +10,6 @@ type DashboardShellProps = {
 export function DashboardShell({ children }: DashboardShellProps) {
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <div
-        className="bg-grid-lines pointer-events-none fixed inset-0 opacity-35"
-        aria-hidden="true"
-      />
       <DashboardSidebar />
       <div className="relative min-h-screen lg:pl-72">
         <DashboardTopbar />

@@ -7,14 +7,14 @@ type InsightCardProps = {
   value: string | number;
   description: string;
   icon: LucideIcon;
-  tone?: 'primary' | 'violet' | 'teal' | 'warm';
+  tone?: 'primary' | 'neutral' | 'success' | 'warning';
 };
 
 const toneClasses = {
   primary: 'border-primary/25 bg-primary/10 text-primary',
-  violet: 'border-accent-violet/25 bg-accent-violet/10 text-accent-violet',
-  teal: 'border-accent-teal/25 bg-accent-teal/10 text-accent-teal',
-  warm: 'border-accent-warm/30 bg-accent-warm/10 text-accent-warm',
+  neutral: 'border-border bg-muted text-muted-foreground',
+  success: 'border-success/25 bg-success/10 text-success',
+  warning: 'border-warning/25 bg-warning/10 text-warning',
 };
 
 export function InsightCard({

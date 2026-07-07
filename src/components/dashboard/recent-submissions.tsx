@@ -48,15 +48,15 @@ export function RecentSubmissions({ submissions }: RecentSubmissionsProps) {
                     {submission.project_type}
                   </p>
                   <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
-                    <span className="rounded-full border border-border bg-muted/50 px-2.5 py-1">
+                    <span className="rounded-md border border-border bg-muted/50 px-2.5 py-1">
                       {submission.submission_type === 'full_audit'
                         ? 'Full audit'
                         : 'Quick-start'}
                     </span>
-                    <span className="rounded-full border border-border bg-muted/50 px-2.5 py-1">
+                    <span className="rounded-md border border-border bg-muted/50 px-2.5 py-1">
                       {submission.budget_range}
                     </span>
-                    <span className="rounded-full border border-border bg-muted/50 px-2.5 py-1">
+                    <span className="rounded-md border border-border bg-muted/50 px-2.5 py-1">
                       {submission.timeline}
                     </span>
                   </div>
@@ -65,7 +65,7 @@ export function RecentSubmissions({ submissions }: RecentSubmissionsProps) {
               <div className="flex flex-wrap items-center gap-2 xl:justify-end">
                 <LeadScoreBadge score={lead.qualification_score} />
                 <LeadStatusBadge status={lead.status} />
-                <span className="rounded-full border border-border bg-muted/50 px-2.5 py-1 text-xs text-muted-foreground">
+                <span className="rounded-md border border-border bg-muted/50 px-2.5 py-1 text-xs text-muted-foreground">
                   {formatRelativeTime(submission.created_at)}
                 </span>
                 <ArrowUpRight

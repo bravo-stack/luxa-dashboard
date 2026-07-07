@@ -10,9 +10,9 @@ export function LeadScoreBadge({
 }) {
   const intent =
     score >= 88
-      ? 'border-accent-warm/35 bg-accent-warm/12 text-accent-warm'
+      ? 'border-warning/35 bg-warning/12 text-warning'
       : score >= 72
-        ? 'border-accent-teal/30 bg-accent-teal/12 text-accent-teal'
+        ? 'border-success/30 bg-success/12 text-success'
         : score >= 55
           ? 'border-primary/30 bg-primary/12 text-primary'
           : 'border-border bg-muted/50 text-muted-foreground';

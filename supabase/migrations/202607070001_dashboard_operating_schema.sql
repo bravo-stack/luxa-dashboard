@@ -205,6 +205,120 @@ insert into lead_events (lead_id, created_at, event_name, event_type, source, me
   (null, '2026-07-06 12:00+00', 'selected_work_clicked', 'selected_work_clicked', 'website', '{"route":"/selected-work","source":"case_study_card"}')
 on conflict do nothing;
 
+with seed_days as (
+  select
+    day::date as event_day,
+    row_number() over (order by day)::integer as day_index
+  from generate_series('2026-06-08'::date, '2026-07-07'::date, interval '1 day') as day
+),
+page_events as (
+  select
+    null::text as lead_id,
+    (event_day + time '09:00' + ((event_index % 9) * interval '31 minutes'))::timestamptz as created_at,
+    'page_viewed'::text as event_name,
+    'page_viewed'::text as event_type,
+    'website'::text as source,
+    jsonb_build_object(
+      'route',
+      (array['/', '/services', '/selected-work', '/pricing', '/book-call'])[
+        ((event_index + day_index) % 5) + 1
+      ],
+      'utm_source',
+      (array['direct', 'linkedin', 'google', 'partner'])[
+        ((event_index + day_index) % 4) + 1
+      ],
+      'utm_medium',
+      (array['organic', 'paid', 'referral'])[
+        ((event_index + day_index) % 3) + 1
+      ],
+      'utm_campaign',
+      (array['ops-scale', 'finance-systems', 'clinic-ops', 'logistics-automation'])[
+        ((event_index + day_index) % 4) + 1
+      ],
+      'seed_batch',
+      'deterministic-20260707'
+    ) as metadata
+  from seed_days
+  cross join lateral generate_series(1, 36 + (day_index % 13)) as event_index
+),
+cta_events as (
+  select
+    null::text as lead_id,
+    (event_day + time '10:15' + ((event_index % 8) * interval '43 minutes'))::timestamptz as created_at,
+    'cta_clicked'::text as event_name,
+    'cta_clicked'::text as event_type,
+    (array['home_hero_form', 'navbar_audit', 'selected_work_card', 'pricing_page', 'book_call_page'])[
+      ((event_index + day_index) % 5) + 1
+    ] as source,
+    jsonb_build_object(
+      'route',
+      (array['/', '/services', '/selected-work', '/pricing', '/book-call'])[
+        ((event_index + day_index) % 5) + 1
+      ],
+      'cta_label',
+      (array['Start audit', 'Book discovery', 'Review systems', 'Export lead context'])[
+        ((event_index + day_index) % 4) + 1
+      ],
+      'seed_batch',
+      'deterministic-20260707'
+    ) as metadata
+  from seed_days
+  cross join lateral generate_series(1, 5 + (day_index % 5)) as event_index
+),
+conversion_events as (
+  select
+    null::text as lead_id,
+    (event_day + time '13:00' + ((event_index % 5) * interval '67 minutes'))::timestamptz as created_at,
+    case
+      when event_index % 5 = 0 then 'lead_audit_submitted'
+      when event_index % 3 = 0 then 'schedule_clicked'
+      else 'lead_quick_start_submitted'
+    end as event_name,
+    case
+      when event_index % 5 = 0 then 'lead_audit_submitted'
+      when event_index % 3 = 0 then 'schedule_clicked'
+      else 'lead_quick_start_submitted'
+    end as event_type,
+    (array['home_hero_form', 'navbar_audit', 'selected_work_card', 'pricing_page', 'book_call_page'])[
+      ((event_index + day_index) % 5) + 1
+    ] as source,
+    jsonb_build_object(
+      'submission_type',
+      case when event_index % 5 = 0 then 'full_audit' else 'quick_start' end,
+      'project_type',
+      (array['Revenue operations system', 'Finance workflow automation', 'Patient intake automation', 'Fleet dispatch system'])[
+        ((event_index + day_index) % 4) + 1
+      ],
+      'budget_range',
+      (array['$25k to $45k', '$45k to $75k', '$75k to $120k', '$120k+'])[
+        ((event_index + day_index) % 4) + 1
+      ],
+      'timeline',
+      (array['30 days', '30 to 60 days', '60 to 90 days', '90 days+'])[
+        ((event_index + day_index) % 4) + 1
+      ],
+      'seed_batch',
+      'deterministic-20260707'
+    ) as metadata
+  from seed_days
+  cross join lateral generate_series(1, 2 + (day_index % 4)) as event_index
+),
+seeded_events as (
+  select * from page_events
+  union all
+  select * from cta_events
+  union all
+  select * from conversion_events
+)
+insert into lead_events (lead_id, created_at, event_name, event_type, source, metadata)
+select lead_id, created_at, event_name, event_type, source, metadata
+from seeded_events
+where not exists (
+  select 1
+  from lead_events
+  where metadata ->> 'seed_batch' = 'deterministic-20260707'
+);
+
 insert into lead_notes (lead_id, created_at, created_by, body) values
   ('lead-northstar', '2026-07-07 09:28+00', 'Ava Sinclair', 'Strong operational fit. Prioritize partner-channel workflow and discovery prep.'),
   ('lead-aurora', '2026-07-06 17:05+00', 'Ines Parker', 'Discovery booked. Confirm finance data boundaries before the call.'),

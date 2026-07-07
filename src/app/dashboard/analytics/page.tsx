@@ -19,6 +19,8 @@ import { Button } from '@/components/ui/button';
 import { deviceCategories } from '@/lib/dashboard/mock-data';
 import { getAnalyticsOverview } from '@/lib/dashboard/queries';
 
+export const dynamic = 'force-dynamic';
+
 const metricIcons = [UserRound, MousePointerClick, Send, FileCheck2, CalendarCheck, Mail];
 
 export default async function AnalyticsPage() {
@@ -73,7 +75,7 @@ export default async function AnalyticsPage() {
           title="Daily visitors"
           description="Traffic depth by day with no PII attached."
           data={analytics.dailyVisitors}
-          variant="area"
+          variant="line"
           color="var(--chart-1)"
         />
       </div>
@@ -84,21 +86,21 @@ export default async function AnalyticsPage() {
           description="Quick-start and full audit submissions by day."
           data={analytics.dailySubmissions}
           variant="bar"
-          color="var(--chart-2)"
+          color="var(--chart-1)"
         />
         <AnalyticsChartCard
           title="Daily schedule clicks"
           description="Booked-intent clicks across audit success and booking paths."
           data={analytics.dailyScheduleClicks}
           variant="bar"
-          color="var(--chart-3)"
+          color="var(--chart-1)"
         />
         <AnalyticsChartCard
           title="Daily conversion rate"
           description="Visitor to lead conversion rate by day."
           data={analytics.dailyConversionRate}
           variant="line"
-          color="var(--chart-4)"
+          color="var(--chart-1)"
           valueSuffix="%"
         />
         <AnalyticsChartCard
@@ -116,28 +118,28 @@ export default async function AnalyticsPage() {
           description="Demand themes that should shape discovery and proposal packaging."
           data={analytics.submissionsByProjectType}
           variant="bar"
-          color="var(--chart-2)"
+          color="var(--chart-1)"
         />
         <AnalyticsChartCard
           title="Submissions by industry"
           description="Industry segments submitting audit data in the selected range."
           data={analytics.submissionsByIndustry}
           variant="bar"
-          color="var(--chart-3)"
+          color="var(--chart-1)"
         />
         <AnalyticsChartCard
           title="Submissions by budget"
           description="Budget ranges captured through audit submissions."
           data={analytics.submissionsByBudget}
           variant="bar"
-          color="var(--chart-4)"
+          color="var(--chart-1)"
         />
         <AnalyticsChartCard
           title="Submissions by timeline"
           description="Urgency profile for operational follow-up."
           data={analytics.submissionsByTimeline}
           variant="bar"
-          color="var(--chart-5)"
+          color="var(--chart-1)"
         />
       </section>
 

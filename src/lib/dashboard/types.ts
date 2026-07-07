@@ -15,14 +15,7 @@ export type LeadPriority = 'standard' | 'review_next' | 'contact_overdue' | 'hig
 
 export type SubmissionType = 'quick_start' | 'full_audit';
 
-export type LeadEventType =
-  | 'quick_start_submitted'
-  | 'audit_submitted'
-  | 'schedule_clicked'
-  | 'email_clicked'
-  | 'status_changed'
-  | 'note_added'
-  | 'proposal_sent';
+export type LeadEventType = string;
 
 export type TrendDirection = 'up' | 'down' | 'flat';
 

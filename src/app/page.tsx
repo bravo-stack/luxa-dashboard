@@ -1,65 +1,73 @@
-import Image from 'next/image';
+import type { Metadata } from 'next';
+import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
 
-export default function Home() {
+import { LoginForm } from '@/components/auth/login-form';
+import { SESSION_COOKIE_NAME, verifySessionToken } from '@/lib/auth/session';
+
+export const metadata: Metadata = {
+  title: 'Login | Luxa',
+  description: 'Sign in to the private Luxa command center.',
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
+
+export default async function Home() {
+  const session = (await cookies()).get(SESSION_COOKIE_NAME)?.value;
+
+  if (verifySessionToken(session)) {
+    redirect('/dashboard');
+  }
+
   return (
-    <div className="flex flex-1 flex-col items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex w-full max-w-3xl flex-1 flex-col items-center justify-between bg-white px-16 py-32 sm:items-start dark:bg-black">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl leading-10 font-semibold text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{' '}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{' '}
-            or the{' '}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{' '}
-            center.
-          </p>
+    <main className="flex min-h-screen bg-background text-foreground">
+      <section className="grid min-h-screen w-full lg:grid-cols-[minmax(0,0.92fr)_minmax(420px,0.68fr)]">
+        <div className="relative hidden overflow-hidden bg-sidebar text-sidebar-foreground lg:block">
+          <div className="absolute inset-y-12 left-12 w-px bg-sidebar-border" />
+          <div className="absolute right-0 bottom-0 left-0 h-52 bg-[linear-gradient(180deg,transparent,rgba(248,250,252,0.08))]" />
+          <div className="relative flex min-h-screen max-w-2xl flex-col justify-between px-12 py-10">
+            <div>
+              <p className="text-lg font-semibold">Luxa</p>
+              <p className="mt-1 text-sm text-sidebar-foreground/60">
+                Private lead command
+              </p>
+            </div>
+            <div className="pb-10">
+              <p className="max-w-xl text-5xl leading-tight font-semibold tracking-normal text-balance">
+                Keep the operating room quiet.
+              </p>
+              <p className="mt-6 max-w-md text-base leading-7 text-sidebar-foreground/68">
+                Sign in before opening the dashboard workspace for lead review, analytics,
+                and account controls.
+              </p>
+            </div>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-md bg-foreground px-5 text-background transition-colors hover:bg-[#383838] md:w-39.5 dark:hover:bg-[#ccc]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-md border border-solid border-black/8 px-5 transition-colors hover:border-transparent hover:bg-black/4 md:w-39.5 dark:border-white/[.145] dark:hover:bg-[#1a1a1a]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+        <div className="flex min-h-screen items-center justify-center px-5 py-10 sm:px-8">
+          <div className="w-full max-w-md">
+            <div className="mb-10 lg:hidden">
+              <p className="text-xl font-semibold">Luxa</p>
+              <p className="mt-1 text-sm text-muted-foreground">Private lead command</p>
+            </div>
+            <div className="rounded-lg border border-border bg-card p-6 shadow-none sm:p-8">
+              <div className="mb-8">
+                <p className="text-sm font-semibold text-muted-foreground uppercase">
+                  Secure access
+                </p>
+                <h1 className="mt-3 text-3xl leading-tight font-semibold text-card-foreground">
+                  Sign in to Luxa
+                </h1>
+                <p className="mt-3 text-sm leading-6 text-muted-foreground">
+                  Use the temporary operator credentials to enter the dashboard.
+                </p>
+              </div>
+              <LoginForm />
+            </div>
+          </div>
         </div>
-      </main>
-    </div>
+      </section>
+    </main>
   );
 }

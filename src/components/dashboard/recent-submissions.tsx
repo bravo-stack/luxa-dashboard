@@ -41,77 +41,84 @@ export function RecentSubmissions({ submissions }: RecentSubmissionsProps) {
         </Button>
       </CardHeader>
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Lead</TableHead>
-              <TableHead>Audit signal</TableHead>
-              <TableHead>Intent</TableHead>
-              <TableHead>Budget</TableHead>
-              <TableHead>Timeline</TableHead>
-              <TableHead>Owner</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Received</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {submissions.map(({ lead, owner, submission }) => (
-              <TableRow key={submission.id}>
-                <TableCell className="min-w-48">
-                  <Link
-                    href={`/dashboard/leads/${lead.id}`}
-                    className="group inline-flex max-w-full items-center gap-2 font-medium text-foreground hover:text-primary"
-                  >
-                    <span className="truncate">{lead.name}</span>
-                    <ArrowUpRight
-                      className="size-3.5 shrink-0 text-muted-foreground group-hover:text-primary"
-                      aria-hidden="true"
-                    />
-                  </Link>
-                  <div className="mt-1 truncate text-xs text-muted-foreground">
-                    {lead.company}
-                  </div>
-                </TableCell>
-                <TableCell className="min-w-52">
-                  <div className="truncate text-foreground">
-                    {submission.project_type}
-                  </div>
-                  <div className="mt-1 text-xs text-muted-foreground">
-                    {submission.industry_segment}
-                  </div>
-                </TableCell>
-                <TableCell className="min-w-40">
-                  <div className="font-medium text-foreground">
-                    {submission.submission_type === 'full_audit'
-                      ? 'Full audit'
-                      : 'Quick-start'}
-                  </div>
-                  <div className="mt-1 text-xs text-muted-foreground">
-                    {submission.preferred_next_step}
-                  </div>
-                </TableCell>
-                <TableCell className="whitespace-nowrap text-muted-foreground">
-                  {submission.budget_range}
-                </TableCell>
-                <TableCell className="whitespace-nowrap text-muted-foreground">
-                  {submission.timeline}
-                </TableCell>
-                <TableCell className="whitespace-nowrap text-muted-foreground">
-                  {owner?.name ?? 'Unassigned'}
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <LeadScoreBadge score={lead.qualification_score} />
-                    <LeadStatusBadge status={lead.status} />
-                  </div>
-                </TableCell>
-                <TableCell className="text-right whitespace-nowrap text-muted-foreground">
-                  {formatRelativeTime(submission.created_at)}
-                </TableCell>
+        {submissions.length ? (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Lead</TableHead>
+                <TableHead>Audit signal</TableHead>
+                <TableHead>Intent</TableHead>
+                <TableHead>Budget</TableHead>
+                <TableHead>Timeline</TableHead>
+                <TableHead>Owner</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Received</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {submissions.map(({ lead, owner, submission }) => (
+                <TableRow key={submission.id}>
+                  <TableCell className="min-w-48">
+                    <Link
+                      href={`/dashboard/leads/${lead.id}`}
+                      className="group inline-flex max-w-full items-center gap-2 font-medium text-foreground hover:text-primary"
+                    >
+                      <span className="truncate">{lead.name}</span>
+                      <ArrowUpRight
+                        className="size-3.5 shrink-0 text-muted-foreground group-hover:text-primary"
+                        aria-hidden="true"
+                      />
+                    </Link>
+                    <div className="mt-1 truncate text-xs text-muted-foreground">
+                      {lead.company}
+                    </div>
+                  </TableCell>
+                  <TableCell className="min-w-52">
+                    <div className="truncate text-foreground">
+                      {submission.project_type}
+                    </div>
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      {submission.industry_segment}
+                    </div>
+                  </TableCell>
+                  <TableCell className="min-w-40">
+                    <div className="font-medium text-foreground">
+                      {submission.submission_type === 'full_audit'
+                        ? 'Full audit'
+                        : 'Quick-start'}
+                    </div>
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      {submission.preferred_next_step}
+                    </div>
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap text-muted-foreground">
+                    {submission.budget_range}
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap text-muted-foreground">
+                    {submission.timeline}
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap text-muted-foreground">
+                    {owner?.name ?? 'Unassigned'}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <LeadScoreBadge score={lead.qualification_score} />
+                      <LeadStatusBadge status={lead.status} />
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right whitespace-nowrap text-muted-foreground">
+                    {formatRelativeTime(submission.created_at)}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        ) : (
+          <div className="rounded-md border border-dashed border-border bg-muted/20 p-6 text-sm leading-6 text-muted-foreground">
+            No audit submissions yet. When visitors complete quick-start or full audit
+            forms, this table will show the newest sales signals.
+          </div>
+        )}
       </CardContent>
     </Card>
   );

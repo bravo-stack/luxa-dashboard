@@ -1,11 +1,9 @@
 'use client';
 
-import { Suspense } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Bell, CheckCircle2, LogOut, Search, Settings2, UserRound } from 'lucide-react';
 
-import { DateRangePicker } from '@/components/dashboard/date-range-picker';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -58,15 +56,6 @@ export function DashboardTopbar() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <div className="hidden lg:block">
-            <Suspense
-              fallback={
-                <div className="h-12 w-48 rounded-lg border border-border bg-muted/35" />
-              }
-            >
-              <DateRangePicker defaultValue="7d" />
-            </Suspense>
-          </div>
           <ThemeToggle />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

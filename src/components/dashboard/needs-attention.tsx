@@ -25,38 +25,48 @@ export function NeedsAttention({ items }: NeedsAttentionProps) {
         </Button>
       </CardHeader>
       <CardContent className="space-y-3">
-        {items.map((item) => (
-          <div key={item.id} className="rounded-lg border border-border bg-muted/35 p-4">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex gap-3">
-                <div className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-md border border-warning/25 bg-warning/10 text-warning">
-                  <AlertCircle className="size-4" aria-hidden="true" />
-                </div>
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="font-semibold text-foreground">{item.label}</h3>
-                    <PriorityBadge priority={item.priority} />
+        {items.length ? (
+          items.map((item) => (
+            <div
+              key={item.id}
+              className="rounded-lg border border-border bg-muted/25 p-4"
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex gap-3">
+                  <div className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-md border border-warning/20 bg-warning/10 text-warning">
+                    <AlertCircle className="size-4" aria-hidden="true" />
                   </div>
-                  <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                    {item.description}
-                  </p>
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="font-semibold text-foreground">{item.label}</h3>
+                      <PriorityBadge priority={item.priority} />
+                    </div>
+                    <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                      {item.description}
+                    </p>
+                  </div>
                 </div>
+                <span className="text-2xl font-semibold text-foreground tabular-nums">
+                  {item.count}
+                </span>
               </div>
-              <span className="text-2xl font-semibold text-foreground tabular-nums">
-                {item.count}
-              </span>
+              {item.leadIds[0] ? (
+                <Link
+                  href={`/dashboard/leads/${item.leadIds[0]}`}
+                  className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-primary hover:text-primary/80"
+                >
+                  Review next
+                  <ArrowUpRight className="size-4" aria-hidden="true" />
+                </Link>
+              ) : null}
             </div>
-            {item.leadIds[0] ? (
-              <Link
-                href={`/dashboard/leads/${item.leadIds[0]}`}
-                className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-primary hover:text-primary/80"
-              >
-                Review next
-                <ArrowUpRight className="size-4" aria-hidden="true" />
-              </Link>
-            ) : null}
+          ))
+        ) : (
+          <div className="rounded-md border border-dashed border-border bg-muted/20 p-6 text-sm leading-6 text-muted-foreground">
+            No follow-up queues need attention for this range. New owner, reply, and
+            scheduling risks will appear here when they need review.
           </div>
-        ))}
+        )}
       </CardContent>
     </Card>
   );

@@ -1,5 +1,6 @@
 'use client';
 
+import { LineChart as LineChartIcon } from 'lucide-react';
 import {
   Bar,
   BarChart,
@@ -20,6 +21,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
+import { Skeleton } from '@/components/ui/skeleton';
 import type { SourceSummary } from '@/lib/dashboard/types';
 import { cn } from '@/lib/utils';
 
@@ -32,6 +34,10 @@ type AnalyticsChartCardProps = {
   color?: string;
   className?: string;
   valueSuffix?: string;
+  insight?: string;
+  emptyTitle?: string;
+  emptyDescription?: string;
+  state?: 'loaded' | 'loading' | 'error';
 };
 
 const numberFormatter = new Intl.NumberFormat('en', {
@@ -39,6 +45,13 @@ const numberFormatter = new Intl.NumberFormat('en', {
 });
 
 function formatChartValue(value: number, suffix = '') {
+  if (Math.abs(value) >= 1000) {
+    return `${new Intl.NumberFormat('en', {
+      notation: 'compact',
+      maximumFractionDigits: 1,
+    }).format(value)}${suffix}`;
+  }
+
   return `${numberFormatter.format(value)}${suffix}`;
 }
 
@@ -55,6 +68,10 @@ export function AnalyticsChartCard({
   color = 'var(--chart-1)',
   className,
   valueSuffix,
+  insight,
+  emptyTitle = 'No chart data yet',
+  emptyDescription = 'Once this signal starts collecting events, the trend will appear here.',
+  state = 'loaded',
 }: AnalyticsChartCardProps) {
   const chartData = data.map((item, index) => ({
     ...item,
@@ -74,33 +91,34 @@ export function AnalyticsChartCard({
   const hasData = data.length > 0;
 
   return (
-    <Card className={cn(className)}>
-      <CardHeader className="gap-4">
-        <div>
-          <CardTitle>{title}</CardTitle>
-          <CardDescription>{description}</CardDescription>
-        </div>
-        <div className="grid gap-3 rounded-md border border-border bg-muted/35 p-3 sm:grid-cols-3">
-          <div>
-            <p className="text-xs font-semibold text-muted-foreground uppercase">
-              {aggregateLabel}
+    <Card className={cn('overflow-hidden', className)}>
+      <CardHeader className="gap-5 pb-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="max-w-xl">
+            <CardTitle>{title}</CardTitle>
+            <CardDescription>{description}</CardDescription>
+          </div>
+          {insight ? (
+            <p className="max-w-64 rounded-md border border-border bg-muted/35 px-3 py-2 text-xs leading-5 text-muted-foreground">
+              {insight}
             </p>
+          ) : null}
+        </div>
+        <div className="-mx-5 grid gap-3 border-y border-border bg-muted/25 px-5 py-3 sm:grid-cols-3">
+          <div>
+            <p className="text-xs font-medium text-muted-foreground">{aggregateLabel}</p>
             <p className="mt-1 text-lg font-semibold text-foreground tabular-nums">
               {formatChartValue(aggregateValue, valueSuffix)}
             </p>
           </div>
           <div>
-            <p className="text-xs font-semibold text-muted-foreground uppercase">
-              Latest
-            </p>
+            <p className="text-xs font-medium text-muted-foreground">Latest</p>
             <p className="mt-1 text-lg font-semibold text-foreground tabular-nums">
               {formatChartValue(lastPoint, valueSuffix)}
             </p>
           </div>
           <div>
-            <p className="text-xs font-semibold text-muted-foreground uppercase">
-              Change
-            </p>
+            <p className="text-xs font-medium text-muted-foreground">Change</p>
             <p
               className={cn(
                 'mt-1 text-lg font-semibold tabular-nums',
@@ -117,11 +135,31 @@ export function AnalyticsChartCard({
         </div>
       </CardHeader>
       <CardContent>
-        {!hasData ? (
-          <div className="flex h-72 items-center justify-center rounded-md border border-dashed border-border bg-muted/25">
-            <p className="text-sm font-medium text-muted-foreground">
-              No chart data for this view.
-            </p>
+        {state === 'loading' ? (
+          <div className="h-72 rounded-md border border-border bg-muted/20 p-5">
+            <Skeleton className="h-full w-full" />
+          </div>
+        ) : state === 'error' ? (
+          <div className="flex h-72 items-center justify-center rounded-md border border-destructive/20 bg-destructive/5 p-6 text-center">
+            <div>
+              <LineChartIcon className="mx-auto size-5 text-destructive" />
+              <p className="mt-3 text-sm font-semibold text-foreground">
+                Chart unavailable
+              </p>
+              <p className="mt-1 max-w-md text-sm leading-6 text-muted-foreground">
+                Retry the dashboard before using this metric for decisions.
+              </p>
+            </div>
+          </div>
+        ) : !hasData ? (
+          <div className="flex h-72 items-center justify-center rounded-md border border-dashed border-border bg-muted/20 p-6 text-center">
+            <div>
+              <LineChartIcon className="mx-auto size-5 text-muted-foreground" />
+              <p className="mt-3 text-sm font-semibold text-foreground">{emptyTitle}</p>
+              <p className="mt-1 max-w-md text-sm leading-6 text-muted-foreground">
+                {emptyDescription}
+              </p>
+            </div>
           </div>
         ) : (
           <ChartContainer
@@ -137,9 +175,9 @@ export function AnalyticsChartCard({
             {variant === 'bar' ? (
               <BarChart
                 data={chartData}
-                margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+                margin={{ top: 12, right: 12, left: -4, bottom: 0 }}
               >
-                <CartesianGrid vertical={false} strokeDasharray="4 4" />
+                <CartesianGrid vertical={false} strokeDasharray="3 5" />
                 <XAxis
                   dataKey="label"
                   tickFormatter={formatAxisLabel}
@@ -149,7 +187,7 @@ export function AnalyticsChartCard({
                   minTickGap={14}
                 />
                 <YAxis
-                  width={44}
+                  width={42}
                   tickFormatter={(value: number) => formatChartValue(value)}
                   tickLine={false}
                   axisLine={false}
@@ -164,16 +202,16 @@ export function AnalyticsChartCard({
                   dataKey="primary"
                   name={title}
                   fill="var(--color-primary)"
-                  maxBarSize={42}
-                  radius={[5, 5, 2, 2]}
+                  maxBarSize={38}
+                  radius={[4, 4, 1, 1]}
                 />
               </BarChart>
             ) : (
               <LineChart
                 data={chartData}
-                margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+                margin={{ top: 12, right: 12, left: -4, bottom: 0 }}
               >
-                <CartesianGrid vertical={false} strokeDasharray="4 4" />
+                <CartesianGrid vertical={false} strokeDasharray="3 5" />
                 <XAxis
                   dataKey="label"
                   tickFormatter={formatAxisLabel}

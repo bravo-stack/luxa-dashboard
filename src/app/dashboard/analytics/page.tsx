@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import Link from 'next/link';
 import {
   CalendarCheck,
@@ -11,6 +12,7 @@ import {
 
 import { AnalyticsChartCard } from '@/components/dashboard/analytics-chart-card';
 import { DashboardHeader } from '@/components/dashboard/dashboard-header';
+import { DateRangePicker } from '@/components/dashboard/date-range-picker';
 import { FunnelCard } from '@/components/dashboard/funnel-card';
 import { MetricCard } from '@/components/dashboard/metric-card';
 import { SourcePerformance } from '@/components/dashboard/source-performance';
@@ -55,6 +57,13 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
         description="Track CTA behavior, audit conversion, route performance, and attribution signals without exposing private lead details."
         actions={
           <>
+            <Suspense
+              fallback={
+                <div className="h-11 w-48 rounded-md border border-border bg-muted/35" />
+              }
+            >
+              <DateRangePicker defaultValue={filters.dateRange} />
+            </Suspense>
             <Button asChild variant="secondary">
               <Link href="/dashboard">
                 <MousePointerClick className="size-4" />

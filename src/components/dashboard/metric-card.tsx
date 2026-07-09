@@ -9,9 +9,10 @@ type MetricCardProps = {
   metric: MetricSummary;
   icon: LucideIcon;
   emphasis?: boolean;
+  className?: string;
 };
 
-export function MetricCard({ metric, icon: Icon, emphasis }: MetricCardProps) {
+export function MetricCard({ metric, icon: Icon, emphasis, className }: MetricCardProps) {
   const TrendIcon =
     metric.trendDirection === 'up'
       ? ArrowUpRight
@@ -22,30 +23,46 @@ export function MetricCard({ metric, icon: Icon, emphasis }: MetricCardProps) {
   return (
     <Card
       className={cn(
-        'card-lift',
-        emphasis && 'border-primary/35 bg-primary/5 dark:bg-primary/10',
+        'card-lift overflow-hidden',
+        emphasis && 'border-foreground/15 bg-card',
+        className,
       )}
     >
-      <CardContent className="p-5">
-        <div className="flex items-start justify-between gap-4">
+      <CardContent className={cn('p-5', emphasis && 'p-6')}>
+        <div className="flex items-start justify-between gap-5">
           <div>
             <p className="text-sm font-medium text-muted-foreground">{metric.label}</p>
-            <p className="mt-3 text-3xl font-semibold text-foreground tabular-nums">
+            <p
+              className={cn(
+                'mt-3 font-semibold tracking-normal text-foreground tabular-nums',
+                emphasis ? 'text-4xl sm:text-5xl' : 'text-3xl',
+              )}
+            >
               {metric.value}
             </p>
           </div>
-          <div className="flex size-10 items-center justify-center rounded-md border border-border bg-muted/45 text-muted-foreground">
-            <Icon className="size-5" aria-hidden="true" />
-          </div>
-        </div>
-        <div className="mt-5 flex items-center justify-between gap-3">
           <div
             className={cn(
-              'inline-flex items-center gap-1 rounded-md border px-2.5 py-1 text-xs font-semibold',
+              'flex shrink-0 items-center justify-center rounded-md border border-border bg-muted/45 text-muted-foreground',
+              emphasis ? 'size-11' : 'size-10',
+            )}
+          >
+            <Icon className={cn(emphasis ? 'size-5' : 'size-4')} aria-hidden="true" />
+          </div>
+        </div>
+        <div
+          className={cn(
+            'mt-5 flex items-center justify-between gap-3',
+            emphasis && 'mt-7 border-t border-border pt-4',
+          )}
+        >
+          <div
+            className={cn(
+              'inline-flex items-center gap-1 rounded-sm border px-2 py-1 text-xs font-semibold',
               metric.trendDirection === 'up' &&
-                'border-success/25 bg-success/10 text-success',
+                'border-success/20 bg-success/10 text-success',
               metric.trendDirection === 'down' &&
-                'border-destructive/25 bg-destructive/10 text-destructive',
+                'border-destructive/20 bg-destructive/10 text-destructive',
               metric.trendDirection === 'flat' &&
                 'border-border bg-muted/50 text-muted-foreground',
             )}
@@ -53,7 +70,7 @@ export function MetricCard({ metric, icon: Icon, emphasis }: MetricCardProps) {
             <TrendIcon className="size-3.5" aria-hidden="true" />
             {metric.trend}
           </div>
-          <p className="truncate text-xs text-muted-foreground">{metric.note}</p>
+          <p className="min-w-0 truncate text-xs text-muted-foreground">{metric.note}</p>
         </div>
       </CardContent>
     </Card>

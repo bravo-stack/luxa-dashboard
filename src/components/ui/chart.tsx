@@ -92,6 +92,19 @@ type ChartTooltipContentProps = {
   valueSuffix?: string;
 };
 
+const compactNumberFormatter = new Intl.NumberFormat('en', {
+  notation: 'compact',
+  maximumFractionDigits: 1,
+});
+
+function formatTooltipValue(value: string | number | undefined, suffix = '') {
+  if (typeof value === 'number') {
+    return `${compactNumberFormatter.format(value)}${suffix}`;
+  }
+
+  return `${value ?? ''}${suffix}`;
+}
+
 function ChartTooltipContent({
   active,
   payload,
@@ -122,8 +135,7 @@ function ChartTooltipContent({
             <div key={key} className="flex items-center justify-between gap-6">
               <span className="text-muted-foreground">{label}</span>
               <span className="font-semibold text-foreground">
-                {String(item.value)}
-                {valueSuffix}
+                {formatTooltipValue(item.value, valueSuffix)}
               </span>
             </div>
           );

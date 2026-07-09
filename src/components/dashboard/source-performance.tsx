@@ -1,5 +1,3 @@
-import { MousePointerClick, Route, Send, Smartphone, TrendingUp } from 'lucide-react';
-
 import {
   Card,
   CardContent,
@@ -25,58 +23,78 @@ type SourcePerformanceProps = {
   devices: SourceSummary[];
 };
 
-function SourceColumn({
-  title,
-  items,
-  icon: Icon,
-}: {
+type PerformanceTableProps = {
   title: string;
   items: SourceSummary[];
-  icon: typeof Route;
-}) {
+  valueLabel?: string;
+};
+
+function PerformanceTable({
+  title,
+  items,
+  valueLabel = 'Volume',
+}: PerformanceTableProps) {
   const max = Math.max(...items.map((item) => item.value), 1);
 
   return (
-    <div className="rounded-lg border border-border">
-      <div className="flex items-center gap-2 border-b border-border px-4 py-3">
-        <div className="flex size-8 items-center justify-center rounded-md border border-border bg-muted/40 text-muted-foreground">
-          <Icon className="size-4" aria-hidden="true" />
-        </div>
+    <div className="min-w-0 rounded-lg border border-border bg-card">
+      <div className="border-b border-border px-4 py-3">
         <h3 className="text-sm font-semibold text-foreground">{title}</h3>
       </div>
       <Table>
         <TableHeader>
           <TableRow>
             <TableHead>Source</TableHead>
-            <TableHead className="w-28 text-right">Volume</TableHead>
+            <TableHead className="w-28 text-right">{valueLabel}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {items.map((item) => (
-            <TableRow key={item.key}>
-              <TableCell className="min-w-0">
-                <div className="min-w-0">
-                  <div className="truncate font-medium text-foreground">{item.label}</div>
-                  <div className="mt-1 h-1.5 rounded-md bg-muted">
-                    <div
-                      className="h-1.5 rounded-md bg-primary"
-                      style={{ width: `${Math.max(8, (item.value / max) * 100)}%` }}
-                    />
+          {items.length ? (
+            items.map((item) => (
+              <TableRow key={item.key}>
+                <TableCell className="min-w-0">
+                  <div className="min-w-0">
+                    <div className="truncate font-medium text-foreground">
+                      {item.label}
+                    </div>
+                    <div className="mt-2 h-1.5 rounded-sm bg-muted">
+                      <div
+                        className="h-1.5 rounded-sm bg-primary"
+                        style={{ width: `${Math.max(8, (item.value / max) * 100)}%` }}
+                      />
+                    </div>
+                    <p className="mt-1 truncate text-xs text-muted-foreground">
+                      {item.context}
+                    </p>
                   </div>
-                  <p className="mt-1 truncate text-xs text-muted-foreground">
-                    {item.context}
-                  </p>
-                </div>
-              </TableCell>
-              <TableCell className="text-right text-muted-foreground tabular-nums">
-                {item.value.toLocaleString()}
+                </TableCell>
+                <TableCell className="text-right text-muted-foreground tabular-nums">
+                  {item.value.toLocaleString()}
+                </TableCell>
+              </TableRow>
+            ))
+          ) : (
+            <TableRow>
+              <TableCell
+                colSpan={2}
+                className="h-28 text-center text-sm text-muted-foreground"
+              >
+                No source data for this range yet.
               </TableCell>
             </TableRow>
-          ))}
+          )}
         </TableBody>
       </Table>
     </div>
   );
+}
+
+export function TopSourcesTable({ items }: { items: SourceSummary[] }) {
+  return <PerformanceTable title="Top sources" items={items} />;
+}
+
+export function TopPagesTable({ items }: { items: SourceSummary[] }) {
+  return <PerformanceTable title="Top pages" items={items} valueLabel="Visitors" />;
 }
 
 export function SourcePerformance({
@@ -96,15 +114,11 @@ export function SourcePerformance({
         </CardDescription>
       </CardHeader>
       <CardContent className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
-        <SourceColumn title="Top routes" items={routes} icon={Route} />
-        <SourceColumn
-          title="Top CTA sources"
-          items={ctaSources}
-          icon={MousePointerClick}
-        />
-        <SourceColumn title="Top UTM campaigns" items={campaigns} icon={Send} />
-        <SourceColumn title="Top referrers" items={referrers} icon={TrendingUp} />
-        <SourceColumn title="Device category" items={devices} icon={Smartphone} />
+        <TopPagesTable items={routes} />
+        <TopSourcesTable items={referrers} />
+        <PerformanceTable title="CTA sources" items={ctaSources} />
+        <PerformanceTable title="Campaigns" items={campaigns} />
+        <PerformanceTable title="Device category" items={devices} />
       </CardContent>
     </Card>
   );

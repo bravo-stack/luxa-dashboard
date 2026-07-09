@@ -4,6 +4,7 @@ export const leadStatuses = [
   'contacted',
   'scheduled',
   'proposal_ready',
+  'converted',
   'won',
   'lost',
   'archived',

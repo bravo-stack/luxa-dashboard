@@ -11,6 +11,7 @@ begin
     'contacted',
     'scheduled',
     'proposal_ready',
+    'converted',
     'won',
     'lost',
     'archived'

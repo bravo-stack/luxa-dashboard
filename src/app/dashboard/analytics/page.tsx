@@ -11,30 +11,50 @@ import {
 
 import { AnalyticsChartCard } from '@/components/dashboard/analytics-chart-card';
 import { DashboardHeader } from '@/components/dashboard/dashboard-header';
-import { DateRangePicker } from '@/components/dashboard/date-range-picker';
 import { FunnelCard } from '@/components/dashboard/funnel-card';
 import { MetricCard } from '@/components/dashboard/metric-card';
 import { SourcePerformance } from '@/components/dashboard/source-performance';
 import { Button } from '@/components/ui/button';
-import { deviceCategories } from '@/lib/dashboard/mock-data';
-import { getAnalyticsOverview } from '@/lib/dashboard/queries';
+import {
+  getDashboardAnalytics,
+  getLeadFunnelSummary,
+  getTrafficSummary,
+  normalizeAnalyticsFilters,
+} from '@/lib/analytics/server';
+import type { DateRangeKey } from '@/lib/analytics/types';
 
 export const dynamic = 'force-dynamic';
 
 const metricIcons = [UserRound, MousePointerClick, Send, FileCheck2, CalendarCheck, Mail];
 
-export default async function AnalyticsPage() {
-  const analytics = await getAnalyticsOverview();
+type AnalyticsPageProps = {
+  searchParams?: Promise<{
+    range?: string;
+    project?: string;
+    funnel?: string;
+  }>;
+};
+
+export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps) {
+  const params = await searchParams;
+  const filters = normalizeAnalyticsFilters({
+    dateRange: params?.range as DateRangeKey,
+    project: params?.project,
+    funnel: params?.funnel,
+  });
+  const [analytics, traffic, leadFunnel] = await Promise.all([
+    getDashboardAnalytics(filters),
+    getTrafficSummary(filters),
+    getLeadFunnelSummary(filters),
+  ]);
 
   return (
     <>
       <DashboardHeader
-        eyebrow="Behavior analytics"
         title="Funnel intelligence"
         description="Track CTA behavior, audit conversion, route performance, and attribution signals without exposing private lead details."
         actions={
           <>
-            <DateRangePicker defaultValue={analytics.dateRange.key} />
             <Button asChild variant="secondary">
               <Link href="/dashboard">
                 <MousePointerClick className="size-4" />
@@ -70,13 +90,12 @@ export default async function AnalyticsPage() {
       </section>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-        <FunnelCard steps={analytics.funnel} />
+        <FunnelCard steps={leadFunnel.funnel} />
         <AnalyticsChartCard
           title="Daily visitors"
           description="Traffic depth by day with no PII attached."
-          data={analytics.dailyVisitors}
+          data={traffic.dailyVisitors}
           variant="line"
-          color="var(--chart-1)"
         />
       </div>
 
@@ -84,31 +103,27 @@ export default async function AnalyticsPage() {
         <AnalyticsChartCard
           title="Daily submissions"
           description="Quick-start and full audit submissions by day."
-          data={analytics.dailySubmissions}
+          data={traffic.dailySubmissions}
           variant="bar"
-          color="var(--chart-1)"
         />
         <AnalyticsChartCard
           title="Daily schedule clicks"
           description="Booked-intent clicks across audit success and booking paths."
-          data={analytics.dailyScheduleClicks}
+          data={traffic.dailyScheduleClicks}
           variant="bar"
-          color="var(--chart-1)"
         />
         <AnalyticsChartCard
           title="Daily conversion rate"
           description="Visitor to lead conversion rate by day."
-          data={analytics.dailyConversionRate}
+          data={traffic.dailyConversionRate}
           variant="line"
-          color="var(--chart-1)"
           valueSuffix="%"
         />
         <AnalyticsChartCard
           title="CTA clicks by source"
           description="Allowed CTA source values only, backed by provider-neutral telemetry."
-          data={analytics.ctaClicksBySource}
+          data={traffic.ctaClicksBySource}
           variant="bar"
-          color="var(--chart-1)"
         />
       </section>
 
@@ -116,39 +131,35 @@ export default async function AnalyticsPage() {
         <AnalyticsChartCard
           title="Submissions by project type"
           description="Demand themes that should shape discovery and proposal packaging."
-          data={analytics.submissionsByProjectType}
+          data={leadFunnel.submissionsByProjectType}
           variant="bar"
-          color="var(--chart-1)"
         />
         <AnalyticsChartCard
           title="Submissions by industry"
           description="Industry segments submitting audit data in the selected range."
-          data={analytics.submissionsByIndustry}
+          data={leadFunnel.submissionsByIndustry}
           variant="bar"
-          color="var(--chart-1)"
         />
         <AnalyticsChartCard
           title="Submissions by budget"
           description="Budget ranges captured through audit submissions."
-          data={analytics.submissionsByBudget}
+          data={leadFunnel.submissionsByBudget}
           variant="bar"
-          color="var(--chart-1)"
         />
         <AnalyticsChartCard
           title="Submissions by timeline"
           description="Urgency profile for operational follow-up."
-          data={analytics.submissionsByTimeline}
+          data={leadFunnel.submissionsByTimeline}
           variant="bar"
-          color="var(--chart-1)"
         />
       </section>
 
       <SourcePerformance
-        routes={analytics.topLandingPages}
-        ctaSources={analytics.ctaClicksBySource}
-        campaigns={analytics.utmCampaignPerformance}
-        referrers={analytics.topReferrers}
-        devices={deviceCategories}
+        routes={traffic.topLandingPages}
+        ctaSources={traffic.ctaClicksBySource}
+        campaigns={traffic.utmCampaignPerformance}
+        referrers={traffic.topReferrers}
+        devices={traffic.deviceCategories}
       />
     </>
   );

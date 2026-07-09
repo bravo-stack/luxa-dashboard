@@ -30,6 +30,7 @@
   --surface-elevated: #ffffff;
   --surface-premium: #ffffff;
   --chart-1: #64748b;
+  --chart-2: #1d4ed8;
   --sidebar: #0f172a;
   --sidebar-foreground: #f8fafc;
   --sidebar-primary: #f8fafc;
@@ -69,6 +70,7 @@
   --surface-elevated: #0f172a;
   --surface-premium: #0f172a;
   --chart-1: #94a3b8;
+  --chart-2: #60a5fa;
   --sidebar: #020617;
   --sidebar-foreground: #f8fafc;
   --sidebar-primary: #f8fafc;
@@ -106,6 +108,7 @@
   --color-surface-elevated: var(--surface-elevated);
   --color-surface-premium: var(--surface-premium);
   --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);

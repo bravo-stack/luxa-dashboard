@@ -1,3 +1,10 @@
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import type { PipelineStageSummary } from '@/lib/dashboard/types';
 import { cn } from '@/lib/utils';
 
@@ -6,12 +13,12 @@ type PipelineCardProps = {
 };
 
 const intentClasses: Record<PipelineStageSummary['intent'], string> = {
-  neutral: 'bg-muted text-muted-foreground',
-  primary: 'bg-primary text-primary-foreground',
-  violet: 'bg-muted-foreground text-background',
-  teal: 'bg-success text-success-foreground',
-  warm: 'bg-warning text-warning-foreground',
-  destructive: 'bg-destructive text-destructive-foreground',
+  neutral: 'bg-muted-foreground/40',
+  primary: 'bg-primary',
+  violet: 'bg-primary',
+  teal: 'bg-success',
+  warm: 'bg-warning',
+  destructive: 'bg-destructive',
 };
 
 export function PipelineStage({
@@ -27,7 +34,7 @@ export function PipelineStage({
     <div className="space-y-2">
       <div className="flex items-center justify-between gap-3">
         <span className="text-sm font-semibold text-foreground">{stage.label}</span>
-        <span className="font-mono text-sm text-muted-foreground">{stage.value}</span>
+        <span className="text-sm text-muted-foreground tabular-nums">{stage.value}</span>
       </div>
       <div className="h-2 rounded-md bg-muted/80">
         <div
@@ -36,7 +43,8 @@ export function PipelineStage({
         />
       </div>
       <p className="text-xs text-muted-foreground">
-        <span className="font-mono text-foreground">{stage.count}</span> leads
+        <span className="font-semibold text-foreground tabular-nums">{stage.count}</span>{' '}
+        leads
       </p>
     </div>
   );
@@ -46,23 +54,18 @@ export function PipelineCard({ stages }: PipelineCardProps) {
   const maxCount = Math.max(...stages.map((stage) => stage.count));
 
   return (
-    <section className="surface-premium rounded-lg p-5 sm:p-6">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+    <Card>
+      <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-xs font-semibold text-primary uppercase">Pipeline health</p>
-          <h2 className="mt-2 text-xl font-semibold text-foreground">
-            Revenue movement by stage
-          </h2>
+          <CardTitle>Revenue movement by stage</CardTitle>
+          <CardDescription>Pipeline health with archived leads retained.</CardDescription>
         </div>
-        <p className="text-sm text-muted-foreground">
-          Archived leads stay visible for operational context.
-        </p>
-      </div>
-      <div className="mt-6 grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+      </CardHeader>
+      <CardContent className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
         {stages.map((stage) => (
           <PipelineStage key={stage.status} stage={stage} maxCount={maxCount} />
         ))}
-      </div>
-    </section>
+      </CardContent>
+    </Card>
   );
 }

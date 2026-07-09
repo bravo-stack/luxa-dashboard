@@ -19,10 +19,17 @@ export const analyticsEventNames = [
 export type AnalyticsEventName = (typeof analyticsEventNames)[number];
 
 export const allowedAnalyticsProperties = [
-  'lead_id',
+  'path',
   'route',
+  'referrer',
   'source',
+  'campaign',
+  'device_type',
+  'anonymous_session_id',
+  'timestamp',
   'cta_label',
+  'project_id',
+  'funnel_id',
   'project_type',
   'industry_segment',
   'budget_range',

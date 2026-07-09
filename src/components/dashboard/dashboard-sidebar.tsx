@@ -15,10 +15,16 @@ import {
   Settings2,
   UsersRound,
   Workflow,
-  X,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 
 const primaryNav = [
@@ -131,40 +137,28 @@ export function DashboardSidebar() {
 
   return (
     <>
-      <Button
-        variant="secondary"
-        size="icon"
-        className="fixed top-3 left-4 z-50 lg:hidden"
-        aria-label="Open dashboard navigation"
-        onClick={() => setOpen(true)}
-      >
-        <Menu className="size-5" />
-      </Button>
+      <Sheet open={open} onOpenChange={setOpen}>
+        <SheetTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="fixed top-3 left-4 z-40 lg:hidden"
+            aria-label="Open dashboard navigation"
+          >
+            <Menu className="size-5" />
+          </Button>
+        </SheetTrigger>
+        <SheetContent className="p-0">
+          <SheetTitle className="sr-only">Dashboard navigation</SheetTitle>
+          <SheetDescription className="sr-only">
+            Navigate Luxa dashboard sections.
+          </SheetDescription>
+          <SidebarContent onNavigate={() => setOpen(false)} />
+        </SheetContent>
+      </Sheet>
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-72 border-r border-sidebar-border bg-sidebar text-sidebar-foreground lg:block">
         <SidebarContent />
       </aside>
-      {open ? (
-        <div className="fixed inset-0 z-50 lg:hidden">
-          <button
-            type="button"
-            className="absolute inset-0 bg-background/90"
-            aria-label="Close dashboard navigation"
-            onClick={() => setOpen(false)}
-          />
-          <aside className="relative h-full w-[min(86vw,20rem)] border-r border-sidebar-border bg-sidebar text-sidebar-foreground shadow-none">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute top-3 right-3"
-              aria-label="Close dashboard navigation"
-              onClick={() => setOpen(false)}
-            >
-              <X className="size-5" />
-            </Button>
-            <SidebarContent onNavigate={() => setOpen(false)} />
-          </aside>
-        </div>
-      ) : null}
     </>
   );
 }

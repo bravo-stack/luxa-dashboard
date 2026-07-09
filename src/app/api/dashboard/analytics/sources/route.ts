@@ -1,16 +1,22 @@
-import { getAnalyticsOverview } from '@/lib/dashboard/queries';
+import {
+  getAnalyticsFiltersFromUrl,
+  getTrafficSummaryResponse,
+} from '@/lib/analytics/server';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
-  const analytics = await getAnalyticsOverview();
+export async function GET(request: Request) {
+  const response = await getTrafficSummaryResponse(
+    getAnalyticsFiltersFromUrl(request.url),
+  );
 
   return Response.json({
+    ...response,
     data: {
-      ctaSources: analytics.ctaClicksBySource,
-      referrers: analytics.topReferrers,
-      campaigns: analytics.utmCampaignPerformance,
+      ctaSources: response.data.ctaClicksBySource,
+      referrers: response.data.topReferrers,
+      campaigns: response.data.utmCampaignPerformance,
+      devices: response.data.deviceCategories,
     },
-    source: analytics.source,
   });
 }

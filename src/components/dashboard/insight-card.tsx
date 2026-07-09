@@ -1,5 +1,6 @@
 import type { LucideIcon } from 'lucide-react';
 
+import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
 type InsightCardProps = {
@@ -25,20 +26,24 @@ export function InsightCard({
   tone = 'primary',
 }: InsightCardProps) {
   return (
-    <article className="surface-elevated rounded-lg p-5">
-      <div className="flex items-center justify-between gap-4">
-        <div
-          className={cn(
-            'flex size-10 items-center justify-center rounded-lg border',
-            toneClasses[tone],
-          )}
-        >
-          <Icon className="size-4" aria-hidden="true" />
+    <Card>
+      <CardContent className="p-5">
+        <div className="flex items-center justify-between gap-4">
+          <div
+            className={cn(
+              'flex size-10 items-center justify-center rounded-md border',
+              toneClasses[tone],
+            )}
+          >
+            <Icon className="size-4" aria-hidden="true" />
+          </div>
+          <span className="text-2xl font-semibold text-foreground tabular-nums">
+            {value}
+          </span>
         </div>
-        <span className="font-mono text-2xl font-semibold text-foreground">{value}</span>
-      </div>
-      <h3 className="mt-5 text-sm font-semibold text-foreground">{title}</h3>
-      <p className="mt-2 text-sm leading-6 text-muted-foreground">{description}</p>
-    </article>
+        <h3 className="mt-5 text-sm font-semibold text-foreground">{title}</h3>
+        <p className="mt-2 text-sm leading-6 text-muted-foreground">{description}</p>
+      </CardContent>
+    </Card>
   );
 }

@@ -14,7 +14,7 @@ declare global {
   }
 }
 
-export async function trackAnalyticsEvent(
+export async function trackEvent(
   eventName: AnalyticsEventName,
   properties: Record<string, string | number | boolean | null | undefined> = {},
 ) {
@@ -39,6 +39,8 @@ export async function trackAnalyticsEvent(
   }
 }
 
+export const trackAnalyticsEvent = trackEvent;
+
 export function useAnalytics() {
-  return { track: trackAnalyticsEvent };
+  return { track: trackEvent };
 }

@@ -15,6 +15,7 @@ export const statusLabels: Record<LeadStatus, string> = {
   contacted: 'Contacted',
   scheduled: 'Scheduled',
   proposal_ready: 'Proposal ready',
+  converted: 'Converted',
   won: 'Won',
   lost: 'Lost',
   archived: 'Archived',
@@ -52,7 +53,9 @@ export function isQualifiedLead(lead: Lead) {
 export function isQualifiedNotScheduled(lead: Lead) {
   return (
     isQualifiedLead(lead) &&
-    !['scheduled', 'proposal_ready', 'won', 'lost', 'archived'].includes(lead.status)
+    !['scheduled', 'proposal_ready', 'converted', 'won', 'lost', 'archived'].includes(
+      lead.status,
+    )
   );
 }
 

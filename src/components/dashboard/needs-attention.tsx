@@ -3,6 +3,7 @@ import { AlertCircle, ArrowUpRight } from 'lucide-react';
 
 import { PriorityBadge } from '@/components/leads/priority-badge';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { NeedsAttentionItem } from '@/lib/dashboard/types';
 
 type NeedsAttentionProps = {
@@ -11,24 +12,24 @@ type NeedsAttentionProps = {
 
 export function NeedsAttention({ items }: NeedsAttentionProps) {
   return (
-    <section className="surface-premium rounded-lg p-5 sm:p-6">
-      <div className="flex items-start justify-between gap-4">
+    <Card>
+      <CardHeader className="flex flex-row items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold text-warning uppercase">Needs attention</p>
-          <h2 className="mt-2 text-xl font-semibold text-foreground">
-            Follow-up control
-          </h2>
+          <CardTitle>Follow-up control</CardTitle>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Queues that need owner review or next-step discipline.
+          </p>
         </div>
         <Button asChild variant="secondary" size="sm">
           <Link href="/dashboard/leads">Open queue</Link>
         </Button>
-      </div>
-      <div className="mt-6 space-y-3">
+      </CardHeader>
+      <CardContent className="space-y-3">
         {items.map((item) => (
-          <div key={item.id} className="rounded-lg border border-border bg-muted/45 p-4">
+          <div key={item.id} className="rounded-lg border border-border bg-muted/35 p-4">
             <div className="flex items-start justify-between gap-4">
               <div className="flex gap-3">
-                <div className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg border border-warning/25 bg-warning/10 text-warning">
+                <div className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-md border border-warning/25 bg-warning/10 text-warning">
                   <AlertCircle className="size-4" aria-hidden="true" />
                 </div>
                 <div>
@@ -41,7 +42,7 @@ export function NeedsAttention({ items }: NeedsAttentionProps) {
                   </p>
                 </div>
               </div>
-              <span className="font-mono text-2xl font-semibold text-foreground">
+              <span className="text-2xl font-semibold text-foreground tabular-nums">
                 {item.count}
               </span>
             </div>
@@ -56,7 +57,7 @@ export function NeedsAttention({ items }: NeedsAttentionProps) {
             ) : null}
           </div>
         ))}
-      </div>
-    </section>
+      </CardContent>
+    </Card>
   );
 }

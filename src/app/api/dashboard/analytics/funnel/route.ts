@@ -1,9 +1,14 @@
-import { getAnalyticsOverview } from '@/lib/dashboard/queries';
+import {
+  getAnalyticsFiltersFromUrl,
+  getLeadFunnelSummaryResponse,
+} from '@/lib/analytics/server';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
-  const analytics = await getAnalyticsOverview();
+export async function GET(request: Request) {
+  const response = await getLeadFunnelSummaryResponse(
+    getAnalyticsFiltersFromUrl(request.url),
+  );
 
-  return Response.json({ data: analytics.funnel, source: analytics.source });
+  return Response.json(response);
 }

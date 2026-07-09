@@ -1,12 +1,12 @@
 import {
   getAnalyticsFiltersFromUrl,
-  getDashboardMetricsResponse,
+  getRecentActivityResponse,
 } from '@/lib/analytics/server';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
-  const response = await getDashboardMetricsResponse(
+  const response = await getRecentActivityResponse(
     getAnalyticsFiltersFromUrl(request.url),
   );
 

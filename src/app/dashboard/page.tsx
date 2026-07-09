@@ -12,16 +12,17 @@ import {
   UsersRound,
 } from 'lucide-react';
 
+import { AnalyticsChartCard } from '@/components/dashboard/analytics-chart-card';
 import { DashboardHeader } from '@/components/dashboard/dashboard-header';
-import { DateRangePicker } from '@/components/dashboard/date-range-picker';
 import { FunnelCard } from '@/components/dashboard/funnel-card';
 import { InsightCard } from '@/components/dashboard/insight-card';
 import { MetricCard } from '@/components/dashboard/metric-card';
 import { NeedsAttention } from '@/components/dashboard/needs-attention';
-import { PipelineCard } from '@/components/dashboard/pipeline-card';
 import { RecentSubmissions } from '@/components/dashboard/recent-submissions';
 import { SourcePerformance } from '@/components/dashboard/source-performance';
 import { Button } from '@/components/ui/button';
+import { getTrafficSummary, normalizeAnalyticsFilters } from '@/lib/analytics/server';
+import type { DateRangeKey } from '@/lib/analytics/types';
 import { getDashboardOverview } from '@/lib/dashboard/queries';
 
 export const dynamic = 'force-dynamic';
@@ -35,18 +36,33 @@ const metricIcons = [
   MousePointerClick,
 ];
 
-export default async function DashboardPage() {
-  const overview = await getDashboardOverview();
+type DashboardPageProps = {
+  searchParams?: Promise<{
+    range?: string;
+    project?: string;
+    funnel?: string;
+  }>;
+};
+
+export default async function DashboardPage({ searchParams }: DashboardPageProps) {
+  const params = await searchParams;
+  const filters = normalizeAnalyticsFilters({
+    dateRange: params?.range as DateRangeKey,
+    project: params?.project,
+    funnel: params?.funnel,
+  });
+  const [overview, traffic] = await Promise.all([
+    getDashboardOverview(filters.dateRange),
+    getTrafficSummary(filters),
+  ]);
 
   return (
     <>
       <DashboardHeader
-        eyebrow="Luxa operations"
         title="Command center"
-        description="Control the inbound funnel, audit review queue, sales pipeline, and next actions from one calm operational surface."
+        description="Monitor inbound demand, lead quality, source performance, and sales follow-up from one restrained operating surface."
         actions={
           <>
-            <DateRangePicker defaultValue={overview.dateRange.key} />
             <Button asChild variant="secondary">
               <Link href="/dashboard/analytics">
                 <BarChart3 className="size-4" />
@@ -81,15 +97,28 @@ export default async function DashboardPage() {
         })}
       </section>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.08fr)_minmax(420px,0.92fr)]">
-        <PipelineCard stages={overview.pipeline} />
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(420px,0.9fr)]">
+        <AnalyticsChartCard
+          title="Traffic and conversion trend"
+          description="Daily visitors and lead submissions for the selected operating window."
+          data={traffic.dailyVisitors}
+          secondaryData={traffic.dailySubmissions}
+          variant="line"
+        />
         <FunnelCard steps={overview.funnel} />
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(380px,0.85fr)]">
-        <RecentSubmissions submissions={overview.recentSubmissions} />
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.08fr)_minmax(420px,0.92fr)]">
+        <AnalyticsChartCard
+          title="Booked-intent movement"
+          description="Schedule clicks by day, captured without private lead details."
+          data={traffic.dailyScheduleClicks}
+          variant="bar"
+        />
         <NeedsAttention items={overview.needsAttention} />
       </div>
+
+      <RecentSubmissions submissions={overview.recentSubmissions} />
 
       <SourcePerformance
         routes={overview.topRoutes}

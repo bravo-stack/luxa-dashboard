@@ -1,9 +1,24 @@
 import Link from 'next/link';
-import { ArrowUpRight, ClipboardCheck } from 'lucide-react';
+import { ArrowUpRight } from 'lucide-react';
 
 import { LeadScoreBadge } from '@/components/leads/lead-score-badge';
 import { LeadStatusBadge } from '@/components/leads/lead-status-badge';
 import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import type { RecentSubmissionItem } from '@/lib/dashboard/types';
 import { formatRelativeTime } from '@/lib/dashboard/utils';
 
@@ -13,70 +28,91 @@ type RecentSubmissionsProps = {
 
 export function RecentSubmissions({ submissions }: RecentSubmissionsProps) {
   return (
-    <section className="surface-elevated rounded-lg p-5 sm:p-6">
-      <div className="flex items-start justify-between gap-4">
+    <Card>
+      <CardHeader className="flex flex-row items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold text-primary uppercase">
-            Recent submissions
-          </p>
-          <h2 className="mt-2 text-xl font-semibold text-foreground">
-            Newest audit signals
-          </h2>
+          <CardTitle>Newest audit signals</CardTitle>
+          <CardDescription>
+            Recent lead activity ordered by intent depth and time.
+          </CardDescription>
         </div>
         <Button asChild variant="ghost" size="sm">
           <Link href="/dashboard/leads">View leads</Link>
         </Button>
-      </div>
-      <div className="mt-6 space-y-3">
-        {submissions.map(({ lead, submission }) => (
-          <Link
-            key={submission.id}
-            href={`/dashboard/leads/${lead.id}`}
-            className="card-lift group block rounded-lg border border-border bg-muted/45 p-4 hover:bg-muted/60"
-          >
-            <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-              <div className="flex min-w-0 items-start gap-3">
-                <div className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-primary/20 bg-primary/10 text-primary">
-                  <ClipboardCheck className="size-4" aria-hidden="true" />
-                </div>
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="font-semibold text-foreground">{lead.name}</h3>
-                    <span className="text-sm text-muted-foreground">{lead.company}</span>
+      </CardHeader>
+      <CardContent>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Lead</TableHead>
+              <TableHead>Audit signal</TableHead>
+              <TableHead>Intent</TableHead>
+              <TableHead>Budget</TableHead>
+              <TableHead>Timeline</TableHead>
+              <TableHead>Owner</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-right">Received</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {submissions.map(({ lead, owner, submission }) => (
+              <TableRow key={submission.id}>
+                <TableCell className="min-w-48">
+                  <Link
+                    href={`/dashboard/leads/${lead.id}`}
+                    className="group inline-flex max-w-full items-center gap-2 font-medium text-foreground hover:text-primary"
+                  >
+                    <span className="truncate">{lead.name}</span>
+                    <ArrowUpRight
+                      className="size-3.5 shrink-0 text-muted-foreground group-hover:text-primary"
+                      aria-hidden="true"
+                    />
+                  </Link>
+                  <div className="mt-1 truncate text-xs text-muted-foreground">
+                    {lead.company}
                   </div>
-                  <p className="mt-1 text-sm text-muted-foreground">
+                </TableCell>
+                <TableCell className="min-w-52">
+                  <div className="truncate text-foreground">
                     {submission.project_type}
-                  </p>
-                  <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
-                    <span className="rounded-md border border-border bg-muted/50 px-2.5 py-1">
-                      {submission.submission_type === 'full_audit'
-                        ? 'Full audit'
-                        : 'Quick-start'}
-                    </span>
-                    <span className="rounded-md border border-border bg-muted/50 px-2.5 py-1">
-                      {submission.budget_range}
-                    </span>
-                    <span className="rounded-md border border-border bg-muted/50 px-2.5 py-1">
-                      {submission.timeline}
-                    </span>
                   </div>
-                </div>
-              </div>
-              <div className="flex flex-wrap items-center gap-2 xl:justify-end">
-                <LeadScoreBadge score={lead.qualification_score} />
-                <LeadStatusBadge status={lead.status} />
-                <span className="rounded-md border border-border bg-muted/50 px-2.5 py-1 text-xs text-muted-foreground">
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    {submission.industry_segment}
+                  </div>
+                </TableCell>
+                <TableCell className="min-w-40">
+                  <div className="font-medium text-foreground">
+                    {submission.submission_type === 'full_audit'
+                      ? 'Full audit'
+                      : 'Quick-start'}
+                  </div>
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    {submission.preferred_next_step}
+                  </div>
+                </TableCell>
+                <TableCell className="whitespace-nowrap text-muted-foreground">
+                  {submission.budget_range}
+                </TableCell>
+                <TableCell className="whitespace-nowrap text-muted-foreground">
+                  {submission.timeline}
+                </TableCell>
+                <TableCell className="whitespace-nowrap text-muted-foreground">
+                  {owner?.name ?? 'Unassigned'}
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <LeadScoreBadge score={lead.qualification_score} />
+                    <LeadStatusBadge status={lead.status} />
+                  </div>
+                </TableCell>
+                <TableCell className="text-right whitespace-nowrap text-muted-foreground">
                   {formatRelativeTime(submission.created_at)}
-                </span>
-                <ArrowUpRight
-                  className="size-4 text-muted-foreground transition-colors group-hover:text-primary"
-                  aria-hidden="true"
-                />
-              </div>
-            </div>
-          </Link>
-        ))}
-      </div>
-    </section>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
   );
 }

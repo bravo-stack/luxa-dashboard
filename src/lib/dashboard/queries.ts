@@ -95,7 +95,11 @@ function getLiveDashboardMetrics(
   events: LeadEvent[],
 ): MetricSummary[] {
   const openLeads = liveLeads.filter(
-    (lead) => lead.status !== 'archived' && lead.status !== 'lost',
+    (lead) =>
+      lead.status !== 'archived' &&
+      lead.status !== 'lost' &&
+      lead.status !== 'won' &&
+      lead.status !== 'converted',
   );
   const fullAuditSubmissions = submissions.filter(
     (submission) => submission.submission_type === 'full_audit',
@@ -197,7 +201,7 @@ export async function getDashboardOverview(
 
       return new Date(second.created_at).getTime() - new Date(first.created_at).getTime();
     })
-    .slice(0, 5)
+    .slice(0, 10)
     .map((submission) => {
       const lead = dataset.leads.find((item) => item.id === submission.lead_id);
 

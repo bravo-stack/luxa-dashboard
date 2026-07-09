@@ -51,7 +51,7 @@ export function LoginForm() {
             name="username"
             autoComplete="username"
             className="h-12 pl-10"
-            placeholder="user12221"
+            placeholder="Enter username"
             required
           />
         </div>
@@ -71,7 +71,7 @@ export function LoginForm() {
             type="password"
             autoComplete="current-password"
             className="h-12 pl-10"
-            placeholder="password"
+            placeholder="Enter password"
             required
           />
         </div>

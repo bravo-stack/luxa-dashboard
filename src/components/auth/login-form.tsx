@@ -16,15 +16,15 @@ function SubmitButton() {
   const { pending } = useFormStatus();
 
   return (
-    <Button type="submit" size="lg" className="mt-2 h-12 w-full" disabled={pending}>
+    <Button type="submit" size="lg" className="mt-1 h-12 w-full" disabled={pending}>
       {pending ? (
         <>
           <Loader2 className="animate-spin" aria-hidden="true" />
-          Checking
+          Verifying access
         </>
       ) : (
         <>
-          Enter dashboard
+          Continue to workspace
           <ArrowRight aria-hidden="true" />
         </>
       )}
@@ -38,7 +38,7 @@ export function LoginForm() {
   return (
     <form action={formAction} className="grid gap-5">
       <div className="grid gap-2">
-        <label className="text-sm font-semibold text-foreground" htmlFor="username">
+        <label className="text-xs font-semibold text-foreground" htmlFor="username">
           Username
         </label>
         <div className="relative">
@@ -50,14 +50,14 @@ export function LoginForm() {
             id="username"
             name="username"
             autoComplete="username"
-            className="h-12 pl-10"
-            placeholder="Enter username"
+            className="h-12 border-border bg-card pl-10"
+            placeholder="Your username"
             required
           />
         </div>
       </div>
       <div className="grid gap-2">
-        <label className="text-sm font-semibold text-foreground" htmlFor="password">
+        <label className="text-xs font-semibold text-foreground" htmlFor="password">
           Password
         </label>
         <div className="relative">
@@ -70,13 +70,13 @@ export function LoginForm() {
             name="password"
             type="password"
             autoComplete="current-password"
-            className="h-12 pl-10"
-            placeholder="Enter password"
+            className="h-12 border-border bg-card pl-10"
+            placeholder="Your password"
             required
           />
         </div>
       </div>
-      <p className="min-h-5 text-sm font-medium text-destructive" aria-live="polite">
+      <p className="min-h-5 text-xs font-medium text-destructive" aria-live="polite">
         {state.message}
       </p>
       <SubmitButton />

@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   BarChart3,
-  BookOpenText,
   BriefcaseBusiness,
   CalendarClock,
   ExternalLink,
@@ -46,22 +45,32 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="px-5 py-5">
+      <div className="px-4 pt-5 pb-4">
         <Link
           href="/dashboard"
           onClick={onNavigate}
-          className="block rounded-md px-3 py-2 transition-colors hover:bg-sidebar-accent"
+          className="flex items-center gap-3 rounded-md px-2 py-2 transition-colors hover:bg-sidebar-accent"
         >
-          <span className="block text-lg font-semibold text-sidebar-foreground">
-            Luxa
+          <span className="grid size-8 place-items-center rounded-md bg-primary text-sm font-bold text-primary-foreground shadow-sm">
+            L
           </span>
-          <span className="text-xs text-sidebar-foreground/64">Lead command</span>
+          <span className="grid min-w-0">
+            <span className="text-sm font-semibold tracking-[-0.01em] text-sidebar-foreground">
+              Luxa
+            </span>
+            <span className="text-[0.6875rem] text-sidebar-foreground/55">
+              Operations
+            </span>
+          </span>
         </Link>
       </div>
-      <nav className="flex-1 space-y-7 px-3 py-2" aria-label="Dashboard navigation">
+      <nav
+        className="flex-1 space-y-6 overflow-y-auto px-3 py-3"
+        aria-label="Dashboard navigation"
+      >
         <div>
-          <p className="px-3 text-xs font-semibold text-muted-foreground uppercase">
-            Command
+          <p className="px-2 text-[0.625rem] font-semibold tracking-[0.14em] text-sidebar-foreground/45 uppercase">
+            Workspace
           </p>
           <div className="mt-2 space-y-1">
             {primaryNav.map((item) => {
@@ -76,9 +85,8 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
                   href={item.href}
                   onClick={onNavigate}
                   className={cn(
-                    'flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-semibold text-sidebar-foreground/72 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-                    isActive &&
-                      'border border-sidebar-border bg-sidebar-accent text-sidebar-accent-foreground',
+                    'flex items-center gap-3 rounded-md px-2.5 py-2 text-[0.8125rem] font-medium text-sidebar-foreground/68 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                    isActive && 'bg-sidebar-accent text-sidebar-accent-foreground',
                   )}
                 >
                   <Icon className="size-4" aria-hidden="true" />
@@ -89,8 +97,8 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
           </div>
         </div>
         <div>
-          <p className="px-3 text-xs font-semibold text-muted-foreground uppercase">
-            Funnel paths
+          <p className="px-2 text-[0.625rem] font-semibold tracking-[0.14em] text-sidebar-foreground/45 uppercase">
+            Quick links
           </p>
           <div className="mt-2 space-y-1">
             {secondaryNav.map((item) => {
@@ -101,7 +109,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
                   key={item.href}
                   href={item.href}
                   onClick={onNavigate}
-                  className="flex items-center justify-between rounded-md px-3 py-2.5 text-sm font-medium text-sidebar-foreground/72 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                  className="flex items-center justify-between rounded-md px-2.5 py-2 text-[0.8125rem] font-medium text-sidebar-foreground/62 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                 >
                   <span className="flex items-center gap-3">
                     <Icon className="size-4" aria-hidden="true" />
@@ -114,18 +122,20 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
           </div>
         </div>
       </nav>
-      <div className="p-4">
-        <div className="rounded-lg border border-sidebar-border bg-sidebar-accent p-4">
-          <p className="text-sm font-semibold text-sidebar-foreground">Luxa Admin</p>
-          <p className="text-xs text-sidebar-foreground/64">Ops workspace</p>
-          <Link
-            href="/dashboard/leads"
-            onClick={onNavigate}
-            className="mt-4 flex items-center justify-between rounded-md border border-sidebar-border bg-sidebar px-3 py-2 text-xs font-semibold text-sidebar-foreground/75 hover:text-sidebar-foreground"
-          >
-            Needs attention
-            <BookOpenText className="size-3.5" aria-hidden="true" />
-          </Link>
+      <div className="border-t border-sidebar-border p-4">
+        <div className="flex items-center gap-3 px-1">
+          <span className="grid size-8 place-items-center rounded-full bg-accent text-xs font-semibold text-accent-foreground">
+            LA
+          </span>
+          <span className="grid min-w-0 flex-1">
+            <span className="truncate text-xs font-semibold text-sidebar-foreground">
+              Luxa Admin
+            </span>
+            <span className="truncate text-[0.6875rem] text-sidebar-foreground/50">
+              Admin workspace
+            </span>
+          </span>
+          <span className="size-2 rounded-full bg-success" aria-label="Online" />
         </div>
       </div>
     </div>
@@ -156,7 +166,7 @@ export function DashboardSidebar() {
           <SidebarContent onNavigate={() => setOpen(false)} />
         </SheetContent>
       </Sheet>
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-72 border-r border-sidebar-border bg-sidebar text-sidebar-foreground lg:block">
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 border-r border-sidebar-border bg-sidebar text-sidebar-foreground lg:block">
         <SidebarContent />
       </aside>
     </>

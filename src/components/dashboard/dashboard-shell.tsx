@@ -11,9 +11,9 @@ export function DashboardShell({ children }: DashboardShellProps) {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <DashboardSidebar />
-      <div className="relative min-h-screen lg:pl-72">
+      <div className="relative min-h-screen lg:pl-64">
         <DashboardTopbar />
-        <main className="mx-auto flex w-full max-w-375 flex-col gap-8 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+        <main className="mx-auto flex w-full max-w-375 flex-col gap-10 px-4 py-6 sm:px-6 lg:px-10 lg:py-9">
           {children}
         </main>
       </div>

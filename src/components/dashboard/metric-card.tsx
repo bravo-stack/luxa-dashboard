@@ -23,8 +23,8 @@ export function MetricCard({ metric, icon: Icon, emphasis, className }: MetricCa
   return (
     <Card
       className={cn(
-        'card-lift overflow-hidden',
-        emphasis && 'border-foreground/15 bg-card',
+        'card-lift overflow-hidden shadow-none',
+        emphasis && 'border-primary/20 bg-surface-premium',
         className,
       )}
     >
@@ -34,8 +34,8 @@ export function MetricCard({ metric, icon: Icon, emphasis, className }: MetricCa
             <p className="text-sm font-medium text-muted-foreground">{metric.label}</p>
             <p
               className={cn(
-                'mt-3 font-semibold tracking-normal text-foreground tabular-nums',
-                emphasis ? 'text-4xl sm:text-5xl' : 'text-3xl',
+                'mt-3 font-semibold tracking-[-0.04em] text-foreground tabular-nums',
+                emphasis ? 'text-4xl sm:text-[2.75rem]' : 'text-3xl',
               )}
             >
               {metric.value}
@@ -43,7 +43,7 @@ export function MetricCard({ metric, icon: Icon, emphasis, className }: MetricCa
           </div>
           <div
             className={cn(
-              'flex shrink-0 items-center justify-center rounded-md border border-border bg-muted/45 text-muted-foreground',
+              'flex shrink-0 items-center justify-center rounded-md border border-border bg-background/60 text-muted-foreground',
               emphasis ? 'size-11' : 'size-10',
             )}
           >

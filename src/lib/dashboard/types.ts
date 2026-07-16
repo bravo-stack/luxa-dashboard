@@ -1,20 +1,17 @@
 export const leadStatuses = [
   'new',
-  'qualified',
   'contacted',
-  'scheduled',
-  'proposal_ready',
-  'converted',
+  'qualified',
   'won',
   'lost',
-  'archived',
+  'spam',
 ] as const;
 
 export type LeadStatus = (typeof leadStatuses)[number];
 
 export type LeadPriority = 'standard' | 'review_next' | 'contact_overdue' | 'high_fit';
 
-export type SubmissionType = 'quick_start' | 'full_audit';
+export type SubmissionType = 'quick_start' | 'platform_audit';
 
 export type LeadEventType = string;
 
@@ -22,21 +19,13 @@ export type TrendDirection = 'up' | 'down' | 'flat';
 
 export type DateRangeKey = '7d' | '14d' | '30d' | '90d';
 
-export type AnalyticsSource = 'supabase' | 'umami' | 'mock';
+export type AnalyticsSource = 'supabase' | 'umami';
 
 export interface DateRange {
   key: DateRangeKey;
   label: string;
   from: string;
   to: string;
-}
-
-export interface LeadOwner {
-  id: string;
-  name: string;
-  initials: string;
-  role: string;
-  avatar_url?: string;
 }
 
 export interface Lead {
@@ -49,9 +38,8 @@ export interface Lead {
   website?: string;
   status: LeadStatus;
   source: string;
-  owner_user_id: string | null;
-  last_contacted_at: string | null;
-  qualification_score: number;
+  locale: 'en' | 'ar';
+  pathname: string;
 }
 
 export interface AuditSubmission {
@@ -143,7 +131,6 @@ export interface NeedsAttentionItem {
 export interface RecentSubmissionItem {
   lead: Lead;
   submission: AuditSubmission;
-  owner?: LeadOwner;
 }
 
 export interface DashboardOverview {
@@ -166,10 +153,15 @@ export interface AnalyticsSummary {
   metrics: MetricSummary[];
   funnel: FunnelStepSummary[];
   dailyVisitors: SourceSummary[];
+  dailyFormStarts?: SourceSummary[];
   dailySubmissions: SourceSummary[];
   dailyScheduleClicks: SourceSummary[];
   dailyConversionRate: SourceSummary[];
   ctaClicksBySource: SourceSummary[];
+  eventVolume?: SourceSummary[];
+  formPerformance?: SourceSummary[];
+  industryPerformance?: SourceSummary[];
+  deviceCategories?: SourceSummary[];
   submissionsByProjectType: SourceSummary[];
   submissionsByIndustry: SourceSummary[];
   submissionsByBudget: SourceSummary[];
@@ -182,14 +174,12 @@ export interface AnalyticsSummary {
 
 export interface LeadDetail {
   lead: Lead;
-  owner?: LeadOwner;
   submissions: AuditSubmission[];
   events: LeadEvent[];
   notes: LeadNote[];
 }
 
 export interface LeadListItem extends Lead {
-  owner?: LeadOwner;
   submissions: AuditSubmission[];
   priority: LeadPriority;
 }

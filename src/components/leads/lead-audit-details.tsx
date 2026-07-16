@@ -25,7 +25,7 @@ export function LeadAuditDetails({ submissions }: LeadAuditDetailsProps) {
       <EmptyState
         icon={FileText}
         title="No audit submission yet"
-        description="When the lead completes a quick-start or full audit, the operational context will appear here."
+        description="When the lead completes a quick-start or platform audit, the operational context will appear here."
       />
     );
   }
@@ -41,8 +41,8 @@ export function LeadAuditDetails({ submissions }: LeadAuditDetailsProps) {
             {latestSubmission.project_type}
           </h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            {latestSubmission.submission_type === 'full_audit'
-              ? 'Full audit'
+            {latestSubmission.submission_type === 'platform_audit'
+              ? 'Platform audit'
               : 'Quick-start'}{' '}
             submitted {formatDateTime(latestSubmission.created_at)}
           </p>

@@ -3,11 +3,12 @@ import Link from 'next/link';
 import {
   CalendarCheck,
   Download,
-  FileCheck2,
+  Eye,
+  FormInput,
+  ListChecks,
   Mail,
   MousePointerClick,
   Send,
-  UserRound,
 } from 'lucide-react';
 
 import { AnalyticsChartCard } from '@/components/dashboard/analytics-chart-card';
@@ -16,6 +17,7 @@ import { DateRangePicker } from '@/components/dashboard/date-range-picker';
 import { FunnelCard } from '@/components/dashboard/funnel-card';
 import { MetricCard } from '@/components/dashboard/metric-card';
 import { SourcePerformance } from '@/components/dashboard/source-performance';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   getDashboardAnalytics,
@@ -27,7 +29,7 @@ import type { DateRangeKey } from '@/lib/analytics/types';
 
 export const dynamic = 'force-dynamic';
 
-const metricIcons = [UserRound, MousePointerClick, Send, FileCheck2, CalendarCheck, Mail];
+const metricIcons = [Eye, FormInput, ListChecks, Send, CalendarCheck, Mail];
 
 type AnalyticsPageProps = {
   searchParams?: Promise<{
@@ -53,10 +55,13 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
   return (
     <>
       <DashboardHeader
-        title="Funnel intelligence"
-        description="Track CTA behavior, audit conversion, route performance, and attribution signals without exposing private lead details."
+        title="Conversion intelligence"
+        description="Read the privacy-safe Umami journey from page view to form submission and booked-call intent. No lead details enter analytics."
         actions={
           <>
+            <Badge variant={analytics.source === 'umami' ? 'teal' : 'secondary'}>
+              {analytics.source === 'umami' ? 'Live · Umami' : 'Preview data'}
+            </Badge>
             <Suspense
               fallback={
                 <div className="h-11 w-48 rounded-md border border-border bg-muted/35" />
@@ -101,8 +106,8 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
       <div className="grid gap-6 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
         <FunnelCard steps={leadFunnel.funnel} />
         <AnalyticsChartCard
-          title="Daily visitors"
-          description="Traffic depth by day with no PII attached."
+          title="Daily page views"
+          description="Explicit App Router page-view events by day."
           data={traffic.dailyVisitors}
           variant="line"
         />
@@ -110,55 +115,55 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
 
       <section className="grid gap-6 xl:grid-cols-2" aria-label="Trend cards">
         <AnalyticsChartCard
+          title="Daily form starts"
+          description="First interaction with either lead form, counted once per form visit."
+          data={traffic.dailyFormStarts}
+          variant="bar"
+        />
+        <AnalyticsChartCard
           title="Daily submissions"
-          description="Quick-start and full audit submissions by day."
+          description="Validated frontend success states across both forms."
           data={traffic.dailySubmissions}
           variant="bar"
         />
         <AnalyticsChartCard
-          title="Daily schedule clicks"
-          description="Booked-intent clicks across audit success and booking paths."
+          title="Daily book-call clicks"
+          description="Scheduling intent across audit, calendar, and book-call paths."
           data={traffic.dailyScheduleClicks}
           variant="bar"
         />
         <AnalyticsChartCard
           title="Daily conversion rate"
-          description="Visitor to lead conversion rate by day."
+          description="Page-view to validated-submission rate by day."
           data={traffic.dailyConversionRate}
           variant="line"
           valueSuffix="%"
         />
+      </section>
+
+      <section className="grid gap-6 xl:grid-cols-2" aria-label="Behavior breakdowns">
         <AnalyticsChartCard
-          title="CTA clicks by source"
-          description="Allowed CTA source values only, backed by provider-neutral telemetry."
+          title="Event mix"
+          description="The complete controlled event catalogue observed in this range."
+          data={traffic.eventVolume}
+          variant="bar"
+        />
+        <AnalyticsChartCard
+          title="Conversion placement"
+          description="Where controlled book-call, email, pricing, and case-study interactions happen."
           data={traffic.ctaClicksBySource}
           variant="bar"
         />
-      </section>
-
-      <section className="grid gap-6 xl:grid-cols-2" aria-label="Audit breakdowns">
         <AnalyticsChartCard
-          title="Submissions by project type"
-          description="Demand themes that should shape discovery and proposal packaging."
-          data={leadFunnel.submissionsByProjectType}
+          title="Submissions by form"
+          description="Platform audit and quick-start completions, with no submitted fields attached."
+          data={leadFunnel.formPerformance}
           variant="bar"
         />
         <AnalyticsChartCard
-          title="Submissions by industry"
-          description="Industry segments submitting audit data in the selected range."
-          data={leadFunnel.submissionsByIndustry}
-          variant="bar"
-        />
-        <AnalyticsChartCard
-          title="Submissions by budget"
-          description="Budget ranges captured through audit submissions."
-          data={leadFunnel.submissionsByBudget}
-          variant="bar"
-        />
-        <AnalyticsChartCard
-          title="Submissions by timeline"
-          description="Urgency profile for operational follow-up."
-          data={leadFunnel.submissionsByTimeline}
+          title="Submitted industries"
+          description="Only the controlled industry value included in the event contract."
+          data={leadFunnel.industryPerformance}
           variant="bar"
         />
       </section>

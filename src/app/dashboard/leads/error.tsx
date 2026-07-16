@@ -14,7 +14,7 @@ export default function Error({
       <div className="w-full max-w-2xl space-y-4">
         <ErrorState
           title="Lead queue paused"
-          description="The lead list could not load. Retry before making changes to status or owner assignment."
+          description="The lead list could not load. Retry before reviewing or changing submission status."
         />
         <Button onClick={() => unstable_retry()}>Retry lead queue</Button>
       </div>

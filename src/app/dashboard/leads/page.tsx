@@ -13,8 +13,10 @@ export const dynamic = 'force-dynamic';
 
 export default async function LeadsPage() {
   const leads = await getLeads();
-  const fullAuditCount = leads.filter((lead) =>
-    lead.submissions.some((submission) => submission.submission_type === 'full_audit'),
+  const platformAuditCount = leads.filter((lead) =>
+    lead.submissions.some(
+      (submission) => submission.submission_type === 'platform_audit',
+    ),
   ).length;
 
   return (
@@ -41,8 +43,8 @@ export default async function LeadsPage() {
       >
         <InsightCard
           title="Total active leads"
-          value={leads.filter((lead) => lead.status !== 'archived').length}
-          description="Includes new, qualified, contacted, scheduled, proposal, won, and lost records."
+          value={leads.filter((lead) => lead.status !== 'spam').length}
+          description="All submissions except records classified as spam."
           icon={UsersRound}
           tone="primary"
         />
@@ -61,8 +63,8 @@ export default async function LeadsPage() {
           tone="neutral"
         />
         <InsightCard
-          title="Full audits"
-          value={fullAuditCount}
+          title="Platform audits"
+          value={platformAuditCount}
           description="Leads with deeper context ready for review."
           icon={FileCheck2}
           tone="success"

@@ -23,9 +23,11 @@ export async function GET() {
     'website',
     'status',
     'source',
-    'owner',
-    'qualification_score',
+    'locale',
+    'pathname',
+    'form_type',
     'project_type',
+    'industry',
     'budget_range',
     'timeline',
   ] as const;

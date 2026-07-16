@@ -2,7 +2,7 @@ import 'server-only';
 
 import { cache } from 'react';
 
-import { defaultDashboardDateRange, deviceCategories } from '@/lib/dashboard/mock-data';
+import { defaultDashboardDateRange } from '@/lib/dashboard/config';
 import { getAnalyticsOverview, getDashboardOverview } from '@/lib/dashboard/queries';
 
 import type {
@@ -75,6 +75,7 @@ export async function getTrafficSummary(
 
   return {
     dailyVisitors: analytics.dailyVisitors,
+    dailyFormStarts: analytics.dailyFormStarts ?? [],
     dailySubmissions: analytics.dailySubmissions,
     dailyScheduleClicks: analytics.dailyScheduleClicks,
     dailyConversionRate: analytics.dailyConversionRate,
@@ -82,7 +83,8 @@ export async function getTrafficSummary(
     topReferrers: analytics.topReferrers,
     ctaClicksBySource: analytics.ctaClicksBySource,
     utmCampaignPerformance: analytics.utmCampaignPerformance,
-    deviceCategories,
+    deviceCategories: analytics.deviceCategories ?? [],
+    eventVolume: analytics.eventVolume ?? [],
   };
 }
 
@@ -97,6 +99,8 @@ export async function getLeadFunnelSummary(
     submissionsByIndustry: analytics.submissionsByIndustry,
     submissionsByBudget: analytics.submissionsByBudget,
     submissionsByTimeline: analytics.submissionsByTimeline,
+    formPerformance: analytics.formPerformance ?? [],
+    industryPerformance: analytics.industryPerformance ?? analytics.submissionsByIndustry,
   };
 }
 

@@ -13,14 +13,13 @@ import {
 import { leadStatuses } from '@/lib/dashboard/types';
 import { statusLabels } from '@/lib/dashboard/utils';
 
-export type LeadSortKey = 'newest' | 'oldest' | 'highest_score' | 'last_contacted';
+export type LeadSortKey = 'newest' | 'oldest';
 
 export type LeadFilterState = {
   status: string;
   budget: string;
   timeline: string;
   source: string;
-  owner: string;
   date: string;
 };
 
@@ -29,7 +28,6 @@ export const defaultLeadFilters: LeadFilterState = {
   budget: 'all',
   timeline: 'all',
   source: 'all',
-  owner: 'all',
   date: 'all',
 };
 
@@ -39,7 +37,6 @@ type LeadFiltersProps = {
   budgets: string[];
   timelines: string[];
   sources: string[];
-  owners: Array<{ value: string; label: string }>;
   onFiltersChange: (filters: LeadFilterState) => void;
   onSortChange: (sort: LeadSortKey) => void;
 };
@@ -61,7 +58,6 @@ export function LeadFilters({
   budgets,
   timelines,
   sources,
-  owners,
   onFiltersChange,
   onSortChange,
 }: LeadFiltersProps) {
@@ -148,25 +144,6 @@ export function LeadFilters({
           </SelectContent>
         </Select>
         <Select
-          value={filters.owner}
-          onValueChange={(value) =>
-            onFiltersChange(updateFilter(filters, 'owner', value))
-          }
-        >
-          <SelectTrigger className="w-42.5">
-            <SelectValue placeholder="Owner" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All owners</SelectItem>
-            <SelectItem value="unassigned">No owner</SelectItem>
-            {owners.map((owner) => (
-              <SelectItem key={owner.value} value={owner.value}>
-                {owner.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select
           value={filters.date}
           onValueChange={(value) => onFiltersChange(updateFilter(filters, 'date', value))}
         >
@@ -190,8 +167,6 @@ export function LeadFilters({
           <SelectContent>
             <SelectItem value="newest">Newest</SelectItem>
             <SelectItem value="oldest">Oldest</SelectItem>
-            <SelectItem value="highest_score">Highest score</SelectItem>
-            <SelectItem value="last_contacted">Last contacted</SelectItem>
           </SelectContent>
         </Select>
         {hasFilters ? (

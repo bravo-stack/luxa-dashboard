@@ -4,20 +4,24 @@ type TelemetryProviderProps = {
   children: React.ReactNode;
 };
 
-const umamiScriptUrl = process.env.NEXT_PUBLIC_UMAMI_SCRIPT_URL;
+const umamiHostUrl = process.env.NEXT_PUBLIC_UMAMI_HOST_URL?.replace(/\/+$/, '');
 const umamiWebsiteId = process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID;
+const umamiEnabled = process.env.NEXT_PUBLIC_UMAMI_ENABLED !== 'false';
 
 export function TelemetryProvider({ children }: TelemetryProviderProps) {
   return (
     <>
       {children}
-      {umamiScriptUrl && umamiWebsiteId ? (
+      {process.env.NODE_ENV === 'production' &&
+      umamiEnabled &&
+      umamiHostUrl &&
+      umamiWebsiteId ? (
         <Script
           id="umami-telemetry"
-          src={umamiScriptUrl}
+          src={`${umamiHostUrl}/script.js`}
           strategy="afterInteractive"
           data-website-id={umamiWebsiteId}
-          data-do-not-track="true"
+          data-auto-track="false"
         />
       ) : null}
     </>

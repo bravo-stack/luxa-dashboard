@@ -58,7 +58,9 @@ export function PipelineCard({ stages }: PipelineCardProps) {
       <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <CardTitle>Revenue movement by stage</CardTitle>
-          <CardDescription>Pipeline health with archived leads retained.</CardDescription>
+          <CardDescription>
+            Pipeline health across the persisted CRM statuses.
+          </CardDescription>
         </div>
       </CardHeader>
       <CardContent className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">

@@ -24,23 +24,15 @@ export default async function LeadDetailPage({
 
   return (
     <>
-      <LeadDetailHeader lead={detail.lead} owner={detail.owner} />
+      <LeadDetailHeader lead={detail.lead} />
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
         <div className="space-y-6">
-          <LeadSummaryCard
-            lead={detail.lead}
-            owner={detail.owner}
-            latestSubmission={latestSubmission}
-          />
+          <LeadSummaryCard lead={detail.lead} latestSubmission={latestSubmission} />
           <LeadAuditDetails submissions={detail.submissions} />
           <LeadTimeline events={detail.events} />
           <LeadNotes leadId={detail.lead.id} notes={detail.notes} />
         </div>
-        <LeadQuickActions
-          lead={detail.lead}
-          owner={detail.owner}
-          latestSubmission={latestSubmission}
-        />
+        <LeadQuickActions lead={detail.lead} latestSubmission={latestSubmission} />
       </div>
     </>
   );

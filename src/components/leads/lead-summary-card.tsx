@@ -1,11 +1,9 @@
 import { Building2, Globe2, Mail, UserRound } from 'lucide-react';
 
-import type { AuditSubmission, Lead, LeadOwner } from '@/lib/dashboard/types';
-import { formatRelativeTime } from '@/lib/dashboard/utils';
+import type { AuditSubmission, Lead } from '@/lib/dashboard/types';
 
 type LeadSummaryCardProps = {
   lead: Lead;
-  owner?: LeadOwner;
   latestSubmission?: AuditSubmission;
 };
 
@@ -31,7 +29,7 @@ function SummaryLine({
   );
 }
 
-export function LeadSummaryCard({ lead, owner, latestSubmission }: LeadSummaryCardProps) {
+export function LeadSummaryCard({ lead, latestSubmission }: LeadSummaryCardProps) {
   return (
     <section className="surface-premium rounded-lg p-5 sm:p-6">
       <div>
@@ -57,18 +55,14 @@ export function LeadSummaryCard({ lead, owner, latestSubmission }: LeadSummaryCa
           <p className="mt-2 text-sm font-semibold text-foreground">{lead.source}</p>
         </div>
         <div className="rounded-lg border border-border bg-muted/45 p-4">
-          <p className="text-xs font-semibold text-muted-foreground uppercase">
-            Last contacted
-          </p>
+          <p className="text-xs font-semibold text-muted-foreground uppercase">Locale</p>
           <p className="mt-2 text-sm font-semibold text-foreground">
-            {formatRelativeTime(lead.last_contacted_at)}
+            {lead.locale.toUpperCase()}
           </p>
         </div>
         <div className="rounded-lg border border-border bg-muted/45 p-4">
-          <p className="text-xs font-semibold text-muted-foreground uppercase">Owner</p>
-          <p className="mt-2 text-sm font-semibold text-foreground">
-            {owner?.name ?? 'No owner assigned'}
-          </p>
+          <p className="text-xs font-semibold text-muted-foreground uppercase">Path</p>
+          <p className="mt-2 text-sm font-semibold text-foreground">{lead.pathname}</p>
         </div>
       </div>
       {latestSubmission ? (

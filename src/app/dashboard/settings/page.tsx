@@ -21,8 +21,8 @@ export default function SettingsPage() {
         />
         <InsightCard
           title="Analytics connection"
-          value="Snapshots"
-          description="Cached Supabase snapshots feed the dashboard, with mock data retained for local fallback."
+          value="Umami"
+          description="Supabase is the required CRM source and Umami is the required analytics source. Unavailable connections surface an error instead of demo data."
           icon={Database}
           tone="neutral"
         />

@@ -3,7 +3,6 @@
 import { revalidatePath } from 'next/cache';
 
 import {
-  insertSupabaseLeadEvent,
   insertSupabaseLeadNote,
   updateSupabaseLead,
 } from '@/lib/dashboard/supabase-repository';
@@ -61,39 +60,11 @@ export async function updateLeadStatus(
   const nextStatus = parseStatus(status);
   const persisted = await updateSupabaseLead(leadId, { status: nextStatus });
 
-  if (persisted) {
-    await insertSupabaseLeadEvent(leadId, 'lead_status_changed', {
-      status: nextStatus,
-    });
-  }
-
   refreshDashboardLeadViews(leadId);
 
   return {
     ok: persisted,
     message: getPersistenceMessage(persisted, 'Lead status update'),
-  };
-}
-
-export async function assignLeadOwner(
-  leadId: string,
-  ownerUserId: string,
-): Promise<DashboardActionResult> {
-  requireLeadId(leadId);
-
-  if (!ownerUserId.trim()) {
-    throw new Error('Missing owner id');
-  }
-
-  const persisted = await updateSupabaseLead(leadId, {
-    owner_user_id: ownerUserId === 'unassigned' ? null : ownerUserId,
-  });
-
-  refreshDashboardLeadViews(leadId);
-
-  return {
-    ok: persisted,
-    message: getPersistenceMessage(persisted, 'Lead owner assignment'),
   };
 }
 
@@ -117,33 +88,9 @@ export async function addLeadNote(formData: FormData): Promise<DashboardActionRe
   };
 }
 
-export async function updateLeadQualification(
-  leadId: string,
-  qualificationScore: number,
-): Promise<DashboardActionResult> {
-  requireLeadId(leadId);
-
-  if (qualificationScore < 0 || qualificationScore > 100) {
-    throw new Error('Qualification score must be between 0 and 100');
-  }
-
-  const persisted = await updateSupabaseLead(leadId, {
-    qualification_score: qualificationScore,
-  });
-
-  refreshDashboardLeadViews(leadId);
-
-  return {
-    ok: persisted,
-    message: getPersistenceMessage(persisted, 'Qualification update'),
-  };
-}
-
 export async function markLeadContacted(leadId: string): Promise<DashboardActionResult> {
   requireLeadId(leadId);
-  const persisted = await updateSupabaseLead(leadId, {
-    last_contacted_at: new Date().toISOString(),
-  });
+  const persisted = await updateSupabaseLead(leadId, { status: 'contacted' });
 
   refreshDashboardLeadViews(leadId);
 
@@ -153,20 +100,14 @@ export async function markLeadContacted(leadId: string): Promise<DashboardAction
   };
 }
 
-export async function archiveLead(leadId: string): Promise<DashboardActionResult> {
+export async function markLeadSpam(leadId: string): Promise<DashboardActionResult> {
   requireLeadId(leadId);
-  const persisted = await updateSupabaseLead(leadId, { status: 'archived' });
-
-  if (persisted) {
-    await insertSupabaseLeadEvent(leadId, 'lead_status_changed', {
-      status: 'archived',
-    });
-  }
+  const persisted = await updateSupabaseLead(leadId, { status: 'spam' });
 
   refreshDashboardLeadViews(leadId);
 
   return {
     ok: persisted,
-    message: getPersistenceMessage(persisted, 'Lead archive action'),
+    message: getPersistenceMessage(persisted, 'Spam classification'),
   };
 }

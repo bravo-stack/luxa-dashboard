@@ -19,7 +19,7 @@ import {
   MoreHorizontal,
 } from 'lucide-react';
 
-import { archiveLead, updateLeadStatus } from '@/app/dashboard/actions';
+import { markLeadSpam, updateLeadStatus } from '@/app/dashboard/actions';
 import { EmptyState } from '@/components/dashboard/empty-state';
 import { Button } from '@/components/ui/button';
 import {
@@ -39,9 +39,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { dashboardNow } from '@/lib/dashboard/mock-data';
 import { type LeadListItem, type LeadStatus, leadStatuses } from '@/lib/dashboard/types';
-import { formatDate, formatRelativeTime, statusLabels } from '@/lib/dashboard/utils';
+import { formatDate, statusLabels } from '@/lib/dashboard/utils';
 
 import {
   defaultLeadFilters,
@@ -49,7 +48,6 @@ import {
   type LeadFilterState,
   type LeadSortKey,
 } from './lead-filters';
-import { LeadScoreBadge } from './lead-score-badge';
 import { LeadSearch } from './lead-search';
 import { LeadStatusBadge } from './lead-status-badge';
 import { PriorityBadge } from './priority-badge';
@@ -68,7 +66,7 @@ function matchesDateFilter(lead: LeadListItem, dateFilter: string) {
   }
 
   const createdAt = new Date(lead.created_at).getTime();
-  const now = new Date(dashboardNow).getTime();
+  const now = Date.now();
   const ageInDays = (now - createdAt) / (1000 * 60 * 60 * 24);
 
   if (dateFilter === 'today') {
@@ -86,21 +84,6 @@ function sortLeads(leads: LeadListItem[], sort: LeadSortKey) {
   return leads.slice().sort((first, second) => {
     if (sort === 'oldest') {
       return new Date(first.created_at).getTime() - new Date(second.created_at).getTime();
-    }
-
-    if (sort === 'highest_score') {
-      return second.qualification_score - first.qualification_score;
-    }
-
-    if (sort === 'last_contacted') {
-      const firstContacted = first.last_contacted_at
-        ? new Date(first.last_contacted_at).getTime()
-        : 0;
-      const secondContacted = second.last_contacted_at
-        ? new Date(second.last_contacted_at).getTime()
-        : 0;
-
-      return secondContacted - firstContacted;
     }
 
     return new Date(second.created_at).getTime() - new Date(first.created_at).getTime();
@@ -136,21 +119,6 @@ export function LeadTable({ leads }: LeadTableProps) {
     () => Array.from(new Set(rows.map((lead) => lead.source))).sort(),
     [rows],
   );
-  const owners = React.useMemo(
-    () =>
-      Array.from(
-        new Map(
-          rows
-            .filter((lead) => lead.owner)
-            .map((lead) => [
-              lead.owner?.id ?? '',
-              { value: lead.owner?.id ?? '', label: lead.owner?.name ?? '' },
-            ]),
-        ).values(),
-      ).filter((owner) => owner.value),
-    [rows],
-  );
-
   const filteredRows = React.useMemo(() => {
     const searchValue = search.trim().toLowerCase();
 
@@ -194,18 +162,6 @@ export function LeadTable({ leads }: LeadTableProps) {
           return false;
         }
 
-        if (filters.owner === 'unassigned' && lead.owner_user_id) {
-          return false;
-        }
-
-        if (
-          filters.owner !== 'all' &&
-          filters.owner !== 'unassigned' &&
-          lead.owner_user_id !== filters.owner
-        ) {
-          return false;
-        }
-
         return matchesDateFilter(lead, filters.date);
       }),
       sort,
@@ -223,14 +179,14 @@ export function LeadTable({ leads }: LeadTableProps) {
     });
   }, []);
 
-  const handleArchiveLead = React.useCallback((leadId: string) => {
+  const handleSpamLead = React.useCallback((leadId: string) => {
     setRows((currentRows) =>
       currentRows.map((lead) =>
-        lead.id === leadId ? { ...lead, status: 'archived' } : lead,
+        lead.id === leadId ? { ...lead, status: 'spam' } : lead,
       ),
     );
     startTransition(() => {
-      archiveLead(leadId).catch((error: unknown) => {
+      markLeadSpam(leadId).catch((error: unknown) => {
         console.error(error);
       });
     });
@@ -289,21 +245,9 @@ export function LeadTable({ leads }: LeadTableProps) {
         cell: ({ row }) => <LeadStatusBadge status={row.original.status} />,
       },
       {
-        accessorKey: 'qualification_score',
-        header: 'Score',
-        cell: ({ row }) => <LeadScoreBadge score={row.original.qualification_score} />,
-      },
-      {
-        id: 'owner',
-        header: 'Owner',
-        cell: ({ row }) => <span>{row.original.owner?.name ?? 'No owner'}</span>,
-      },
-      {
-        accessorKey: 'last_contacted_at',
-        header: 'Last contacted',
-        cell: ({ row }) => (
-          <span>{formatRelativeTime(row.original.last_contacted_at)}</span>
-        ),
+        accessorKey: 'locale',
+        header: 'Locale',
+        cell: ({ row }) => <span>{row.original.locale.toUpperCase()}</span>,
       },
       {
         accessorKey: 'created_at',
@@ -357,10 +301,10 @@ export function LeadTable({ leads }: LeadTableProps) {
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     className="text-destructive focus:text-destructive"
-                    onSelect={() => handleArchiveLead(lead.id)}
+                    onSelect={() => handleSpamLead(lead.id)}
                   >
                     <Archive className="size-4" />
-                    Archive lead
+                    Mark as spam
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -369,7 +313,7 @@ export function LeadTable({ leads }: LeadTableProps) {
         },
       },
     ],
-    [handleArchiveLead, handleStatusChange, isPending],
+    [handleSpamLead, handleStatusChange, isPending],
   );
 
   // eslint-disable-next-line react-hooks/incompatible-library
@@ -423,7 +367,6 @@ export function LeadTable({ leads }: LeadTableProps) {
         budgets={budgets}
         timelines={timelines}
         sources={sources}
-        owners={owners}
         onFiltersChange={setFilters}
         onSortChange={setSort}
       />

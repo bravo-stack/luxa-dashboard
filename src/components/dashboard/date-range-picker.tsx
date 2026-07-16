@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { dashboardDateRanges } from '@/lib/dashboard/mock-data';
+import { dashboardDateRanges } from '@/lib/dashboard/config';
 import type { DateRangeKey } from '@/lib/dashboard/types';
 
 type DateRangePickerProps = {

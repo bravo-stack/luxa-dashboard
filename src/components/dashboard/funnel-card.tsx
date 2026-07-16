@@ -52,9 +52,12 @@ export function FunnelCard({ steps }: FunnelCardProps) {
       <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <CardTitle>Behavior to booked intent</CardTitle>
-          <CardDescription>Funnel performance across the selected range.</CardDescription>
+          <CardDescription>
+            Directional event rates against page views; anonymous sessions are not
+            stitched into user profiles.
+          </CardDescription>
         </div>
-        <p className="text-sm text-muted-foreground">Provider-neutral</p>
+        <p className="text-sm text-muted-foreground">Privacy-safe</p>
       </CardHeader>
       <CardContent className="space-y-4">
         {steps.length ? (

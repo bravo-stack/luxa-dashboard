@@ -1,12 +1,11 @@
 'use client';
 
 import * as React from 'react';
-import { Archive, CheckCircle2, Copy, ExternalLink, UserRound } from 'lucide-react';
+import { CheckCircle2, Copy, ExternalLink, ShieldAlert } from 'lucide-react';
 
 import {
-  archiveLead,
-  assignLeadOwner,
   markLeadContacted,
+  markLeadSpam,
   updateLeadStatus,
 } from '@/app/dashboard/actions';
 import { Button } from '@/components/ui/button';
@@ -17,32 +16,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { leadOwners } from '@/lib/dashboard/mock-data';
 import {
   type AuditSubmission,
   type Lead,
-  type LeadOwner,
   type LeadStatus,
   leadStatuses,
 } from '@/lib/dashboard/types';
-import { formatDate, formatRelativeTime, statusLabels } from '@/lib/dashboard/utils';
+import { formatDate, statusLabels } from '@/lib/dashboard/utils';
 
-import { LeadScoreBadge } from './lead-score-badge';
 import { LeadStatusBadge } from './lead-status-badge';
 
 type LeadQuickActionsProps = {
   lead: Lead;
-  owner?: LeadOwner;
   latestSubmission?: AuditSubmission;
 };
 
-export function LeadQuickActions({
-  lead,
-  owner,
-  latestSubmission,
-}: LeadQuickActionsProps) {
+export function LeadQuickActions({ lead, latestSubmission }: LeadQuickActionsProps) {
   const [status, setStatus] = React.useState<LeadStatus>(lead.status);
-  const [selectedOwner, setSelectedOwner] = React.useState(owner?.id ?? 'unassigned');
   const [isPending, startTransition] = React.useTransition();
 
   function runAction(action: () => Promise<unknown>) {
@@ -55,9 +45,8 @@ export function LeadQuickActions({
     <aside className="space-y-4">
       <section className="surface-premium rounded-lg p-5">
         <p className="text-xs font-semibold text-primary uppercase">Status card</p>
-        <div className="mt-4 flex items-center justify-between gap-3">
+        <div className="mt-4 flex items-center gap-3">
           <LeadStatusBadge status={status} />
-          <LeadScoreBadge score={lead.qualification_score} />
         </div>
         <div className="mt-5 space-y-3 text-sm">
           <div className="flex items-center justify-between gap-3 border-b border-border pb-3">
@@ -79,9 +68,9 @@ export function LeadQuickActions({
             </span>
           </div>
           <div className="flex items-center justify-between gap-3 border-b border-border pb-3">
-            <span className="text-muted-foreground">Last contacted</span>
+            <span className="text-muted-foreground">Locale</span>
             <span className="text-right font-semibold text-foreground">
-              {formatRelativeTime(lead.last_contacted_at)}
+              {lead.locale.toUpperCase()}
             </span>
           </div>
           <div className="flex items-center justify-between gap-3">
@@ -151,59 +140,15 @@ export function LeadQuickActions({
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-2">
-            <label
-              className="text-xs font-semibold text-muted-foreground uppercase"
-              htmlFor="lead-owner"
-            >
-              Assign owner
-            </label>
-            <Select
-              value={selectedOwner}
-              onValueChange={(value) => {
-                setSelectedOwner(value);
-
-                if (value !== 'unassigned') {
-                  runAction(() => assignLeadOwner(lead.id, value));
-                }
-              }}
-            >
-              <SelectTrigger id="lead-owner">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="unassigned">No owner</SelectItem>
-                {leadOwners.map((item) => (
-                  <SelectItem key={item.id} value={item.id}>
-                    {item.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
           <Button
             className="w-full justify-start"
             variant="destructive"
             disabled={isPending}
-            onClick={() => runAction(() => archiveLead(lead.id))}
+            onClick={() => runAction(() => markLeadSpam(lead.id))}
           >
-            <Archive className="size-4" />
-            Archive lead
+            <ShieldAlert className="size-4" />
+            Mark as spam
           </Button>
-        </div>
-      </section>
-      <section className="rounded-lg border border-border bg-card p-5">
-        <div className="flex items-start gap-3">
-          <div className="flex size-10 items-center justify-center rounded-lg bg-warning/10 text-warning">
-            <UserRound className="size-4" aria-hidden="true" />
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-foreground">Owner assignment</p>
-            <p className="mt-1 text-sm leading-6 text-muted-foreground">
-              Keep ownership current before contacting high-fit leads or sending
-              proposals.
-            </p>
-          </div>
         </div>
       </section>
     </aside>

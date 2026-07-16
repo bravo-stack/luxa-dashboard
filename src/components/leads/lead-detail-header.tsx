@@ -2,18 +2,16 @@ import Link from 'next/link';
 import { ArrowLeft, ExternalLink, Mail } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
-import type { Lead, LeadOwner } from '@/lib/dashboard/types';
+import type { Lead } from '@/lib/dashboard/types';
 import { formatDate } from '@/lib/dashboard/utils';
 
-import { LeadScoreBadge } from './lead-score-badge';
 import { LeadStatusBadge } from './lead-status-badge';
 
 type LeadDetailHeaderProps = {
   lead: Lead;
-  owner?: LeadOwner;
 };
 
-export function LeadDetailHeader({ lead, owner }: LeadDetailHeaderProps) {
+export function LeadDetailHeader({ lead }: LeadDetailHeaderProps) {
   return (
     <header className="surface-premium rounded-lg border-primary/30 p-5 sm:p-7">
       <Button asChild variant="ghost" size="sm" className="mb-6">
@@ -26,7 +24,6 @@ export function LeadDetailHeader({ lead, owner }: LeadDetailHeaderProps) {
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <LeadStatusBadge status={lead.status} />
-            <LeadScoreBadge score={lead.qualification_score} />
             <span className="rounded-md border border-border bg-muted/50 px-2.5 py-1 text-xs text-muted-foreground">
               Created {formatDate(lead.created_at)}
             </span>
@@ -35,8 +32,7 @@ export function LeadDetailHeader({ lead, owner }: LeadDetailHeaderProps) {
             {lead.company}
           </h1>
           <p className="mt-2 text-base text-muted-foreground">
-            {lead.name} leads this opportunity
-            {owner ? ` with ${owner.name} assigned` : ' with no owner assigned'}.
+            {lead.name} submitted from {lead.pathname} in {lead.locale.toUpperCase()}.
           </p>
         </div>
         <div className="flex flex-wrap gap-3">

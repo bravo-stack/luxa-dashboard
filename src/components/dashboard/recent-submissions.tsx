@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import { ArrowUpRight } from 'lucide-react';
 
-import { LeadScoreBadge } from '@/components/leads/lead-score-badge';
 import { LeadStatusBadge } from '@/components/leads/lead-status-badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -50,13 +49,12 @@ export function RecentSubmissions({ submissions }: RecentSubmissionsProps) {
                 <TableHead>Intent</TableHead>
                 <TableHead>Budget</TableHead>
                 <TableHead>Timeline</TableHead>
-                <TableHead>Owner</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Received</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {submissions.map(({ lead, owner, submission }) => (
+              {submissions.map(({ lead, submission }) => (
                 <TableRow key={submission.id}>
                   <TableCell className="min-w-48">
                     <Link
@@ -83,8 +81,8 @@ export function RecentSubmissions({ submissions }: RecentSubmissionsProps) {
                   </TableCell>
                   <TableCell className="min-w-40">
                     <div className="font-medium text-foreground">
-                      {submission.submission_type === 'full_audit'
-                        ? 'Full audit'
+                      {submission.submission_type === 'platform_audit'
+                        ? 'Platform audit'
                         : 'Quick-start'}
                     </div>
                     <div className="mt-1 text-xs text-muted-foreground">
@@ -97,12 +95,8 @@ export function RecentSubmissions({ submissions }: RecentSubmissionsProps) {
                   <TableCell className="whitespace-nowrap text-muted-foreground">
                     {submission.timeline}
                   </TableCell>
-                  <TableCell className="whitespace-nowrap text-muted-foreground">
-                    {owner?.name ?? 'Unassigned'}
-                  </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      <LeadScoreBadge score={lead.qualification_score} />
                       <LeadStatusBadge status={lead.status} />
                     </div>
                   </TableCell>
@@ -115,7 +109,7 @@ export function RecentSubmissions({ submissions }: RecentSubmissionsProps) {
           </Table>
         ) : (
           <div className="rounded-md border border-dashed border-border bg-muted/20 p-6 text-sm leading-6 text-muted-foreground">
-            No audit submissions yet. When visitors complete quick-start or full audit
+            No audit submissions yet. When visitors complete quick-start or platform audit
             forms, this table will show the newest sales signals.
           </div>
         )}

@@ -35,6 +35,7 @@ export type AnalyticsApiResponse<T> = {
 
 export type TrafficSummary = {
   dailyVisitors: SourceSummary[];
+  dailyFormStarts: SourceSummary[];
   dailySubmissions: SourceSummary[];
   dailyScheduleClicks: SourceSummary[];
   dailyConversionRate: SourceSummary[];
@@ -43,6 +44,7 @@ export type TrafficSummary = {
   ctaClicksBySource: SourceSummary[];
   utmCampaignPerformance: SourceSummary[];
   deviceCategories: SourceSummary[];
+  eventVolume: SourceSummary[];
 };
 
 export type LeadFunnelSummary = {
@@ -51,6 +53,8 @@ export type LeadFunnelSummary = {
   submissionsByIndustry: SourceSummary[];
   submissionsByBudget: SourceSummary[];
   submissionsByTimeline: SourceSummary[];
+  formPerformance: SourceSummary[];
+  industryPerformance: SourceSummary[];
 };
 
 export type RecentActivitySummary = {

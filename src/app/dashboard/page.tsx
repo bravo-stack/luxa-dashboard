@@ -61,9 +61,9 @@ function getPointChange(items: SourceSummary[], suffix = '') {
 }
 
 function buildPrimaryMetrics(metrics: MetricSummary[], conversionData: SourceSummary[]) {
-  const visitors = findMetric(metrics, 'visitors');
-  const fullAudits = findMetric(metrics, 'full_audit_submissions');
-  const scheduleClicks = findMetric(metrics, 'schedule_clicks');
+  const pageViews = findMetric(metrics, 'page_viewed');
+  const submissions = findMetric(metrics, 'lead_form_submitted');
+  const bookCallClicks = findMetric(metrics, 'book_call_clicked');
   const averageConversion =
     conversionData.length > 0
       ? conversionData.reduce((total, item) => total + item.value, 0) /
@@ -76,10 +76,10 @@ function buildPrimaryMetrics(metrics: MetricSummary[], conversionData: SourceSum
     value: `${averageConversion.toFixed(1)}%`,
     trend: conversionChange.trend,
     trendDirection: conversionChange.trendDirection,
-    note: 'Visitor to lead',
+    note: 'Page view to submission',
   };
 
-  return [visitors, conversionRate, fullAudits, scheduleClicks].filter(
+  return [pageViews, conversionRate, submissions, bookCallClicks].filter(
     Boolean,
   ) as MetricSummary[];
 }
@@ -99,11 +99,11 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
     analytics.metrics,
     analytics.dailyConversionRate,
   );
-  const totalVisitors = sumValues(analytics.dailyVisitors);
+  const totalPageViews = sumValues(analytics.dailyVisitors);
   const totalSubmissions = sumValues(analytics.dailySubmissions);
   const conversionInsight =
-    totalVisitors > 0
-      ? `${totalSubmissions.toLocaleString()} leads from ${totalVisitors.toLocaleString()} visitors in ${overview.dateRange.label.toLowerCase()}.`
+    totalPageViews > 0
+      ? `${totalSubmissions.toLocaleString()} submissions from ${totalPageViews.toLocaleString()} page views in ${overview.dateRange.label.toLowerCase()}.`
       : 'Traffic volume is not available for this range yet.';
 
   return (
@@ -144,11 +144,11 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
       >
         {primaryMetrics.map((metric, index) => {
           const Icon =
-            metric.key === 'visitors'
+            metric.key === 'page_viewed'
               ? UsersRound
               : metric.key === 'conversion_rate'
                 ? TrendingUp
-                : metric.key === 'full_audit_submissions'
+                : metric.key === 'lead_form_submitted'
                   ? FileCheck2
                   : CalendarCheck;
 
@@ -169,8 +169,8 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
         contentClassName="grid gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.65fr)]"
       >
         <AnalyticsChartCard
-          title="Visitors and leads over time"
-          description="Daily visitors compared with lead submissions for the selected operating window."
+          title="Page views and submissions over time"
+          description="Daily explicit page-view events compared with validated form submissions."
           data={analytics.dailyVisitors}
           secondaryData={analytics.dailySubmissions}
           variant="line"
@@ -186,8 +186,8 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
         contentClassName="grid gap-6 xl:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]"
       >
         <AnalyticsChartCard
-          title="Schedule clicks"
-          description="Booked-intent clicks across audit success and booking paths."
+          title="Book-call clicks"
+          description="Booked-intent clicks across audit, calendar, and book-call paths."
           data={analytics.dailyScheduleClicks}
           variant="bar"
           insight="Use this to separate passive traffic from visitors ready to talk."

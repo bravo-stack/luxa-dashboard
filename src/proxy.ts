@@ -8,7 +8,10 @@ export function proxy(request: NextRequest) {
   );
   const { pathname } = request.nextUrl;
 
-  if (pathname.startsWith('/dashboard') && !isAuthenticated) {
+  const isProtectedDashboardPath =
+    pathname.startsWith('/dashboard') || pathname.startsWith('/api/dashboard');
+
+  if (isProtectedDashboardPath && !isAuthenticated) {
     return NextResponse.redirect(new URL('/', request.url));
   }
 
@@ -20,5 +23,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/', '/dashboard/:path*'],
+  matcher: ['/', '/dashboard/:path*', '/api/dashboard/:path*'],
 };

@@ -1,15 +1,6 @@
-import { getAnalyticsSnapshot } from './analytics-snapshots';
-import {
-  analyticsSummary,
-  auditSubmissions as mockAuditSubmissions,
-  dashboardDateRanges,
-  defaultDashboardDateRange,
-  deviceCategories,
-  leadEvents as mockLeadEvents,
-  leadNotes as mockLeadNotes,
-  leads as mockLeads,
-  pipelineStages as mockPipelineStages,
-} from './mock-data';
+import { getUmamiAnalytics } from '@/lib/analytics/umami';
+
+import { dashboardDateRanges, defaultDashboardDateRange } from './config';
 import {
   type DashboardDataset,
   getSupabaseDashboardDataset,
@@ -29,7 +20,6 @@ import type {
 } from './types';
 import { leadStatuses } from './types';
 import {
-  getLeadOwner,
   getLeadPriority,
   isAwaitingReply,
   isContactedWithoutNextStep,
@@ -38,13 +28,14 @@ import {
   statusLabels,
 } from './utils';
 
-type LocalDashboardDataset = Omit<DashboardDataset, 'source'> & {
-  source: 'mock' | 'supabase';
-};
-
-const pipelineIntentByStatus = new Map(
-  mockPipelineStages.map((stage) => [stage.status, stage.intent]),
-);
+const pipelineIntentByStatus = new Map<LeadStatus, PipelineStageSummary['intent']>([
+  ['new', 'primary'],
+  ['contacted', 'neutral'],
+  ['qualified', 'warm'],
+  ['won', 'teal'],
+  ['lost', 'destructive'],
+  ['spam', 'neutral'],
+]);
 
 function getDateRange(key: DateRangeKey = '7d') {
   return (
@@ -52,20 +43,8 @@ function getDateRange(key: DateRangeKey = '7d') {
   );
 }
 
-async function getDashboardDataset(): Promise<LocalDashboardDataset> {
-  const supabaseDataset = await getSupabaseDashboardDataset();
-
-  if (supabaseDataset) {
-    return supabaseDataset;
-  }
-
-  return {
-    leads: mockLeads,
-    auditSubmissions: mockAuditSubmissions,
-    leadEvents: mockLeadEvents,
-    leadNotes: mockLeadNotes,
-    source: 'mock',
-  };
+async function getDashboardDataset(): Promise<DashboardDataset> {
+  return getSupabaseDashboardDataset();
 }
 
 function sortNewest<T extends { created_at: string }>(items: T[]) {
@@ -95,17 +74,10 @@ function getLiveDashboardMetrics(
   events: LeadEvent[],
 ): MetricSummary[] {
   const openLeads = liveLeads.filter(
-    (lead) =>
-      lead.status !== 'archived' &&
-      lead.status !== 'lost' &&
-      lead.status !== 'won' &&
-      lead.status !== 'converted',
+    (lead) => lead.status !== 'lost' && lead.status !== 'won' && lead.status !== 'spam',
   );
   const fullAuditSubmissions = submissions.filter(
-    (submission) => submission.submission_type === 'full_audit',
-  );
-  const scheduleClicks = events.filter(
-    (event) => (event.event_name ?? event.event_type) === 'schedule_clicked',
+    (submission) => submission.submission_type === 'platform_audit',
   );
 
   return [
@@ -115,47 +87,47 @@ function getLiveDashboardMetrics(
       value: openLeads.length,
       trend: 'Live',
       trendDirection: 'flat',
-      note: 'Excludes lost and archived',
+      note: 'Excludes won, lost, and spam',
     },
     {
       key: 'qualified_leads',
       label: 'Qualified leads',
-      value: liveLeads.filter((lead) => lead.qualification_score >= 72).length,
+      value: liveLeads.filter((lead) => lead.status === 'qualified').length,
       trend: 'Live',
       trendDirection: 'flat',
       note: 'Above the fit threshold',
     },
     {
-      key: 'scheduled_calls',
-      label: 'Scheduled calls',
-      value: liveLeads.filter((lead) => lead.status === 'scheduled').length,
+      key: 'contacted_leads',
+      label: 'Contacted leads',
+      value: liveLeads.filter((lead) => lead.status === 'contacted').length,
       trend: 'Live',
       trendDirection: 'flat',
       note: 'Discovery calls booked',
     },
     {
       key: 'awaiting_reply',
-      label: 'Awaiting reply',
-      value: liveLeads.filter(isAwaitingReply).length,
+      label: 'New submissions',
+      value: liveLeads.filter((lead) => lead.status === 'new').length,
       trend: 'Live',
       trendDirection: 'flat',
       note: 'New or qualified without contact',
     },
     {
-      key: 'full_audit_submissions',
-      label: 'Full audit submissions',
+      key: 'platform_audit_submissions',
+      label: 'Platform audits',
       value: fullAuditSubmissions.length,
       trend: 'Live',
       trendDirection: 'flat',
       note: 'High intent audit depth',
     },
     {
-      key: 'schedule_clicks',
-      label: 'Schedule clicks',
-      value: scheduleClicks.length,
+      key: 'spam_submissions',
+      label: 'Spam',
+      value: liveLeads.filter((lead) => lead.status === 'spam').length,
       trend: 'Live',
       trendDirection: 'flat',
-      note: 'Captured in lead events',
+      note: 'Suppressed submissions',
     },
   ];
 }
@@ -180,20 +152,21 @@ export async function getDashboardOverview(
   const dataset = await getDashboardDataset();
   const analyticsOverview = await getAnalyticsOverview(dateRange);
   const staleLeads = dataset.leads.filter(isStaleLead);
-  const leadsWithoutOwner = dataset.leads.filter(
-    (lead) => !lead.owner_user_id && lead.status !== 'archived',
-  );
   const qualifiedNotScheduled = dataset.leads.filter(isQualifiedNotScheduled);
   const contactedWithoutNextStep = dataset.leads.filter(isContactedWithoutNextStep);
-  const highScoreNoActivity = dataset.leads.filter(
-    (lead) => lead.qualification_score >= 88 && !lead.last_contacted_at,
+  const platformAuditsAwaitingReview = dataset.auditSubmissions.filter(
+    (submission) =>
+      submission.submission_type === 'platform_audit' &&
+      dataset.leads.some(
+        (lead) => lead.id === submission.lead_id && lead.status === 'new',
+      ),
   );
   const recentSubmissions = dataset.auditSubmissions
     .filter((submission) => dataset.leads.some((lead) => lead.id === submission.lead_id))
     .sort((first, second) => {
       const typeWeight =
-        Number(second.submission_type === 'full_audit') -
-        Number(first.submission_type === 'full_audit');
+        Number(second.submission_type === 'platform_audit') -
+        Number(first.submission_type === 'platform_audit');
 
       if (typeWeight !== 0) {
         return typeWeight;
@@ -208,7 +181,6 @@ export async function getDashboardOverview(
       return {
         lead: lead as Lead,
         submission,
-        owner: lead ? getLeadOwner(lead) : undefined,
       };
     });
 
@@ -232,18 +204,10 @@ export async function getDashboardOverview(
         leadIds: staleLeads.map((lead) => lead.id),
       },
       {
-        id: 'no-owner',
-        label: 'No owner assigned',
-        count: leadsWithoutOwner.length,
-        description: 'Qualified or new leads waiting for ownership',
-        priority: 'review_next',
-        leadIds: leadsWithoutOwner.map((lead) => lead.id),
-      },
-      {
-        id: 'qualified-not-scheduled',
-        label: 'Qualified but not scheduled',
+        id: 'qualified-follow-up',
+        label: 'Qualified for follow-up',
         count: qualifiedNotScheduled.length,
-        description: 'High-fit leads without a booked discovery call',
+        description: 'Qualified submissions waiting for the next sales action',
         priority: 'high_fit',
         leadIds: qualifiedNotScheduled.map((lead) => lead.id),
       },
@@ -256,24 +220,24 @@ export async function getDashboardOverview(
         leadIds: contactedWithoutNextStep.map((lead) => lead.id),
       },
       {
-        id: 'high-score-no-activity',
-        label: 'High-score no recent activity',
-        count: highScoreNoActivity.length,
-        description: 'Strong fit leads that need immediate review',
+        id: 'platform-audit-review',
+        label: 'Platform audits to review',
+        count: platformAuditsAwaitingReview.length,
+        description: 'Detailed new submissions awaiting qualification',
         priority: 'high_fit',
-        leadIds: highScoreNoActivity.map((lead) => lead.id),
+        leadIds: platformAuditsAwaitingReview.map((submission) => submission.lead_id),
       },
     ],
     topRoutes: analyticsOverview.topLandingPages,
     topCtaSources: analyticsOverview.ctaClicksBySource,
     topUtmCampaigns: analyticsOverview.utmCampaignPerformance,
     topReferrers: analyticsOverview.topReferrers,
-    deviceCategories,
+    deviceCategories: analyticsOverview.deviceCategories ?? [],
     leadQuality: [
       {
         label: 'High-fit lead',
-        value: dataset.leads.filter((lead) => lead.qualification_score >= 88).length,
-        context: 'Score of 88 or higher',
+        value: dataset.leads.filter((lead) => lead.status === 'qualified').length,
+        context: 'Marked qualified in the CRM',
         priority: 'high_fit',
       },
       {
@@ -284,8 +248,8 @@ export async function getDashboardOverview(
       },
       {
         label: 'Ready for proposal',
-        value: dataset.leads.filter((lead) => lead.status === 'proposal_ready').length,
-        context: 'Next action is proposal review',
+        value: dataset.leads.filter((lead) => lead.status === 'won').length,
+        context: 'Converted to won',
         priority: 'review_next',
       },
     ],
@@ -297,7 +261,6 @@ export async function getLeads(): Promise<LeadListItem[]> {
 
   return dataset.leads.map((lead) => ({
     ...lead,
-    owner: getLeadOwner(lead),
     submissions: getSubmissionsForLead(lead.id, dataset.auditSubmissions),
     priority: getLeadPriority(lead),
   }));
@@ -313,7 +276,6 @@ export async function getLeadDetail(id: string): Promise<LeadDetail | null> {
 
   return {
     lead,
-    owner: getLeadOwner(lead),
     submissions: getSubmissionsForLead(id, dataset.auditSubmissions),
     events: getEventsForLead(id, dataset.leadEvents),
     notes: getNotesForLead(id, dataset.leadNotes),
@@ -321,20 +283,15 @@ export async function getLeadDetail(id: string): Promise<LeadDetail | null> {
 }
 
 export async function getAnalyticsOverview(dateRange: DateRangeKey = '7d') {
-  const snapshot = await getAnalyticsSnapshot(dateRange);
+  const umami = await getUmamiAnalytics(dateRange);
 
-  if (snapshot) {
-    return {
-      ...snapshot,
-      dateRange: getDateRange(dateRange),
-    };
+  if (umami) {
+    return umami;
   }
 
-  return {
-    ...analyticsSummary,
-    dateRange: getDateRange(dateRange),
-    source: 'mock' as const,
-  };
+  throw new Error(
+    'Live analytics is not configured. Connect Umami to load the dashboard.',
+  );
 }
 
 export async function getAnalyticsSummary() {
@@ -380,9 +337,11 @@ export async function getLeadExportRows() {
       website: lead.website ?? '',
       status: lead.status,
       source: lead.source,
-      owner: getLeadOwner(lead)?.name ?? '',
-      qualification_score: lead.qualification_score,
+      locale: lead.locale,
+      pathname: lead.pathname,
+      form_type: latestSubmission?.submission_type ?? '',
       project_type: latestSubmission?.project_type ?? '',
+      industry: latestSubmission?.industry_segment ?? '',
       budget_range: latestSubmission?.budget_range ?? '',
       timeline: latestSubmission?.timeline ?? '',
     };

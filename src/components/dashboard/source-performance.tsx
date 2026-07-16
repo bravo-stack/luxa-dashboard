@@ -109,14 +109,14 @@ export function SourcePerformance({
       <CardHeader>
         <CardTitle>Where qualified demand is forming</CardTitle>
         <CardDescription>
-          Source previews use route, CTA, campaign, referrer, and device data without
-          private lead details.
+          Route, placement, campaign, referrer, and device context from controlled event
+          properties only.
         </CardDescription>
       </CardHeader>
       <CardContent className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
         <TopPagesTable items={routes} />
         <TopSourcesTable items={referrers} />
-        <PerformanceTable title="CTA sources" items={ctaSources} />
+        <PerformanceTable title="Conversion placements" items={ctaSources} />
         <PerformanceTable title="Campaigns" items={campaigns} />
         <PerformanceTable title="Device category" items={devices} />
       </CardContent>

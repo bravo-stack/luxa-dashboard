@@ -33,11 +33,17 @@ const primaryNav = [
   { label: 'Settings', href: '/dashboard/settings', icon: Settings2 },
 ];
 
+const publicSiteUrl = 'https://luxa-funnel.vercel.app';
+
 const secondaryNav = [
-  { label: 'Funnel', href: '/audit', icon: Workflow },
-  { label: 'Selected Work', href: '/selected-work', icon: BriefcaseBusiness },
-  { label: 'Book Call', href: '/book-call', icon: CalendarClock },
-  { label: 'Public Site', href: '/', icon: Home },
+  { label: 'Funnel', href: `${publicSiteUrl}/audit`, icon: Workflow },
+  {
+    label: 'Selected Work',
+    href: `${publicSiteUrl}/case-studies`,
+    icon: BriefcaseBusiness,
+  },
+  { label: 'Book Call', href: `${publicSiteUrl}/book-call`, icon: CalendarClock },
+  { label: 'Public Site', href: publicSiteUrl, icon: Home },
 ];
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
@@ -105,9 +111,11 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
               const Icon = item.icon;
 
               return (
-                <Link
+                <a
                   key={item.href}
                   href={item.href}
+                  target="_blank"
+                  rel="noreferrer"
                   onClick={onNavigate}
                   className="flex items-center justify-between rounded-md px-2.5 py-2 text-[0.8125rem] font-medium text-sidebar-foreground/62 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                 >
@@ -116,7 +124,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
                     {item.label}
                   </span>
                   <ExternalLink className="size-3.5 opacity-45" aria-hidden="true" />
-                </Link>
+                </a>
               );
             })}
           </div>

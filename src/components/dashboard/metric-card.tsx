@@ -23,24 +23,14 @@ export function MetricCard({ metric, icon: Icon, emphasis, className }: MetricCa
   return (
     <Card
       className={cn(
-        'card-lift overflow-hidden shadow-none',
+        'card-lift h-full overflow-hidden shadow-none',
         emphasis && 'border-primary/20 bg-surface-premium',
         className,
       )}
     >
-      <CardContent className={cn('p-5', emphasis && 'p-6')}>
-        <div className="flex items-start justify-between gap-5">
-          <div>
-            <p className="text-sm font-medium text-muted-foreground">{metric.label}</p>
-            <p
-              className={cn(
-                'mt-3 font-semibold tracking-[-0.04em] text-foreground tabular-nums',
-                emphasis ? 'text-4xl sm:text-[2.75rem]' : 'text-3xl',
-              )}
-            >
-              {metric.value}
-            </p>
-          </div>
+      <CardContent className="flex h-full min-h-48 flex-col p-5">
+        <div className="flex items-start justify-between gap-4">
+          <p className="pt-1 text-sm font-medium text-muted-foreground">{metric.label}</p>
           <div
             className={cn(
               'flex shrink-0 items-center justify-center rounded-md border border-border bg-background/60 text-muted-foreground',
@@ -50,10 +40,18 @@ export function MetricCard({ metric, icon: Icon, emphasis, className }: MetricCa
             <Icon className={cn(emphasis ? 'size-5' : 'size-4')} aria-hidden="true" />
           </div>
         </div>
+        <p
+          className={cn(
+            'mt-5 font-semibold tracking-[-0.04em] text-foreground tabular-nums',
+            emphasis ? 'text-4xl sm:text-[2.75rem]' : 'text-3xl',
+          )}
+        >
+          {metric.value}
+        </p>
         <div
           className={cn(
-            'mt-5 flex items-center justify-between gap-3',
-            emphasis && 'mt-7 border-t border-border pt-4',
+            'mt-auto grid grid-cols-[auto_minmax(0,1fr)] items-end gap-4 pt-6',
+            emphasis && 'border-t border-border',
           )}
         >
           <div
@@ -70,7 +68,9 @@ export function MetricCard({ metric, icon: Icon, emphasis, className }: MetricCa
             <TrendIcon className="size-3.5" aria-hidden="true" />
             {metric.trend}
           </div>
-          <p className="min-w-0 truncate text-xs text-muted-foreground">{metric.note}</p>
+          <p className="text-right text-xs leading-5 text-muted-foreground">
+            {metric.note}
+          </p>
         </div>
       </CardContent>
     </Card>

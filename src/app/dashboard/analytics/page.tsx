@@ -86,7 +86,7 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
       />
 
       <section
-        className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6"
+        className="grid gap-4 md:grid-cols-2 xl:grid-cols-3"
         aria-label="Analytics summary"
       >
         {analytics.metrics.map((metric, index) => {

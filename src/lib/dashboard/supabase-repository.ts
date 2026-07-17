@@ -34,14 +34,15 @@ type SupabaseResult<T> = {
 
 function hasSupabaseServerConfig() {
   return Boolean(
-    process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY,
+    (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL) &&
+    (process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY),
   );
 }
 
 async function getSupabaseAdminClient() {
   if (!hasSupabaseServerConfig()) {
     throw new Error(
-      'Supabase CRM is not configured. Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.',
+      'Supabase CRM is not configured. Set SUPABASE_URL and SUPABASE_SECRET_KEY (or the supported legacy variables).',
     );
   }
 
@@ -49,6 +50,32 @@ async function getSupabaseAdminClient() {
 
   return supabaseAdmin;
 }
+
+const leadSubmissionSelect = [
+  'id',
+  'created_at',
+  'updated_at',
+  'status',
+  'form_type',
+  'locale',
+  'pathname',
+  'full_name',
+  'email',
+  'company',
+  'website',
+  'project_type',
+  'industry',
+  'system_status',
+  'problems',
+  'improve_first',
+  'budget',
+  'timeline',
+  'decision_stage',
+  'context',
+  'next_step',
+  'attribution',
+  'internal_notes',
+].join(',');
 
 function normalizeRecordMap(value: unknown): Record<string, unknown> {
   if (value && typeof value === 'object' && !Array.isArray(value)) {
@@ -158,7 +185,7 @@ export const getSupabaseDashboardDataset = cache(async () => {
 
   const submissionsResult = await supabase
     .from('lead_submissions')
-    .select('*')
+    .select(leadSubmissionSelect)
     .order('created_at', { ascending: false });
 
   const queryError = getQueryError(
@@ -169,7 +196,7 @@ export const getSupabaseDashboardDataset = cache(async () => {
     throw new Error(`Supabase CRM query failed: ${queryError}`);
   }
 
-  const rows = (submissionsResult.data ?? []) as Record<string, unknown>[];
+  const rows = (submissionsResult.data ?? []) as unknown as Record<string, unknown>[];
 
   return {
     leads: rows.map(normalizeLead),

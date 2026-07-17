@@ -1,20 +1,21 @@
 import { createClient } from '@supabase/supabase-js';
 
 const email = process.argv[2]?.trim().toLowerCase();
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabaseUrl = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
+const secretKey =
+  process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!email) {
   throw new Error('Usage: npm run admin:grant -- admin@example.com');
 }
 
-if (!supabaseUrl || !serviceRoleKey) {
+if (!supabaseUrl || !secretKey) {
   throw new Error(
-    'NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be configured',
+    'SUPABASE_URL and SUPABASE_SECRET_KEY must be configured (legacy variables are also supported)',
   );
 }
 
-const supabase = createClient(new URL(supabaseUrl).origin, serviceRoleKey, {
+const supabase = createClient(new URL(supabaseUrl).origin, secretKey, {
   auth: {
     autoRefreshToken: false,
     persistSession: false,

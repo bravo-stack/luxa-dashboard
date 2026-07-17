@@ -1,25 +1,51 @@
 import { type NextRequest, NextResponse } from 'next/server';
+import { createServerClient } from '@supabase/ssr';
 
-import { SESSION_COOKIE_NAME, verifySessionToken } from '@/lib/auth/session';
+import { normalizeSupabaseProjectUrl } from '@/lib/supabase/url';
 
-export function proxy(request: NextRequest) {
-  const isAuthenticated = verifySessionToken(
-    request.cookies.get(SESSION_COOKIE_NAME)?.value,
-  );
+export async function proxy(request: NextRequest) {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !anonKey) {
+    throw new Error('Supabase Auth environment variables are not configured');
+  }
+
+  let response = NextResponse.next({ request });
+  const supabase = createServerClient(normalizeSupabaseProjectUrl(supabaseUrl), anonKey, {
+    cookies: {
+      getAll() {
+        return request.cookies.getAll();
+      },
+      setAll(cookiesToSet) {
+        cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+        response = NextResponse.next({ request });
+        cookiesToSet.forEach(({ name, value, options }) => {
+          response.cookies.set(name, value, options);
+        });
+      },
+    },
+  });
+  const { data } = await supabase.auth.getClaims();
+  const isAdmin = data?.claims.app_metadata?.role === 'admin';
   const { pathname } = request.nextUrl;
 
   const isProtectedDashboardPath =
     pathname.startsWith('/dashboard') || pathname.startsWith('/api/dashboard');
 
-  if (isProtectedDashboardPath && !isAuthenticated) {
-    return NextResponse.redirect(new URL('/', request.url));
+  if (isProtectedDashboardPath && !isAdmin) {
+    const redirectResponse = NextResponse.redirect(new URL('/', request.url));
+    response.cookies.getAll().forEach((cookie) => redirectResponse.cookies.set(cookie));
+    return redirectResponse;
   }
 
-  if (pathname === '/' && isAuthenticated) {
-    return NextResponse.redirect(new URL('/dashboard', request.url));
+  if (pathname === '/' && isAdmin) {
+    const redirectResponse = NextResponse.redirect(new URL('/dashboard', request.url));
+    response.cookies.getAll().forEach((cookie) => redirectResponse.cookies.set(cookie));
+    return redirectResponse;
   }
 
-  return NextResponse.next();
+  return response;
 }
 
 export const config = {

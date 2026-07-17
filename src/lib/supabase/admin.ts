@@ -19,4 +19,10 @@ if (!serviceRoleKey) {
 export const supabaseAdmin = createClient(
   normalizeSupabaseProjectUrl(supabaseUrl),
   serviceRoleKey,
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  },
 );

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Bell, CheckCircle2, LogOut, Search, Settings2, UserRound } from 'lucide-react';
 
+import { logout } from '@/app/actions';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -104,9 +105,13 @@ export function DashboardTopbar() {
                 Workspace settings
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                <LogOut className="size-4" />
-                Sign out
+              <DropdownMenuItem asChild>
+                <form action={logout} className="w-full">
+                  <button type="submit" className="flex w-full items-center gap-2">
+                    <LogOut className="size-4" />
+                    Sign out
+                  </button>
+                </form>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

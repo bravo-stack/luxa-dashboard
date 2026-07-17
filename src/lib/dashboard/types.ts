@@ -11,7 +11,7 @@ export type LeadStatus = (typeof leadStatuses)[number];
 
 export type LeadPriority = 'standard' | 'review_next' | 'contact_overdue' | 'high_fit';
 
-export type SubmissionType = 'quick_start' | 'platform_audit';
+export type SubmissionType = 'quick_start' | 'platform_audit' | 'manual';
 
 export type LeadEventType = string;
 

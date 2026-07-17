@@ -1,40 +1,40 @@
 'use server';
 
-import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 
-import {
-  createSessionToken,
-  SESSION_COOKIE_NAME,
-  TEMP_PASSWORD,
-  TEMP_USERNAME,
-} from '@/lib/auth/session';
+import { isAdminUser } from '@/lib/auth/admin';
+import { createSupabaseServerClient } from '@/lib/supabase/server';
 
 export type LoginState = {
   message: string;
 };
 
 export async function login(_state: LoginState, formData: FormData): Promise<LoginState> {
-  const username = String(formData.get('username') ?? '').trim();
+  const email = String(formData.get('email') ?? '')
+    .trim()
+    .toLowerCase();
   const password = String(formData.get('password') ?? '');
 
-  if (!username || !password) {
-    return { message: 'Enter the username and password.' };
+  if (!email || !password) {
+    return { message: 'Enter your email and password.' };
   }
 
-  if (username !== TEMP_USERNAME || password !== TEMP_PASSWORD) {
-    return { message: 'Those credentials did not match.' };
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+  if (error || !isAdminUser(data.user)) {
+    if (data.session) {
+      await supabase.auth.signOut();
+    }
+
+    return { message: 'Those credentials are not authorized.' };
   }
-
-  const cookieStore = await cookies();
-
-  cookieStore.set(SESSION_COOKIE_NAME, createSessionToken(username), {
-    httpOnly: true,
-    maxAge: 60 * 60 * 8,
-    path: '/',
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
-  });
 
   redirect('/dashboard');
+}
+
+export async function logout() {
+  const supabase = await createSupabaseServerClient();
+  await supabase.auth.signOut();
+  redirect('/');
 }

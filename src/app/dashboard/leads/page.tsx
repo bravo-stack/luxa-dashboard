@@ -1,5 +1,12 @@
 import Link from 'next/link';
-import { Download, FileCheck2, MailQuestion, TrendingUp, UsersRound } from 'lucide-react';
+import {
+  Download,
+  FileCheck2,
+  MailQuestion,
+  Plus,
+  TrendingUp,
+  UsersRound,
+} from 'lucide-react';
 
 import { DashboardHeader } from '@/components/dashboard/dashboard-header';
 import { DateRangePicker } from '@/components/dashboard/date-range-picker';
@@ -28,10 +35,16 @@ export default async function LeadsPage() {
         actions={
           <>
             <DateRangePicker />
-            <Button asChild>
+            <Button asChild variant="outline">
               <Link href="/api/dashboard/leads/export">
                 <Download className="size-4" />
                 Export leads
+              </Link>
+            </Button>
+            <Button asChild>
+              <Link href="/dashboard/leads/new">
+                <Plus className="size-4" />
+                New lead
               </Link>
             </Button>
           </>

@@ -1,3 +1,4 @@
+import { getAdminUser } from '@/lib/auth/admin';
 import { getLeadExportRows } from '@/lib/dashboard/queries';
 
 export const dynamic = 'force-dynamic';
@@ -13,6 +14,10 @@ function escapeCsvValue(value: string | number) {
 }
 
 export async function GET() {
+  if (!(await getAdminUser())) {
+    return Response.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const rows = await getLeadExportRows();
   const headers = [
     'id',

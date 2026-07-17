@@ -1,9 +1,12 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 
+import { requireAdmin } from '@/lib/auth/admin';
 import {
   insertSupabaseLeadNote,
+  insertSupabaseManualLead,
   updateSupabaseLead,
 } from '@/lib/dashboard/supabase-repository';
 import {
@@ -11,6 +14,85 @@ import {
   type LeadStatus,
   leadStatuses,
 } from '@/lib/dashboard/types';
+
+export type CreateLeadState = {
+  message: string;
+  errors?: Partial<
+    Record<'fullName' | 'email' | 'company' | 'projectType' | 'website', string>
+  >;
+};
+
+function normalizeOptionalValue(formData: FormData, field: string) {
+  const value = String(formData.get(field) ?? '').trim();
+  return value || undefined;
+}
+
+function normalizeWebsite(value: string | undefined) {
+  if (!value) {
+    return undefined;
+  }
+
+  const candidate = /^https?:\/\//i.test(value) ? value : `https://${value}`;
+
+  try {
+    const url = new URL(candidate);
+
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+      return null;
+    }
+
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
+export async function createLead(
+  _state: CreateLeadState,
+  formData: FormData,
+): Promise<CreateLeadState> {
+  const user = await requireAdmin();
+  const fullName = String(formData.get('fullName') ?? '').trim();
+  const email = String(formData.get('email') ?? '')
+    .trim()
+    .toLowerCase();
+  const company = String(formData.get('company') ?? '').trim();
+  const projectType = String(formData.get('projectType') ?? '').trim();
+  const website = normalizeWebsite(normalizeOptionalValue(formData, 'website'));
+  const errors: NonNullable<CreateLeadState['errors']> = {};
+
+  if (!fullName) errors.fullName = 'Enter the lead’s full name.';
+  if (!/^\S+@\S+\.\S+$/.test(email)) errors.email = 'Enter a valid email address.';
+  if (!company) errors.company = 'Enter the company or organization.';
+  if (!projectType) errors.projectType = 'Describe the opportunity or project.';
+  if (website === null) errors.website = 'Enter a valid website address.';
+
+  if (Object.keys(errors).length) {
+    return { message: 'Review the highlighted fields.', errors };
+  }
+
+  const localeValue = String(formData.get('locale') ?? 'en');
+  const leadId = await insertSupabaseManualLead(
+    {
+      fullName,
+      email,
+      company,
+      projectType,
+      website: website || undefined,
+      locale: localeValue === 'ar' ? 'ar' : 'en',
+      industry: normalizeOptionalValue(formData, 'industry'),
+      budget: normalizeOptionalValue(formData, 'budget'),
+      timeline: normalizeOptionalValue(formData, 'timeline'),
+      context: normalizeOptionalValue(formData, 'context'),
+      nextStep: normalizeOptionalValue(formData, 'nextStep'),
+    },
+    user.id,
+  );
+
+  revalidatePath('/dashboard');
+  revalidatePath('/dashboard/leads');
+  redirect(`/dashboard/leads/${leadId}`);
+}
 
 function requireLeadId(leadId: string) {
   if (!leadId.trim()) {
@@ -39,6 +121,8 @@ function getPersistenceMessage(persisted: boolean, action: string) {
 }
 
 export async function submitQuickAuditLead(): Promise<DashboardActionResult> {
+  await requireAdmin();
+
   return {
     ok: true,
     message: 'Quick-start lead submission is prepared for Supabase wiring.',
@@ -46,6 +130,8 @@ export async function submitQuickAuditLead(): Promise<DashboardActionResult> {
 }
 
 export async function submitPlatformAudit(): Promise<DashboardActionResult> {
+  await requireAdmin();
+
   return {
     ok: true,
     message: 'Platform audit submission is prepared for Supabase wiring.',
@@ -56,6 +142,7 @@ export async function updateLeadStatus(
   leadId: string,
   status: LeadStatus,
 ): Promise<DashboardActionResult> {
+  await requireAdmin();
   requireLeadId(leadId);
   const nextStatus = parseStatus(status);
   const persisted = await updateSupabaseLead(leadId, { status: nextStatus });
@@ -69,6 +156,7 @@ export async function updateLeadStatus(
 }
 
 export async function addLeadNote(formData: FormData): Promise<DashboardActionResult> {
+  await requireAdmin();
   const leadId = String(formData.get('leadId') ?? '');
   const body = String(formData.get('body') ?? '').trim();
 
@@ -89,6 +177,7 @@ export async function addLeadNote(formData: FormData): Promise<DashboardActionRe
 }
 
 export async function markLeadContacted(leadId: string): Promise<DashboardActionResult> {
+  await requireAdmin();
   requireLeadId(leadId);
   const persisted = await updateSupabaseLead(leadId, { status: 'contacted' });
 
@@ -101,6 +190,7 @@ export async function markLeadContacted(leadId: string): Promise<DashboardAction
 }
 
 export async function markLeadSpam(leadId: string): Promise<DashboardActionResult> {
+  await requireAdmin();
   requireLeadId(leadId);
   const persisted = await updateSupabaseLead(leadId, { status: 'spam' });
 

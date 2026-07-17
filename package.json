@@ -13,6 +13,7 @@
     "typecheck": "tsc --noEmit",
     "check": "npm-run-all2 -p typecheck lint format:check",
     "check:fix": "npm-run-all2 lint:fix format",
+    "admin:grant": "node --env-file=.env.local scripts/grant-admin.mjs",
     "prepare": "husky",
     "test": "echo \"No tests configured yet\""
   },

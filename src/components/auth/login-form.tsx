@@ -1,7 +1,7 @@
 'use client';
 
 import { useActionState } from 'react';
-import { ArrowRight, Loader2, LockKeyhole, UserRound } from 'lucide-react';
+import { ArrowRight, Loader2, LockKeyhole, Mail } from 'lucide-react';
 import { useFormStatus } from 'react-dom';
 
 import { login, type LoginState } from '@/app/actions';
@@ -38,20 +38,21 @@ export function LoginForm() {
   return (
     <form action={formAction} className="grid gap-5">
       <div className="grid gap-2">
-        <label className="text-xs font-semibold text-foreground" htmlFor="username">
-          Username
+        <label className="text-xs font-semibold text-foreground" htmlFor="email">
+          Email address
         </label>
         <div className="relative">
-          <UserRound
+          <Mail
             className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
             aria-hidden="true"
           />
           <Input
-            id="username"
-            name="username"
-            autoComplete="username"
+            id="email"
+            name="email"
+            type="email"
+            autoComplete="email"
             className="h-12 border-border bg-card pl-10"
-            placeholder="Your username"
+            placeholder="admin@luxa.co"
             required
           />
         </div>

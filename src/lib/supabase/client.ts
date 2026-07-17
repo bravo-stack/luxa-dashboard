@@ -1,7 +1,7 @@
 // src/lib/supabase/client.ts
 'use client';
 
-import { createClient } from '@supabase/supabase-js';
+import { createBrowserClient } from '@supabase/ssr';
 
 import { normalizeSupabaseProjectUrl } from './url';
 
@@ -16,7 +16,7 @@ if (!anonKey) {
   throw new Error('Missing NEXT_PUBLIC_SUPABASE_ANON_KEY');
 }
 
-export const supabaseBrowser = createClient(
+export const supabaseBrowser = createBrowserClient(
   normalizeSupabaseProjectUrl(supabaseUrl),
   anonKey,
 );

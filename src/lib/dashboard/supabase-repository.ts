@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { cache } from 'react';
+import { randomUUID } from 'node:crypto';
 
 import type { AuditSubmission, Lead, LeadEvent, LeadNote, LeadStatus } from './types';
 
@@ -10,6 +11,20 @@ export type DashboardDataset = {
   leadEvents: LeadEvent[];
   leadNotes: LeadNote[];
   source: 'supabase';
+};
+
+export type ManualLeadInput = {
+  fullName: string;
+  email: string;
+  company: string;
+  website?: string;
+  projectType: string;
+  industry?: string;
+  budget?: string;
+  timeline?: string;
+  context?: string;
+  nextStep?: string;
+  locale: 'en' | 'ar';
 };
 
 type SupabaseResult<T> = {
@@ -65,12 +80,18 @@ function normalizeLead(row: Record<string, unknown>): Lead {
 }
 
 function normalizeAuditSubmission(row: Record<string, unknown>): AuditSubmission {
+  const submissionType =
+    row.form_type === 'platform_audit'
+      ? 'platform_audit'
+      : row.form_type === 'manual'
+        ? 'manual'
+        : 'quick_start';
+
   return {
     id: String(row.id),
     lead_id: String(row.id),
     created_at: String(row.created_at),
-    submission_type:
-      row.form_type === 'platform_audit' ? 'platform_audit' : 'quick_start',
+    submission_type: submissionType,
     source: String(row.pathname),
     project_type: String(row.project_type),
     industry_segment: String(row.industry ?? ''),
@@ -84,6 +105,42 @@ function normalizeAuditSubmission(row: Record<string, unknown>): AuditSubmission
     extra_context: String(row.context ?? ''),
     raw_payload: normalizeRecordMap(row.attribution),
   };
+}
+
+export async function insertSupabaseManualLead(
+  input: ManualLeadInput,
+  createdBy: string,
+) {
+  const supabase = await getSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from('lead_submissions')
+    .insert({
+      status: 'new',
+      form_type: 'manual',
+      idempotency_key: randomUUID(),
+      locale: input.locale,
+      pathname: '/dashboard/leads/new',
+      full_name: input.fullName,
+      email: input.email,
+      company: input.company,
+      website: input.website ?? null,
+      project_type: input.projectType,
+      industry: input.industry ?? null,
+      budget: input.budget ?? null,
+      timeline: input.timeline ?? null,
+      context: input.context ?? null,
+      next_step: input.nextStep ?? null,
+      attribution: { entry_method: 'dashboard_manual' },
+      created_by: createdBy,
+    })
+    .select('id')
+    .single();
+
+  if (error) {
+    throw new Error(`Supabase CRM insert failed: ${error.message}`);
+  }
+
+  return String(data.id);
 }
 
 function getQueryError(...results: SupabaseResult<Record<string, unknown>>[]) {

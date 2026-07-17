@@ -1,10 +1,9 @@
 import type { Metadata } from 'next';
-import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { Activity, ArrowUpRight, ShieldCheck } from 'lucide-react';
 
 import { LoginForm } from '@/components/auth/login-form';
-import { SESSION_COOKIE_NAME, verifySessionToken } from '@/lib/auth/session';
+import { getAdminUser } from '@/lib/auth/admin';
 
 export const metadata: Metadata = {
   title: 'Login | Luxa',
@@ -16,9 +15,7 @@ export const metadata: Metadata = {
 };
 
 export default async function Home() {
-  const session = (await cookies()).get(SESSION_COOKIE_NAME)?.value;
-
-  if (verifySessionToken(session)) {
+  if (await getAdminUser()) {
     redirect('/dashboard');
   }
 

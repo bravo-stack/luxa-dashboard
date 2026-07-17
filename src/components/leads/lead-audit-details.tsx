@@ -30,21 +30,25 @@ export function LeadAuditDetails({ submissions }: LeadAuditDetailsProps) {
     );
   }
 
+  const isManual = latestSubmission.submission_type === 'manual';
+
   return (
     <section className="surface-elevated rounded-lg p-5 sm:p-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-xs font-semibold text-muted-foreground uppercase">
-            Audit submission
+            {isManual ? 'CRM context' : 'Audit submission'}
           </p>
           <h2 className="mt-2 text-xl font-semibold text-foreground">
             {latestSubmission.project_type}
           </h2>
           <p className="mt-2 text-sm text-muted-foreground">
             {latestSubmission.submission_type === 'platform_audit'
-              ? 'Platform audit'
-              : 'Quick-start'}{' '}
-            submitted {formatDateTime(latestSubmission.created_at)}
+              ? 'Platform audit submitted'
+              : latestSubmission.submission_type === 'quick_start'
+                ? 'Quick-start submitted'
+                : 'Manually created'}{' '}
+            {formatDateTime(latestSubmission.created_at)}
           </p>
         </div>
         <div className="rounded-lg border border-border bg-muted/50 px-4 py-3 text-sm text-muted-foreground">

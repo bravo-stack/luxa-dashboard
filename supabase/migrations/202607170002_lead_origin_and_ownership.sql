@@ -1,3 +1,5 @@
+begin;
+
 do $$
 begin
   create type public.lead_origin as enum (
@@ -10,6 +12,12 @@ exception
   when duplicate_object then null;
 end
 $$;
+
+-- The live database already has this audit field. Keeping it here makes the
+-- repository migration chain replayable from the original funnel schema.
+alter table public.lead_submissions
+  add column if not exists created_by uuid
+  references auth.users (id) on delete set null;
 
 alter table public.lead_submissions
   add column if not exists origin public.lead_origin;
@@ -50,3 +58,5 @@ comment on column public.lead_submissions.created_by is
 
 comment on column public.lead_submissions.owner_user_id is
   'Team member responsible for follow-up; reserved for the future assignment workflow.';
+
+commit;

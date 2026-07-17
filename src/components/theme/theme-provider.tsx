@@ -13,6 +13,8 @@ type ThemeContextValue = {
 
 const ThemeContext = React.createContext<ThemeContextValue | null>(null);
 const storageKey = 'luxa-theme';
+const themeChangeEvent = 'luxa-theme-change';
+let memoryMode: ThemeMode = 'system';
 
 function getSystemTheme(): ResolvedTheme {
   if (typeof window === 'undefined') {
@@ -27,48 +29,72 @@ function getStoredMode(): ThemeMode {
     return 'system';
   }
 
-  const storedTheme = window.localStorage.getItem(storageKey);
+  try {
+    const storedTheme = window.localStorage.getItem(storageKey);
 
-  return storedTheme === 'light' || storedTheme === 'dark' || storedTheme === 'system'
-    ? storedTheme
-    : 'system';
+    return storedTheme === 'light' || storedTheme === 'dark' || storedTheme === 'system'
+      ? storedTheme
+      : memoryMode;
+  } catch {
+    return memoryMode;
+  }
 }
 
-function resolveTheme(mode: ThemeMode): ResolvedTheme {
-  return mode === 'system' ? getSystemTheme() : mode;
-}
-
-function applyTheme(mode: ThemeMode) {
-  const resolvedTheme = resolveTheme(mode);
-
+function applyTheme(mode: ThemeMode, resolvedTheme: ResolvedTheme) {
   document.documentElement.classList.toggle('dark', resolvedTheme === 'dark');
   document.documentElement.dataset.theme = mode;
+}
 
-  return resolvedTheme;
+function subscribeToSystemTheme(onStoreChange: () => void) {
+  const media = window.matchMedia('(prefers-color-scheme: dark)');
+  media.addEventListener('change', onStoreChange);
+
+  return () => media.removeEventListener('change', onStoreChange);
+}
+
+function subscribeToStoredMode(onStoreChange: () => void) {
+  const onStorage = (event: StorageEvent) => {
+    if (event.key === storageKey) {
+      onStoreChange();
+    }
+  };
+
+  window.addEventListener('storage', onStorage);
+  window.addEventListener(themeChangeEvent, onStoreChange);
+
+  return () => {
+    window.removeEventListener('storage', onStorage);
+    window.removeEventListener(themeChangeEvent, onStoreChange);
+  };
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [mode, setModeState] = React.useState<ThemeMode>(() => getStoredMode());
-  const [resolvedTheme, setResolvedTheme] = React.useState<ResolvedTheme>(() =>
-    resolveTheme(getStoredMode()),
+  const mode = React.useSyncExternalStore(
+    subscribeToStoredMode,
+    getStoredMode,
+    (): ThemeMode => 'system',
   );
+  const systemTheme = React.useSyncExternalStore(
+    subscribeToSystemTheme,
+    getSystemTheme,
+    (): ResolvedTheme => 'light',
+  );
+  const resolvedTheme = mode === 'system' ? systemTheme : mode;
 
-  React.useEffect(() => {
-    const media = window.matchMedia('(prefers-color-scheme: dark)');
-    const onChange = () => {
-      if (mode === 'system') {
-        setResolvedTheme(applyTheme('system'));
-      }
-    };
-
-    media.addEventListener('change', onChange);
-    return () => media.removeEventListener('change', onChange);
-  }, [mode]);
+  React.useLayoutEffect(() => {
+    applyTheme(mode, resolvedTheme);
+  }, [mode, resolvedTheme]);
 
   const setMode = React.useCallback((nextMode: ThemeMode) => {
-    window.localStorage.setItem(storageKey, nextMode);
-    setModeState(nextMode);
-    setResolvedTheme(applyTheme(nextMode));
+    memoryMode = nextMode;
+
+    try {
+      window.localStorage.setItem(storageKey, nextMode);
+    } catch {
+      // The in-memory preference still works when storage is unavailable.
+    }
+
+    window.dispatchEvent(new Event(themeChangeEvent));
   }, []);
 
   return (
@@ -87,16 +113,3 @@ export function useTheme() {
 
   return context;
 }
-
-export const themeBootstrapScript = `
-(() => {
-  try {
-    const stored = localStorage.getItem('${storageKey}');
-    const mode = stored === 'light' || stored === 'dark' || stored === 'system' ? stored : 'system';
-    const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const resolved = mode === 'system' ? (systemDark ? 'dark' : 'light') : mode;
-    document.documentElement.classList.toggle('dark', resolved === 'dark');
-    document.documentElement.dataset.theme = mode;
-  } catch (_) {}
-})();
-`;

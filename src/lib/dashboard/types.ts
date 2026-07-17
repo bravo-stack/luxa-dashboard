@@ -9,6 +9,10 @@ export const leadStatuses = [
 
 export type LeadStatus = (typeof leadStatuses)[number];
 
+export const leadOrigins = ['website', 'manual', 'import', 'integration'] as const;
+
+export type LeadOrigin = (typeof leadOrigins)[number];
+
 export type LeadPriority = 'standard' | 'review_next' | 'contact_overdue' | 'high_fit';
 
 export type SubmissionType = 'quick_start' | 'platform_audit' | 'manual';
@@ -37,7 +41,10 @@ export interface Lead {
   company: string;
   website?: string;
   status: LeadStatus;
-  source: string;
+  origin: LeadOrigin;
+  marketingSource?: string;
+  created_by?: string;
+  owner_user_id?: string;
   locale: 'en' | 'ar';
   pathname: string;
 }

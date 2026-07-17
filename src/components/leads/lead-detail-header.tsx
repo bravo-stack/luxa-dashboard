@@ -12,6 +12,13 @@ type LeadDetailHeaderProps = {
 };
 
 export function LeadDetailHeader({ lead }: LeadDetailHeaderProps) {
+  const provenance =
+    lead.origin === 'website'
+      ? `${lead.name} submitted from ${lead.pathname} in ${lead.locale.toUpperCase()}.`
+      : lead.origin === 'manual'
+        ? `${lead.name} was added manually by a team member.`
+        : `${lead.name} entered the CRM through an ${lead.origin} workflow.`;
+
   return (
     <header className="surface-premium rounded-lg border-primary/30 p-5 sm:p-7">
       <Button asChild variant="ghost" size="sm" className="mb-6">
@@ -31,9 +38,7 @@ export function LeadDetailHeader({ lead }: LeadDetailHeaderProps) {
           <h1 className="mt-4 text-3xl font-semibold text-foreground sm:text-4xl">
             {lead.company}
           </h1>
-          <p className="mt-2 text-base text-muted-foreground">
-            {lead.name} submitted from {lead.pathname} in {lead.locale.toUpperCase()}.
-          </p>
+          <p className="mt-2 text-base text-muted-foreground">{provenance}</p>
         </div>
         <div className="flex flex-wrap gap-3">
           <Button asChild variant="secondary">

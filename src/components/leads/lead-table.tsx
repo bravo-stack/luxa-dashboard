@@ -40,7 +40,7 @@ import {
 } from '@/components/ui/table';
 import { persistLeadStatus } from '@/lib/dashboard/client';
 import { type LeadListItem, type LeadStatus, leadStatuses } from '@/lib/dashboard/types';
-import { formatDate, statusLabels } from '@/lib/dashboard/utils';
+import { formatDate, originLabels, statusLabels } from '@/lib/dashboard/utils';
 
 import {
   defaultLeadFilters,
@@ -116,10 +116,6 @@ export function LeadTable({ leads }: LeadTableProps) {
       ).sort() as string[],
     [rows],
   );
-  const sources = React.useMemo(
-    () => Array.from(new Set(rows.map((lead) => lead.source))).sort(),
-    [rows],
-  );
   const filteredRows = React.useMemo(() => {
     const searchValue = search.trim().toLowerCase();
 
@@ -131,7 +127,8 @@ export function LeadTable({ leads }: LeadTableProps) {
           lead.email,
           lead.company,
           lead.website ?? '',
-          lead.source,
+          originLabels[lead.origin],
+          lead.marketingSource ?? '',
           latestSubmission?.project_type ?? '',
         ]
           .join(' ')
@@ -159,7 +156,7 @@ export function LeadTable({ leads }: LeadTableProps) {
           return false;
         }
 
-        if (filters.source !== 'all' && lead.source !== filters.source) {
+        if (filters.origin !== 'all' && lead.origin !== filters.origin) {
           return false;
         }
 
@@ -290,9 +287,9 @@ export function LeadTable({ leads }: LeadTableProps) {
         cell: ({ row }) => <LeadStatusBadge status={row.original.status} />,
       },
       {
-        accessorKey: 'locale',
-        header: 'Locale',
-        cell: ({ row }) => <span>{row.original.locale.toUpperCase()}</span>,
+        accessorKey: 'origin',
+        header: 'Origin',
+        cell: ({ row }) => <span>{originLabels[row.original.origin]}</span>,
       },
       {
         accessorKey: 'created_at',
@@ -411,7 +408,6 @@ export function LeadTable({ leads }: LeadTableProps) {
         sort={sort}
         budgets={budgets}
         timelines={timelines}
-        sources={sources}
         onFiltersChange={setFilters}
         onSortChange={setSort}
       />

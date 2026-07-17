@@ -10,8 +10,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { leadStatuses } from '@/lib/dashboard/types';
-import { statusLabels } from '@/lib/dashboard/utils';
+import { leadOrigins, leadStatuses } from '@/lib/dashboard/types';
+import { originLabels, statusLabels } from '@/lib/dashboard/utils';
 
 export type LeadSortKey = 'newest' | 'oldest';
 
@@ -19,7 +19,7 @@ export type LeadFilterState = {
   status: string;
   budget: string;
   timeline: string;
-  source: string;
+  origin: string;
   date: string;
 };
 
@@ -27,7 +27,7 @@ export const defaultLeadFilters: LeadFilterState = {
   status: 'all',
   budget: 'all',
   timeline: 'all',
-  source: 'all',
+  origin: 'all',
   date: 'all',
 };
 
@@ -36,7 +36,6 @@ type LeadFiltersProps = {
   sort: LeadSortKey;
   budgets: string[];
   timelines: string[];
-  sources: string[];
   onFiltersChange: (filters: LeadFilterState) => void;
   onSortChange: (sort: LeadSortKey) => void;
 };
@@ -57,7 +56,6 @@ export function LeadFilters({
   sort,
   budgets,
   timelines,
-  sources,
   onFiltersChange,
   onSortChange,
 }: LeadFiltersProps) {
@@ -126,19 +124,19 @@ export function LeadFilters({
           </SelectContent>
         </Select>
         <Select
-          value={filters.source}
+          value={filters.origin}
           onValueChange={(value) =>
-            onFiltersChange(updateFilter(filters, 'source', value))
+            onFiltersChange(updateFilter(filters, 'origin', value))
           }
         >
           <SelectTrigger className="w-45">
-            <SelectValue placeholder="Source" />
+            <SelectValue placeholder="Origin" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All sources</SelectItem>
-            {sources.map((source) => (
-              <SelectItem key={source} value={source}>
-                {source}
+            <SelectItem value="all">All origins</SelectItem>
+            {leadOrigins.map((origin) => (
+              <SelectItem key={origin} value={origin}>
+                {originLabels[origin]}
               </SelectItem>
             ))}
           </SelectContent>

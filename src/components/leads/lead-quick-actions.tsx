@@ -19,7 +19,7 @@ import {
   type LeadStatus,
   leadStatuses,
 } from '@/lib/dashboard/types';
-import { formatDate, statusLabels } from '@/lib/dashboard/utils';
+import { formatDate, originLabels, statusLabels } from '@/lib/dashboard/utils';
 
 import { LeadStatusBadge } from './lead-status-badge';
 
@@ -76,9 +76,9 @@ export function LeadQuickActions({ lead, latestSubmission }: LeadQuickActionsPro
             </span>
           </div>
           <div className="flex items-center justify-between gap-3 border-b border-border pb-3">
-            <span className="text-muted-foreground">Source</span>
+            <span className="text-muted-foreground">Origin</span>
             <span className="text-right font-semibold text-foreground">
-              {lead.source}
+              {originLabels[lead.origin]}
             </span>
           </div>
           <div className="flex items-center justify-between gap-3 border-b border-border pb-3">

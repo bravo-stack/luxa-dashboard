@@ -3,7 +3,14 @@ import 'server-only';
 import { cache } from 'react';
 import { randomUUID } from 'node:crypto';
 
-import type { AuditSubmission, Lead, LeadEvent, LeadNote, LeadStatus } from './types';
+import type {
+  AuditSubmission,
+  Lead,
+  LeadEvent,
+  LeadNote,
+  LeadOrigin,
+  LeadStatus,
+} from './types';
 
 export type DashboardDataset = {
   leads: Lead[];
@@ -57,6 +64,9 @@ const leadSubmissionSelect = [
   'updated_at',
   'status',
   'form_type',
+  'origin',
+  'created_by',
+  'owner_user_id',
   'locale',
   'pathname',
   'full_name',
@@ -87,6 +97,13 @@ function normalizeRecordMap(value: unknown): Record<string, unknown> {
 
 function normalizeLead(row: Record<string, unknown>): Lead {
   const attribution = normalizeRecordMap(row.attribution);
+  const origin = normalizeLeadOrigin(row.origin, row.form_type);
+  const marketingSource =
+    origin === 'website'
+      ? typeof attribution.utm_source === 'string'
+        ? attribution.utm_source
+        : String(row.pathname)
+      : undefined;
 
   return {
     id: String(row.id),
@@ -97,13 +114,26 @@ function normalizeLead(row: Record<string, unknown>): Lead {
     company: String(row.company),
     website: row.website ? String(row.website) : undefined,
     status: row.status as LeadStatus,
-    source:
-      typeof attribution.utm_source === 'string'
-        ? attribution.utm_source
-        : String(row.pathname),
+    origin,
+    marketingSource,
+    created_by: row.created_by ? String(row.created_by) : undefined,
+    owner_user_id: row.owner_user_id ? String(row.owner_user_id) : undefined,
     locale: row.locale === 'ar' ? 'ar' : 'en',
     pathname: String(row.pathname),
   };
+}
+
+function normalizeLeadOrigin(origin: unknown, formType: unknown): LeadOrigin {
+  if (
+    origin === 'website' ||
+    origin === 'manual' ||
+    origin === 'import' ||
+    origin === 'integration'
+  ) {
+    return origin;
+  }
+
+  return formType === 'manual' ? 'manual' : 'website';
 }
 
 function normalizeAuditSubmission(row: Record<string, unknown>): AuditSubmission {
@@ -144,6 +174,7 @@ export async function insertSupabaseManualLead(
     .insert({
       status: 'new',
       form_type: 'manual',
+      origin: 'manual',
       idempotency_key: randomUUID(),
       locale: input.locale,
       pathname: '/dashboard/leads/new',
@@ -159,6 +190,7 @@ export async function insertSupabaseManualLead(
       next_step: input.nextStep ?? null,
       attribution: { entry_method: 'dashboard_manual' },
       created_by: createdBy,
+      owner_user_id: createdBy,
     })
     .select('id')
     .single();

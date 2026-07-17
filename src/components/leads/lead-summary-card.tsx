@@ -1,6 +1,7 @@
 import { Building2, Globe2, Mail, UserRound } from 'lucide-react';
 
 import type { AuditSubmission, Lead } from '@/lib/dashboard/types';
+import { getLeadOwnershipLabel, originLabels } from '@/lib/dashboard/utils';
 
 type LeadSummaryCardProps = {
   lead: Lead;
@@ -36,7 +37,7 @@ export function LeadSummaryCard({ lead, latestSubmission }: LeadSummaryCardProps
         <p className="text-xs font-semibold text-primary uppercase">Lead summary</p>
         <h2 className="mt-2 text-xl font-semibold text-foreground">Account context</h2>
         <p className="mt-2 text-sm leading-6 text-muted-foreground">
-          Source, fit, and contact state for the current sales motion.
+          Provenance, ownership, and contact state for the current sales motion.
         </p>
       </div>
       <div className="mt-6 grid gap-3 sm:grid-cols-2">
@@ -49,10 +50,20 @@ export function LeadSummaryCard({ lead, latestSubmission }: LeadSummaryCardProps
           icon={Globe2}
         />
       </div>
-      <div className="mt-5 grid gap-3 sm:grid-cols-3">
+      <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <div className="rounded-lg border border-border bg-muted/45 p-4">
-          <p className="text-xs font-semibold text-muted-foreground uppercase">Source</p>
-          <p className="mt-2 text-sm font-semibold text-foreground">{lead.source}</p>
+          <p className="text-xs font-semibold text-muted-foreground uppercase">Origin</p>
+          <p className="mt-2 text-sm font-semibold text-foreground">
+            {originLabels[lead.origin]}
+          </p>
+        </div>
+        <div className="rounded-lg border border-border bg-muted/45 p-4">
+          <p className="text-xs font-semibold text-muted-foreground uppercase">
+            Ownership
+          </p>
+          <p className="mt-2 text-sm font-semibold text-foreground">
+            {getLeadOwnershipLabel(lead)}
+          </p>
         </div>
         <div className="rounded-lg border border-border bg-muted/45 p-4">
           <p className="text-xs font-semibold text-muted-foreground uppercase">Locale</p>
@@ -61,8 +72,14 @@ export function LeadSummaryCard({ lead, latestSubmission }: LeadSummaryCardProps
           </p>
         </div>
         <div className="rounded-lg border border-border bg-muted/45 p-4">
-          <p className="text-xs font-semibold text-muted-foreground uppercase">Path</p>
-          <p className="mt-2 text-sm font-semibold text-foreground">{lead.pathname}</p>
+          <p className="text-xs font-semibold text-muted-foreground uppercase">
+            {lead.origin === 'website' ? 'Landing path' : 'Marketing source'}
+          </p>
+          <p className="mt-2 text-sm font-semibold text-foreground">
+            {lead.origin === 'website'
+              ? lead.pathname
+              : (lead.marketingSource ?? 'Not applicable')}
+          </p>
         </div>
       </div>
       {latestSubmission ? (

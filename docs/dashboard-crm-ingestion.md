@@ -46,9 +46,13 @@ a future relationship model deliberately links them.
    `SUPABASE_SERVICE_ROLE_KEY` remains a supported legacy fallback. Remove it after the
    dashboard-specific secret key has been deployed and verified.
 
-4. Apply the dashboard migration in
-   `supabase/migrations/202607170001_manual_crm_leads.sql`. It adds manual CRM records
-   without changing the funnel's existing form types.
+4. Apply the dashboard migrations in order:
+
+   - `supabase/migrations/202607170001_manual_crm_leads.sql`
+   - `supabase/migrations/202607170002_lead_origin_and_ownership.sql`
+
+   They add manual CRM records and explicit provenance/ownership without changing the
+   funnel's existing form types.
 
 5. Verify connectivity without returning lead PII:
 
@@ -73,8 +77,9 @@ a future relationship model deliberately links them.
    have no ingestion side effect.
 
 7. Create a manual lead from `/dashboard/leads/new`. It is stored with
-   `form_type = 'manual'`, while funnel submissions retain `quick_start` or
-   `platform_audit`.
+   `form_type = 'manual'`, `origin = 'manual'`, and the authenticated administrator as
+   both creator and initial owner. Funnel submissions retain `quick_start` or
+   `platform_audit`, default to `origin = 'website'`, and have no human creator.
 
 ## Data and security contract
 
@@ -82,7 +87,8 @@ a future relationship model deliberately links them.
 - Every dashboard mutation re-authenticates and requires the admin role.
 - Route handlers independently authorize requests.
 - Client Components receive explicit lead DTOs rather than unrestricted Supabase rows.
-- Queries omit `source_hash`, `idempotency_key`, and `created_by` from UI projections.
+- Queries omit `source_hash` and `idempotency_key` from UI projections. Creator and
+  owner IDs are projected only for provenance and future assignment behavior.
 - Umami never receives lead PII or free text.
 - Secret/service-role keys must never use a `NEXT_PUBLIC_` prefix.
 
@@ -106,6 +112,8 @@ Do not add a second public `/api/leads` route to fix a configuration mismatch.
 - Refreshing creates no duplicates.
 - Two source rows sharing an email remain two records.
 - Manual creation produces a `manual` record.
+- Website and manual records display distinct origins.
+- Manual creation records the authenticated creator and initial owner.
 - Unauthorized requests cannot list, export, or mutate CRM data.
 - Status and notes persist without overwriting funnel answers.
 - `npm run typecheck`, `npm run lint`, `npm run format:check`, and `npm run build` pass.

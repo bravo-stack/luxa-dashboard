@@ -1,4 +1,4 @@
-import type { Lead, LeadPriority, LeadStatus } from './types';
+import type { Lead, LeadOrigin, LeadPriority, LeadStatus } from './types';
 
 export const qualificationThreshold = 72;
 
@@ -10,6 +10,21 @@ export const statusLabels: Record<LeadStatus, string> = {
   lost: 'Lost',
   spam: 'Spam',
 };
+
+export const originLabels: Record<LeadOrigin, string> = {
+  website: 'Website',
+  manual: 'Manual entry',
+  import: 'Imported',
+  integration: 'Integration',
+};
+
+export function getLeadOwnershipLabel(lead: Lead) {
+  if (!lead.owner_user_id) {
+    return 'Unassigned';
+  }
+
+  return lead.owner_user_id === lead.created_by ? 'Assigned to creator' : 'Assigned';
+}
 
 export const priorityLabels: Record<LeadPriority, string> = {
   standard: 'Standard',

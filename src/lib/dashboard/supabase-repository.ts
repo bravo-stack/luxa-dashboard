@@ -221,19 +221,21 @@ export async function updateSupabaseLead(
 ) {
   const supabase = await getSupabaseAdminClient();
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('lead_submissions')
     .update({
       ...values,
       updated_at: new Date().toISOString(),
     })
-    .eq('id', leadId);
+    .eq('id', leadId)
+    .select('id')
+    .maybeSingle();
 
   if (error) {
     throw new Error(error.message);
   }
 
-  return true;
+  return Boolean(data);
 }
 
 export async function insertSupabaseLeadNote(leadId: string, body: string) {

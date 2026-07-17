@@ -19,7 +19,6 @@ import {
   MoreHorizontal,
 } from 'lucide-react';
 
-import { markLeadSpam, updateLeadStatus } from '@/app/dashboard/actions';
 import { EmptyState } from '@/components/dashboard/empty-state';
 import { Button } from '@/components/ui/button';
 import {
@@ -39,6 +38,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { persistLeadStatus } from '@/lib/dashboard/client';
 import { type LeadListItem, type LeadStatus, leadStatuses } from '@/lib/dashboard/types';
 import { formatDate, statusLabels } from '@/lib/dashboard/utils';
 
@@ -97,6 +97,7 @@ export function LeadTable({ leads }: LeadTableProps) {
   const [filters, setFilters] = React.useState<LeadFilterState>(defaultLeadFilters);
   const [sort, setSort] = React.useState<LeadSortKey>('newest');
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
+  const [mutationError, setMutationError] = React.useState('');
   const [isPending, startTransition] = React.useTransition();
 
   const budgets = React.useMemo(
@@ -168,29 +169,73 @@ export function LeadTable({ leads }: LeadTableProps) {
     );
   }, [filters, rows, search, sort]);
 
-  const handleStatusChange = React.useCallback((leadId: string, status: LeadStatus) => {
-    setRows((currentRows) =>
-      currentRows.map((lead) => (lead.id === leadId ? { ...lead, status } : lead)),
-    );
-    startTransition(() => {
-      updateLeadStatus(leadId, status).catch((error: unknown) => {
-        console.error(error);
-      });
-    });
-  }, []);
+  const handleStatusChange = React.useCallback(
+    (leadId: string, status: LeadStatus) => {
+      const previousStatus = rows.find((lead) => lead.id === leadId)?.status;
 
-  const handleSpamLead = React.useCallback((leadId: string) => {
-    setRows((currentRows) =>
-      currentRows.map((lead) =>
-        lead.id === leadId ? { ...lead, status: 'spam' } : lead,
-      ),
-    );
-    startTransition(() => {
-      markLeadSpam(leadId).catch((error: unknown) => {
-        console.error(error);
+      if (!previousStatus || previousStatus === status) {
+        return;
+      }
+
+      setMutationError('');
+      setRows((currentRows) =>
+        currentRows.map((lead) => (lead.id === leadId ? { ...lead, status } : lead)),
+      );
+      startTransition(async () => {
+        try {
+          await persistLeadStatus(leadId, status);
+
+          router.refresh();
+        } catch (error: unknown) {
+          setRows((currentRows) =>
+            currentRows.map((lead) =>
+              lead.id === leadId ? { ...lead, status: previousStatus } : lead,
+            ),
+          );
+          setMutationError(
+            'The lead status could not be saved. Refresh the page and try again.',
+          );
+          console.error(error);
+        }
       });
-    });
-  }, []);
+    },
+    [router, rows],
+  );
+
+  const handleSpamLead = React.useCallback(
+    (leadId: string) => {
+      const previousStatus = rows.find((lead) => lead.id === leadId)?.status;
+
+      if (!previousStatus || previousStatus === 'spam') {
+        return;
+      }
+
+      setMutationError('');
+      setRows((currentRows) =>
+        currentRows.map((lead) =>
+          lead.id === leadId ? { ...lead, status: 'spam' } : lead,
+        ),
+      );
+      startTransition(async () => {
+        try {
+          await persistLeadStatus(leadId, 'spam');
+
+          router.refresh();
+        } catch (error: unknown) {
+          setRows((currentRows) =>
+            currentRows.map((lead) =>
+              lead.id === leadId ? { ...lead, status: previousStatus } : lead,
+            ),
+          );
+          setMutationError(
+            'The lead could not be marked as spam. Refresh the page and try again.',
+          );
+          console.error(error);
+        }
+      });
+    },
+    [router, rows],
+  );
 
   const columns = React.useMemo<ColumnDef<LeadListItem>[]>(
     () => [
@@ -370,6 +415,14 @@ export function LeadTable({ leads }: LeadTableProps) {
         onFiltersChange={setFilters}
         onSortChange={setSort}
       />
+      {mutationError ? (
+        <p
+          role="alert"
+          className="rounded-md border border-destructive/25 bg-destructive/8 px-4 py-3 text-sm font-medium text-destructive"
+        >
+          {mutationError}
+        </p>
+      ) : null}
       <div className="surface-premium overflow-hidden rounded-lg">
         {table.getRowModel().rows.length ? (
           <Table>

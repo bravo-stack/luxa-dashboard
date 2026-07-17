@@ -34,6 +34,23 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith('/dashboard') || pathname.startsWith('/api/dashboard');
 
   if (isProtectedDashboardPath && !isAdmin) {
+    // Server Actions authorize themselves. Redirecting their POST requests returns
+    // HTML where React expects an action response and produces a transport error.
+    if (request.headers.has('next-action')) {
+      return response;
+    }
+
+    if (pathname.startsWith('/api/dashboard')) {
+      const unauthorizedResponse = NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 },
+      );
+      response.cookies
+        .getAll()
+        .forEach((cookie) => unauthorizedResponse.cookies.set(cookie));
+      return unauthorizedResponse;
+    }
+
     const redirectResponse = NextResponse.redirect(new URL('/', request.url));
     response.cookies.getAll().forEach((cookie) => redirectResponse.cookies.set(cookie));
     return redirectResponse;

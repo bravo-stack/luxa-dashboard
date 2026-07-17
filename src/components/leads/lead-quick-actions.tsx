@@ -1,13 +1,9 @@
 'use client';
 
 import * as React from 'react';
+import { useRouter } from 'next/navigation';
 import { CheckCircle2, Copy, ExternalLink, ShieldAlert } from 'lucide-react';
 
-import {
-  markLeadContacted,
-  markLeadSpam,
-  updateLeadStatus,
-} from '@/app/dashboard/actions';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -16,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { persistLeadStatus } from '@/lib/dashboard/client';
 import {
   type AuditSubmission,
   type Lead,
@@ -32,12 +29,29 @@ type LeadQuickActionsProps = {
 };
 
 export function LeadQuickActions({ lead, latestSubmission }: LeadQuickActionsProps) {
+  const router = useRouter();
   const [status, setStatus] = React.useState<LeadStatus>(lead.status);
+  const [mutationError, setMutationError] = React.useState('');
   const [isPending, startTransition] = React.useTransition();
 
-  function runAction(action: () => Promise<unknown>) {
-    startTransition(() => {
-      action().catch((error: unknown) => console.error(error));
+  function saveStatus(nextStatus: LeadStatus) {
+    const previousStatus = status;
+
+    if (previousStatus === nextStatus) {
+      return;
+    }
+
+    setMutationError('');
+    setStatus(nextStatus);
+    startTransition(async () => {
+      try {
+        await persistLeadStatus(lead.id, nextStatus);
+        router.refresh();
+      } catch (error: unknown) {
+        setStatus(previousStatus);
+        setMutationError('The lead status could not be saved. Try again.');
+        console.error(error);
+      }
     });
   }
 
@@ -88,7 +102,7 @@ export function LeadQuickActions({ lead, latestSubmission }: LeadQuickActionsPro
             className="w-full justify-start"
             variant="secondary"
             disabled={isPending}
-            onClick={() => runAction(() => markLeadContacted(lead.id))}
+            onClick={() => saveStatus('contacted')}
           >
             <CheckCircle2 className="size-4" />
             Mark contacted
@@ -122,10 +136,9 @@ export function LeadQuickActions({ lead, latestSubmission }: LeadQuickActionsPro
             </label>
             <Select
               value={status}
+              disabled={isPending}
               onValueChange={(value) => {
-                const nextStatus = value as LeadStatus;
-                setStatus(nextStatus);
-                runAction(() => updateLeadStatus(lead.id, nextStatus));
+                saveStatus(value as LeadStatus);
               }}
             >
               <SelectTrigger id="lead-status">
@@ -144,11 +157,16 @@ export function LeadQuickActions({ lead, latestSubmission }: LeadQuickActionsPro
             className="w-full justify-start"
             variant="destructive"
             disabled={isPending}
-            onClick={() => runAction(() => markLeadSpam(lead.id))}
+            onClick={() => saveStatus('spam')}
           >
             <ShieldAlert className="size-4" />
             Mark as spam
           </Button>
+          {mutationError ? (
+            <p role="alert" className="text-sm font-medium text-destructive">
+              {mutationError}
+            </p>
+          ) : null}
         </div>
       </section>
     </aside>

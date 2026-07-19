@@ -13,6 +13,17 @@ export const leadOrigins = ['website', 'manual', 'import', 'integration'] as con
 
 export type LeadOrigin = (typeof leadOrigins)[number];
 
+export const connectionStatuses = [
+  'not_researched',
+  'identified',
+  'connection_sent',
+  'connected',
+  'contacted',
+  'replied',
+] as const;
+
+export type ConnectionStatus = (typeof connectionStatuses)[number];
+
 export type LeadPriority = 'standard' | 'review_next' | 'contact_overdue' | 'high_fit';
 
 export type SubmissionType = 'quick_start' | 'platform_audit' | 'manual';
@@ -40,6 +51,17 @@ export interface Lead {
   email: string;
   company: string;
   website?: string;
+  icpCategory?: string;
+  linkedinProfileUrl?: string;
+  focusName?: string;
+  focusTitle?: string;
+  focusLinkedinUrl?: string;
+  connectionStatus?: ConnectionStatus;
+  lastOutreachDate?: string;
+  nextFollowUpAction?: string;
+  painPoints?: string;
+  facebookUrl?: string;
+  whatsapp?: string;
   status: LeadStatus;
   origin: LeadOrigin;
   marketingSource?: string;

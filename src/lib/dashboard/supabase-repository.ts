@@ -5,6 +5,7 @@ import { randomUUID } from 'node:crypto';
 
 import type {
   AuditSubmission,
+  ConnectionStatus,
   Lead,
   LeadEvent,
   LeadNote,
@@ -25,6 +26,17 @@ export type ManualLeadInput = {
   email: string;
   company: string;
   website?: string;
+  icpCategory?: string;
+  linkedinProfileUrl?: string;
+  focusName?: string;
+  focusTitle?: string;
+  focusLinkedinUrl?: string;
+  connectionStatus?: ConnectionStatus;
+  lastOutreachDate?: string;
+  nextFollowUpAction?: string;
+  painPoints?: string;
+  facebookUrl?: string;
+  whatsapp?: string;
   projectType: string;
   industry?: string;
   budget?: string;
@@ -73,6 +85,17 @@ const leadSubmissionSelect = [
   'email',
   'company',
   'website',
+  'icp_category',
+  'linkedin_profile_url',
+  'focus_name',
+  'focus_title',
+  'focus_linkedin_url',
+  'connection_status',
+  'last_outreach_date',
+  'next_follow_up_action',
+  'pain_points',
+  'facebook_url',
+  'whatsapp',
   'project_type',
   'industry',
   'system_status',
@@ -113,6 +136,23 @@ function normalizeLead(row: Record<string, unknown>): Lead {
     email: String(row.email),
     company: String(row.company),
     website: row.website ? String(row.website) : undefined,
+    icpCategory: row.icp_category ? String(row.icp_category) : undefined,
+    linkedinProfileUrl: row.linkedin_profile_url
+      ? String(row.linkedin_profile_url)
+      : undefined,
+    focusName: row.focus_name ? String(row.focus_name) : undefined,
+    focusTitle: row.focus_title ? String(row.focus_title) : undefined,
+    focusLinkedinUrl: row.focus_linkedin_url ? String(row.focus_linkedin_url) : undefined,
+    connectionStatus: row.connection_status
+      ? (String(row.connection_status) as ConnectionStatus)
+      : undefined,
+    lastOutreachDate: row.last_outreach_date ? String(row.last_outreach_date) : undefined,
+    nextFollowUpAction: row.next_follow_up_action
+      ? String(row.next_follow_up_action)
+      : undefined,
+    painPoints: row.pain_points ? String(row.pain_points) : undefined,
+    facebookUrl: row.facebook_url ? String(row.facebook_url) : undefined,
+    whatsapp: row.whatsapp ? String(row.whatsapp) : undefined,
     status: row.status as LeadStatus,
     origin,
     marketingSource,
@@ -182,6 +222,17 @@ export async function insertSupabaseManualLead(
       email: input.email,
       company: input.company,
       website: input.website ?? null,
+      icp_category: input.icpCategory ?? null,
+      linkedin_profile_url: input.linkedinProfileUrl ?? null,
+      focus_name: input.focusName ?? null,
+      focus_title: input.focusTitle ?? null,
+      focus_linkedin_url: input.focusLinkedinUrl ?? null,
+      connection_status: input.connectionStatus ?? null,
+      last_outreach_date: input.lastOutreachDate ?? null,
+      next_follow_up_action: input.nextFollowUpAction ?? null,
+      pain_points: input.painPoints ?? null,
+      facebook_url: input.facebookUrl ?? null,
+      whatsapp: input.whatsapp ?? null,
       project_type: input.projectType,
       industry: input.industry ?? null,
       budget: input.budget ?? null,
@@ -249,14 +300,63 @@ export const getSupabaseDashboardDataset = cache(async () => {
 
 export async function updateSupabaseLead(
   leadId: string,
-  values: Partial<Pick<Lead, 'status'>>,
+  values: Partial<
+    Pick<
+      Lead,
+      | 'status'
+      | 'icpCategory'
+      | 'linkedinProfileUrl'
+      | 'focusName'
+      | 'focusTitle'
+      | 'focusLinkedinUrl'
+      | 'connectionStatus'
+      | 'lastOutreachDate'
+      | 'nextFollowUpAction'
+      | 'painPoints'
+      | 'facebookUrl'
+      | 'whatsapp'
+    >
+  >,
 ) {
   const supabase = await getSupabaseAdminClient();
+
+  const databaseValues = {
+    ...(values.status !== undefined ? { status: values.status } : {}),
+    ...(values.icpCategory !== undefined
+      ? { icp_category: values.icpCategory || null }
+      : {}),
+    ...(values.linkedinProfileUrl !== undefined
+      ? { linkedin_profile_url: values.linkedinProfileUrl || null }
+      : {}),
+    ...(values.focusName !== undefined ? { focus_name: values.focusName || null } : {}),
+    ...(values.focusTitle !== undefined
+      ? { focus_title: values.focusTitle || null }
+      : {}),
+    ...(values.focusLinkedinUrl !== undefined
+      ? { focus_linkedin_url: values.focusLinkedinUrl || null }
+      : {}),
+    ...(values.connectionStatus !== undefined
+      ? { connection_status: values.connectionStatus || null }
+      : {}),
+    ...(values.lastOutreachDate !== undefined
+      ? { last_outreach_date: values.lastOutreachDate || null }
+      : {}),
+    ...(values.nextFollowUpAction !== undefined
+      ? { next_follow_up_action: values.nextFollowUpAction || null }
+      : {}),
+    ...(values.painPoints !== undefined
+      ? { pain_points: values.painPoints || null }
+      : {}),
+    ...(values.facebookUrl !== undefined
+      ? { facebook_url: values.facebookUrl || null }
+      : {}),
+    ...(values.whatsapp !== undefined ? { whatsapp: values.whatsapp || null } : {}),
+  };
 
   const { data, error } = await supabase
     .from('lead_submissions')
     .update({
-      ...values,
+      ...databaseValues,
       updated_at: new Date().toISOString(),
     })
     .eq('id', leadId)

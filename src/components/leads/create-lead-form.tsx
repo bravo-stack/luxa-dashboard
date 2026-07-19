@@ -81,9 +81,7 @@ export function CreateLeadForm() {
     <form action={formAction} className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_20rem]">
       <div className="surface-premium rounded-lg p-5 sm:p-7">
         <div className="border-b border-border pb-5">
-          <p className="text-sm font-semibold text-foreground">
-            Identity and opportunity
-          </p>
+          <p className="text-sm font-semibold text-foreground">Account and opportunity</p>
           <p className="mt-1 text-sm leading-6 text-muted-foreground">
             Capture enough context for qualification. The record starts in the New stage.
           </p>
@@ -100,7 +98,7 @@ export function CreateLeadForm() {
               required
             />
           </Field>
-          <Field label="Work email" name="email" error={state.errors?.email}>
+          <Field label="Mail / work email" name="email" error={state.errors?.email}>
             <Input
               id="email"
               name="email"
@@ -111,7 +109,7 @@ export function CreateLeadForm() {
               required
             />
           </Field>
-          <Field label="Company" name="company" error={state.errors?.company}>
+          <Field label="Company name" name="company" error={state.errors?.company}>
             <Input
               id="company"
               name="company"
@@ -119,6 +117,14 @@ export function CreateLeadForm() {
               className={inputClassName('company')}
               aria-invalid={Boolean(state.errors?.company)}
               required
+            />
+          </Field>
+          <Field label="ICP category" name="icpCategory" optional>
+            <Input
+              id="icpCategory"
+              name="icpCategory"
+              placeholder="Enterprise fintech"
+              className="h-11"
             />
           </Field>
           <Field label="Website" name="website" error={state.errors?.website} optional>
@@ -131,6 +137,21 @@ export function CreateLeadForm() {
               placeholder="company.com"
               className={inputClassName('website')}
               aria-invalid={Boolean(state.errors?.website)}
+            />
+          </Field>
+          <Field
+            label="Company LinkedIn"
+            name="linkedinProfileUrl"
+            error={state.errors?.linkedinProfileUrl}
+            optional
+          >
+            <Input
+              id="linkedinProfileUrl"
+              name="linkedinProfileUrl"
+              inputMode="url"
+              placeholder="linkedin.com/company/acme"
+              className={inputClassName('linkedinProfileUrl')}
+              aria-invalid={Boolean(state.errors?.linkedinProfileUrl)}
             />
           </Field>
           <div className="sm:col-span-2">
@@ -193,6 +214,121 @@ export function CreateLeadForm() {
                 placeholder="What should the sales team know before first contact?"
               />
             </Field>
+          </div>
+        </div>
+
+        <div className="mt-8 border-t border-border pt-6">
+          <p className="text-sm font-semibold text-foreground">Focus contact</p>
+          <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">
+            Add the senior decision-maker or influential employee most likely to evaluate
+            Luxa’s services.
+          </p>
+          <div className="mt-5 grid gap-5 sm:grid-cols-2">
+            <Field label="Focus name" name="focusName" optional>
+              <Input
+                id="focusName"
+                name="focusName"
+                autoComplete="name"
+                className="h-11"
+              />
+            </Field>
+            <Field label="Title" name="focusTitle" optional>
+              <Input
+                id="focusTitle"
+                name="focusTitle"
+                placeholder="Chief Operating Officer"
+                className="h-11"
+              />
+            </Field>
+            <Field
+              label="Focus LinkedIn"
+              name="focusLinkedinUrl"
+              error={state.errors?.focusLinkedinUrl}
+              optional
+            >
+              <Input
+                id="focusLinkedinUrl"
+                name="focusLinkedinUrl"
+                inputMode="url"
+                placeholder="linkedin.com/in/name"
+                className={inputClassName('focusLinkedinUrl')}
+                aria-invalid={Boolean(state.errors?.focusLinkedinUrl)}
+              />
+            </Field>
+            <Field label="Connection status" name="connectionStatus" optional>
+              <select
+                id="connectionStatus"
+                name="connectionStatus"
+                defaultValue="not_researched"
+                className="h-11 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+              >
+                <option value="not_researched">Not researched</option>
+                <option value="identified">Identified</option>
+                <option value="connection_sent">Connection sent</option>
+                <option value="connected">Connected</option>
+                <option value="contacted">Contacted</option>
+                <option value="replied">Replied</option>
+              </select>
+            </Field>
+          </div>
+        </div>
+
+        <div className="mt-8 border-t border-border pt-6">
+          <p className="text-sm font-semibold text-foreground">Outreach context</p>
+          <div className="mt-5 grid gap-5 sm:grid-cols-2">
+            <Field label="Last outreach date" name="lastOutreachDate" optional>
+              <Input
+                id="lastOutreachDate"
+                name="lastOutreachDate"
+                type="date"
+                className="h-11"
+              />
+            </Field>
+            <Field label="WhatsApp" name="whatsapp" optional>
+              <Input
+                id="whatsapp"
+                name="whatsapp"
+                type="tel"
+                inputMode="tel"
+                placeholder="+234 800 000 0000"
+                className="h-11"
+              />
+            </Field>
+            <Field
+              label="Facebook"
+              name="facebookUrl"
+              error={state.errors?.facebookUrl}
+              optional
+            >
+              <Input
+                id="facebookUrl"
+                name="facebookUrl"
+                inputMode="url"
+                placeholder="facebook.com/acme"
+                className={inputClassName('facebookUrl')}
+                aria-invalid={Boolean(state.errors?.facebookUrl)}
+              />
+            </Field>
+            <div className="sm:col-span-2">
+              <Field label="Next follow-up action" name="nextFollowUpAction" optional>
+                <Input
+                  id="nextFollowUpAction"
+                  name="nextFollowUpAction"
+                  placeholder="Send a tailored operations audit"
+                  className="h-11"
+                />
+              </Field>
+            </div>
+            <div className="sm:col-span-2">
+              <Field label="Pain points" name="painPoints" optional>
+                <Textarea
+                  id="painPoints"
+                  name="painPoints"
+                  rows={4}
+                  placeholder="What business friction makes this account a strong fit?"
+                />
+              </Field>
+            </div>
           </div>
         </div>
 

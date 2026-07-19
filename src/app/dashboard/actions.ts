@@ -10,6 +10,8 @@ import {
   updateSupabaseLead,
 } from '@/lib/dashboard/supabase-repository';
 import {
+  type ConnectionStatus,
+  connectionStatuses,
   type DashboardActionResult,
   type LeadStatus,
   leadStatuses,
@@ -18,9 +20,21 @@ import {
 export type CreateLeadState = {
   message: string;
   errors?: Partial<
-    Record<'fullName' | 'email' | 'company' | 'projectType' | 'website', string>
+    Record<
+      | 'fullName'
+      | 'email'
+      | 'company'
+      | 'projectType'
+      | 'website'
+      | 'linkedinProfileUrl'
+      | 'focusLinkedinUrl'
+      | 'facebookUrl',
+      string
+    >
   >;
 };
+
+export type ProspectingState = CreateLeadState;
 
 function normalizeOptionalValue(formData: FormData, field: string) {
   const value = String(formData.get(field) ?? '').trim();
@@ -47,6 +61,14 @@ function normalizeWebsite(value: string | undefined) {
   }
 }
 
+function normalizeConnectionStatus(value: FormDataEntryValue | null) {
+  const status = String(value ?? '');
+
+  return connectionStatuses.includes(status as ConnectionStatus)
+    ? (status as ConnectionStatus)
+    : undefined;
+}
+
 export async function createLead(
   _state: CreateLeadState,
   formData: FormData,
@@ -59,6 +81,13 @@ export async function createLead(
   const company = String(formData.get('company') ?? '').trim();
   const projectType = String(formData.get('projectType') ?? '').trim();
   const website = normalizeWebsite(normalizeOptionalValue(formData, 'website'));
+  const linkedinProfileUrl = normalizeWebsite(
+    normalizeOptionalValue(formData, 'linkedinProfileUrl'),
+  );
+  const focusLinkedinUrl = normalizeWebsite(
+    normalizeOptionalValue(formData, 'focusLinkedinUrl'),
+  );
+  const facebookUrl = normalizeWebsite(normalizeOptionalValue(formData, 'facebookUrl'));
   const errors: NonNullable<CreateLeadState['errors']> = {};
 
   if (!fullName) errors.fullName = 'Enter the lead’s full name.';
@@ -66,6 +95,13 @@ export async function createLead(
   if (!company) errors.company = 'Enter the company or organization.';
   if (!projectType) errors.projectType = 'Describe the opportunity or project.';
   if (website === null) errors.website = 'Enter a valid website address.';
+  if (linkedinProfileUrl === null) {
+    errors.linkedinProfileUrl = 'Enter a valid LinkedIn URL.';
+  }
+  if (focusLinkedinUrl === null) {
+    errors.focusLinkedinUrl = 'Enter a valid LinkedIn URL.';
+  }
+  if (facebookUrl === null) errors.facebookUrl = 'Enter a valid Facebook URL.';
 
   if (Object.keys(errors).length) {
     return { message: 'Review the highlighted fields.', errors };
@@ -79,6 +115,17 @@ export async function createLead(
       company,
       projectType,
       website: website || undefined,
+      icpCategory: normalizeOptionalValue(formData, 'icpCategory'),
+      linkedinProfileUrl: linkedinProfileUrl || undefined,
+      focusName: normalizeOptionalValue(formData, 'focusName'),
+      focusTitle: normalizeOptionalValue(formData, 'focusTitle'),
+      focusLinkedinUrl: focusLinkedinUrl || undefined,
+      connectionStatus: normalizeConnectionStatus(formData.get('connectionStatus')),
+      lastOutreachDate: normalizeOptionalValue(formData, 'lastOutreachDate'),
+      nextFollowUpAction: normalizeOptionalValue(formData, 'nextFollowUpAction'),
+      painPoints: normalizeOptionalValue(formData, 'painPoints'),
+      facebookUrl: facebookUrl || undefined,
+      whatsapp: normalizeOptionalValue(formData, 'whatsapp'),
       locale: localeValue === 'ar' ? 'ar' : 'en',
       industry: normalizeOptionalValue(formData, 'industry'),
       budget: normalizeOptionalValue(formData, 'budget'),
@@ -92,6 +139,56 @@ export async function createLead(
   revalidatePath('/dashboard');
   revalidatePath('/dashboard/leads');
   redirect(`/dashboard/leads/${leadId}`);
+}
+
+export async function updateLeadProspecting(
+  _state: ProspectingState,
+  formData: FormData,
+): Promise<ProspectingState> {
+  await requireAdmin();
+  const leadId = String(formData.get('leadId') ?? '').trim();
+  requireLeadId(leadId);
+
+  const linkedinProfileUrl = normalizeWebsite(
+    normalizeOptionalValue(formData, 'linkedinProfileUrl'),
+  );
+  const focusLinkedinUrl = normalizeWebsite(
+    normalizeOptionalValue(formData, 'focusLinkedinUrl'),
+  );
+  const facebookUrl = normalizeWebsite(normalizeOptionalValue(formData, 'facebookUrl'));
+  const errors: NonNullable<ProspectingState['errors']> = {};
+
+  if (linkedinProfileUrl === null) {
+    errors.linkedinProfileUrl = 'Enter a valid LinkedIn URL.';
+  }
+  if (focusLinkedinUrl === null) {
+    errors.focusLinkedinUrl = 'Enter a valid LinkedIn URL.';
+  }
+  if (facebookUrl === null) errors.facebookUrl = 'Enter a valid Facebook URL.';
+
+  if (Object.keys(errors).length) {
+    return { message: 'Review the highlighted fields.', errors };
+  }
+
+  const persisted = await updateSupabaseLead(leadId, {
+    icpCategory: normalizeOptionalValue(formData, 'icpCategory') ?? '',
+    linkedinProfileUrl: linkedinProfileUrl || '',
+    focusName: normalizeOptionalValue(formData, 'focusName') ?? '',
+    focusTitle: normalizeOptionalValue(formData, 'focusTitle') ?? '',
+    focusLinkedinUrl: focusLinkedinUrl || '',
+    connectionStatus: normalizeConnectionStatus(formData.get('connectionStatus')),
+    lastOutreachDate: normalizeOptionalValue(formData, 'lastOutreachDate') ?? '',
+    nextFollowUpAction: normalizeOptionalValue(formData, 'nextFollowUpAction') ?? '',
+    painPoints: normalizeOptionalValue(formData, 'painPoints') ?? '',
+    facebookUrl: facebookUrl || '',
+    whatsapp: normalizeOptionalValue(formData, 'whatsapp') ?? '',
+  });
+
+  refreshDashboardLeadViews(leadId);
+
+  return {
+    message: persisted ? 'Prospecting details saved.' : 'Lead not found.',
+  };
 }
 
 function requireLeadId(leadId: string) {

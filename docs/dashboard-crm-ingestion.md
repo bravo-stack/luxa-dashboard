@@ -50,9 +50,11 @@ a future relationship model deliberately links them.
 
    - `supabase/migrations/202607170001_manual_crm_leads.sql`
    - `supabase/migrations/202607170002_lead_origin_and_ownership.sql`
+   - `supabase/migrations/202607190001_lead_prospecting_fields.sql`
 
-   They add manual CRM records and explicit provenance/ownership without changing the
-   funnel's existing form types.
+   They add manual CRM records, explicit provenance/ownership, and nullable
+   prospecting context without changing the funnel's existing form types or required
+   insert fields.
 
 5. Verify connectivity without returning lead PII:
 
@@ -116,6 +118,8 @@ Do not add a second public `/api/leads` route to fix a configuration mismatch.
 - Manual creation records the authenticated creator and initial owner.
 - Unauthorized requests cannot list, export, or mutate CRM data.
 - Status and notes persist without overwriting funnel answers.
+- Prospecting details can be added to both existing and manual lead records.
+- Funnel inserts continue to succeed without supplying any prospecting fields.
 - `npm run typecheck`, `npm run lint`, `npm run format:check`, and `npm run build` pass.
 
 ## Rollback

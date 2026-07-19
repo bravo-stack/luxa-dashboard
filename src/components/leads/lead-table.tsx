@@ -96,7 +96,13 @@ export function LeadTable({ leads }: LeadTableProps) {
   const [search, setSearch] = React.useState('');
   const [filters, setFilters] = React.useState<LeadFilterState>(defaultLeadFilters);
   const [sort, setSort] = React.useState<LeadSortKey>('newest');
-  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
+  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({
+    icp_category: false,
+    focus_contact: false,
+    connection_status: false,
+    last_outreach_date: false,
+    next_follow_up: false,
+  });
   const [mutationError, setMutationError] = React.useState('');
   const [isPending, startTransition] = React.useTransition();
 
@@ -127,6 +133,16 @@ export function LeadTable({ leads }: LeadTableProps) {
           lead.email,
           lead.company,
           lead.website ?? '',
+          lead.icpCategory ?? '',
+          lead.linkedinProfileUrl ?? '',
+          lead.focusName ?? '',
+          lead.focusTitle ?? '',
+          lead.focusLinkedinUrl ?? '',
+          lead.connectionStatus?.replace(/_/g, ' ') ?? '',
+          lead.nextFollowUpAction ?? '',
+          lead.painPoints ?? '',
+          lead.facebookUrl ?? '',
+          lead.whatsapp ?? '',
           originLabels[lead.origin],
           lead.marketingSource ?? '',
           latestSubmission?.project_type ?? '',
@@ -258,6 +274,56 @@ export function LeadTable({ leads }: LeadTableProps) {
         header: 'Company',
         cell: ({ row }) => (
           <span className="font-medium text-foreground">{row.original.company}</span>
+        ),
+      },
+      {
+        id: 'icp_category',
+        header: 'ICP category',
+        cell: ({ row }) => <span>{row.original.icpCategory ?? 'Not captured'}</span>,
+      },
+      {
+        id: 'focus_contact',
+        header: 'Focus contact',
+        cell: ({ row }) => (
+          <div className="min-w-44">
+            <p className="font-medium text-foreground">
+              {row.original.focusName ?? 'Not identified'}
+            </p>
+            {row.original.focusTitle ? (
+              <p className="mt-1 text-sm text-muted-foreground">
+                {row.original.focusTitle}
+              </p>
+            ) : null}
+          </div>
+        ),
+      },
+      {
+        id: 'connection_status',
+        header: 'Connection',
+        cell: ({ row }) => (
+          <span className="capitalize">
+            {row.original.connectionStatus?.replace(/_/g, ' ') ?? 'Not researched'}
+          </span>
+        ),
+      },
+      {
+        id: 'last_outreach_date',
+        header: 'Last outreach',
+        cell: ({ row }) => (
+          <span>
+            {row.original.lastOutreachDate
+              ? formatDate(row.original.lastOutreachDate)
+              : 'Not contacted'}
+          </span>
+        ),
+      },
+      {
+        id: 'next_follow_up',
+        header: 'Next follow-up',
+        cell: ({ row }) => (
+          <span className="line-clamp-2 min-w-48">
+            {row.original.nextFollowUpAction ?? 'No action set'}
+          </span>
         ),
       },
       {

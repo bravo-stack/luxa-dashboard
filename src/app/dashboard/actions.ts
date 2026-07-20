@@ -5,9 +5,11 @@ import { redirect } from 'next/navigation';
 
 import { requireAdmin } from '@/lib/auth/admin';
 import {
+  deleteSupabaseLeadNote,
   insertSupabaseLeadNote,
   insertSupabaseManualLead,
   updateSupabaseLead,
+  updateSupabaseLeadNote,
 } from '@/lib/dashboard/supabase-repository';
 import {
   type ConnectionStatus,
@@ -253,7 +255,7 @@ export async function updateLeadStatus(
 }
 
 export async function addLeadNote(formData: FormData): Promise<DashboardActionResult> {
-  await requireAdmin();
+  const user = await requireAdmin();
   const leadId = String(formData.get('leadId') ?? '');
   const body = String(formData.get('body') ?? '').trim();
 
@@ -263,13 +265,55 @@ export async function addLeadNote(formData: FormData): Promise<DashboardActionRe
     throw new Error('Missing note body');
   }
 
-  const persisted = await insertSupabaseLeadNote(leadId, body);
+  if (body.length > 5000) {
+    throw new Error('Notes must be 5,000 characters or fewer');
+  }
+
+  const persisted = await insertSupabaseLeadNote(leadId, body, user.id);
 
   refreshDashboardLeadViews(leadId);
 
   return {
     ok: persisted,
     message: getPersistenceMessage(persisted, 'Lead note'),
+  };
+}
+
+export async function updateLeadNote(formData: FormData): Promise<DashboardActionResult> {
+  await requireAdmin();
+  const leadId = String(formData.get('leadId') ?? '');
+  const noteId = String(formData.get('noteId') ?? '').trim();
+  const body = String(formData.get('body') ?? '').trim();
+
+  requireLeadId(leadId);
+
+  if (!noteId) throw new Error('Missing note id');
+  if (!body) throw new Error('Missing note body');
+  if (body.length > 5000) throw new Error('Notes must be 5,000 characters or fewer');
+
+  const persisted = await updateSupabaseLeadNote(leadId, noteId, body);
+  refreshDashboardLeadViews(leadId);
+
+  return {
+    ok: persisted,
+    message: persisted ? 'Note updated.' : 'Note not found.',
+  };
+}
+
+export async function deleteLeadNote(formData: FormData): Promise<DashboardActionResult> {
+  await requireAdmin();
+  const leadId = String(formData.get('leadId') ?? '');
+  const noteId = String(formData.get('noteId') ?? '').trim();
+
+  requireLeadId(leadId);
+  if (!noteId) throw new Error('Missing note id');
+
+  const persisted = await deleteSupabaseLeadNote(leadId, noteId);
+  refreshDashboardLeadViews(leadId);
+
+  return {
+    ok: persisted,
+    message: persisted ? 'Note deleted.' : 'Note not found.',
   };
 }
 

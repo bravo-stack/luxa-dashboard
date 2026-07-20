@@ -78,6 +78,22 @@ function getLatestSubmission(lead: LeadListItem) {
   return lead.submissions[0];
 }
 
+function TableValue({ value }: { value?: string }) {
+  if (!value?.trim()) {
+    return (
+      <span
+        className="text-muted-foreground/55"
+        title="Not captured"
+        aria-label="Not captured"
+      >
+        —
+      </span>
+    );
+  }
+
+  return <span>{value}</span>;
+}
+
 function matchesDateFilter(lead: LeadListItem, dateFilter: string) {
   if (dateFilter === 'all') {
     return true;
@@ -315,7 +331,15 @@ export function LeadTable({ leads }: LeadTableProps) {
       {
         id: 'icp_category',
         header: 'ICP category',
-        cell: ({ row }) => <span>{getIcpCategoryLabel(row.original.icpCategory)}</span>,
+        cell: ({ row }) => (
+          <TableValue
+            value={
+              row.original.icpCategory
+                ? getIcpCategoryLabel(row.original.icpCategory)
+                : undefined
+            }
+          />
+        ),
       },
       {
         id: 'focus_contact',
@@ -366,21 +390,21 @@ export function LeadTable({ leads }: LeadTableProps) {
         id: 'project_type',
         header: 'Project type',
         cell: ({ row }) => (
-          <span>{getLatestSubmission(row.original)?.project_type ?? 'Not captured'}</span>
+          <TableValue value={getLatestSubmission(row.original)?.project_type} />
         ),
       },
       {
         id: 'budget',
         header: 'Budget',
         cell: ({ row }) => (
-          <span>{getLatestSubmission(row.original)?.budget_range ?? 'Not captured'}</span>
+          <TableValue value={getLatestSubmission(row.original)?.budget_range} />
         ),
       },
       {
         id: 'timeline',
         header: 'Timeline',
         cell: ({ row }) => (
-          <span>{getLatestSubmission(row.original)?.timeline ?? 'Not captured'}</span>
+          <TableValue value={getLatestSubmission(row.original)?.timeline} />
         ),
       },
       {
@@ -459,7 +483,7 @@ export function LeadTable({ leads }: LeadTableProps) {
                   ))}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
-                    className="text-destructive focus:text-destructive"
+                    className="text-warning focus:bg-warning/10 focus:text-warning"
                     onSelect={() => handleSpamLead(lead.id)}
                   >
                     <Archive className="size-4" />

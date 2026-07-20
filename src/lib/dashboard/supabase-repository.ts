@@ -18,7 +18,6 @@ export type DashboardDataset = {
   leads: Lead[];
   auditSubmissions: AuditSubmission[];
   leadEvents: LeadEvent[];
-  leadNotes: LeadNote[];
   source: 'supabase';
 };
 
@@ -108,7 +107,6 @@ const leadSubmissionSelect = [
   'context',
   'next_step',
   'attribution',
-  'internal_notes',
 ].join(',');
 
 const leadProspectingHistorySelect = [
@@ -127,6 +125,15 @@ const leadProspectingHistorySelect = [
   'pain_points',
   'facebook_url',
   'whatsapp',
+].join(',');
+
+const leadNoteSelect = [
+  'id',
+  'lead_id',
+  'created_at',
+  'updated_at',
+  'created_by',
+  'body',
 ].join(',');
 
 function normalizeRecordMap(value: unknown): Record<string, unknown> {
@@ -210,6 +217,17 @@ function normalizeProspectingHistory(
     painPoints: row.pain_points ? String(row.pain_points) : undefined,
     facebookUrl: row.facebook_url ? String(row.facebook_url) : undefined,
     whatsapp: row.whatsapp ? String(row.whatsapp) : undefined,
+  };
+}
+
+function normalizeLeadNote(row: Record<string, unknown>): LeadNote {
+  return {
+    id: String(row.id),
+    lead_id: String(row.lead_id),
+    created_at: String(row.created_at),
+    updated_at: String(row.updated_at),
+    created_by: row.created_by ? 'Administrator' : 'Luxa team',
+    body: String(row.body),
   };
 }
 
@@ -335,15 +353,6 @@ export const getSupabaseDashboardDataset = cache(async () => {
     leads: rows.map(normalizeLead),
     auditSubmissions: rows.map(normalizeAuditSubmission),
     leadEvents: [],
-    leadNotes: rows
-      .filter((row) => typeof row.internal_notes === 'string' && row.internal_notes)
-      .map((row) => ({
-        id: `note-${String(row.id)}`,
-        lead_id: String(row.id),
-        created_at: String(row.updated_at),
-        created_by: 'Luxa team',
-        body: String(row.internal_notes),
-      })),
     source: 'supabase',
   } satisfies DashboardDataset;
 });
@@ -373,6 +382,21 @@ export async function getSupabaseProspectingHistory(
     ),
     total: count ?? 0,
   };
+}
+
+export async function getSupabaseLeadNotes(leadId: string) {
+  const supabase = await getSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from('lead_submission_notes')
+    .select(leadNoteSelect)
+    .eq('lead_id', leadId)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    throw new Error(`Supabase lead notes query failed: ${error.message}`);
+  }
+
+  return ((data ?? []) as unknown as Record<string, unknown>[]).map(normalizeLeadNote);
 }
 
 export async function updateSupabaseLead(
@@ -463,29 +487,59 @@ export async function deleteSupabaseLead(leadId: string) {
   return Boolean(data);
 }
 
-export async function insertSupabaseLeadNote(leadId: string, body: string) {
+export async function insertSupabaseLeadNote(
+  leadId: string,
+  body: string,
+  createdBy: string,
+) {
   const supabase = await getSupabaseAdminClient();
-
-  const { data: existing, error: readError } = await supabase
-    .from('lead_submissions')
-    .select('internal_notes')
-    .eq('id', leadId)
+  const { data, error } = await supabase
+    .from('lead_submission_notes')
+    .insert({ lead_id: leadId, body, created_by: createdBy })
+    .select('id')
     .single();
-
-  if (readError) {
-    throw new Error(readError.message);
-  }
-
-  const current = existing.internal_notes?.trim();
-  const nextNotes = current ? `${current}\n\n${body}` : body;
-  const { error } = await supabase
-    .from('lead_submissions')
-    .update({ internal_notes: nextNotes })
-    .eq('id', leadId);
 
   if (error) {
     throw new Error(error.message);
   }
 
-  return true;
+  return Boolean(data);
+}
+
+export async function updateSupabaseLeadNote(
+  leadId: string,
+  noteId: string,
+  body: string,
+) {
+  const supabase = await getSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from('lead_submission_notes')
+    .update({ body })
+    .eq('id', noteId)
+    .eq('lead_id', leadId)
+    .select('id')
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return Boolean(data);
+}
+
+export async function deleteSupabaseLeadNote(leadId: string, noteId: string) {
+  const supabase = await getSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from('lead_submission_notes')
+    .delete()
+    .eq('id', noteId)
+    .eq('lead_id', leadId)
+    .select('id')
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return Boolean(data);
 }

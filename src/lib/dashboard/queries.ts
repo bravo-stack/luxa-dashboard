@@ -4,6 +4,7 @@ import { dashboardDateRanges, defaultDashboardDateRange } from './config';
 import {
   type DashboardDataset,
   getSupabaseDashboardDataset,
+  getSupabaseLeadNotes,
   getSupabaseProspectingHistory,
 } from './supabase-repository';
 import type {
@@ -14,7 +15,6 @@ import type {
   LeadDetail,
   LeadEvent,
   LeadListItem,
-  LeadNote,
   LeadStatus,
   MetricSummary,
   PipelineStageSummary,
@@ -64,10 +64,6 @@ function getSubmissionsForLead(leadId: string, submissions: AuditSubmission[]) {
 
 function getEventsForLead(leadId: string, events: LeadEvent[]) {
   return sortNewest(events.filter((event) => event.lead_id === leadId));
-}
-
-function getNotesForLead(leadId: string, notes: LeadNote[]) {
-  return sortNewest(notes.filter((note) => note.lead_id === leadId));
 }
 
 function getLiveDashboardMetrics(
@@ -281,11 +277,11 @@ export async function getLeadDetail(
 
   let historyPage = Math.max(1, Math.floor(prospectingHistoryPage));
   const historyPageSize = 5;
-  let prospectingHistory = await getSupabaseProspectingHistory(
-    id,
-    historyPage,
-    historyPageSize,
-  );
+  const [initialProspectingHistory, notes] = await Promise.all([
+    getSupabaseProspectingHistory(id, historyPage, historyPageSize),
+    getSupabaseLeadNotes(id),
+  ]);
+  let prospectingHistory = initialProspectingHistory;
   const totalPages = Math.max(1, Math.ceil(prospectingHistory.total / historyPageSize));
 
   if (historyPage > totalPages) {
@@ -301,7 +297,7 @@ export async function getLeadDetail(
     lead,
     submissions: getSubmissionsForLead(id, dataset.auditSubmissions),
     events: getEventsForLead(id, dataset.leadEvents),
-    notes: getNotesForLead(id, dataset.leadNotes),
+    notes,
     prospectingHistory: prospectingHistory.rows,
     prospectingHistoryPage: historyPage,
     prospectingHistoryTotal: prospectingHistory.total,

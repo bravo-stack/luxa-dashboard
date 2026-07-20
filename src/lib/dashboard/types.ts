@@ -116,6 +116,7 @@ export interface LeadNote {
   id: string;
   lead_id: string;
   created_at: string;
+  updated_at: string;
   created_by: string;
   body: string;
 }

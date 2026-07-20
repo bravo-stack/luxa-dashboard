@@ -53,6 +53,7 @@ a future relationship model deliberately links them.
    - `supabase/migrations/202607190001_lead_prospecting_fields.sql`
    - `supabase/migrations/202607200001_lead_prospecting_history.sql`
    - `supabase/migrations/202607200002_not_connected_status.sql`
+   - `supabase/migrations/202607200003_lead_submission_notes.sql`
 
    They add manual CRM records, explicit provenance/ownership, and nullable
    prospecting context without changing the funnel's existing form types or required
@@ -122,6 +123,7 @@ Do not add a second public `/api/leads` route to fix a configuration mismatch.
 - Status and notes persist without overwriting funnel answers.
 - Prospecting details can be added to both existing and manual lead records.
 - Every prospecting save retains an append-only snapshot with server-side pagination.
+- Internal notes are stored as individual records and can be edited or deleted by admins.
 - Funnel inserts continue to succeed without supplying any prospecting fields.
 - `npm run typecheck`, `npm run lint`, `npm run format:check`, and `npm run build` pass.
 

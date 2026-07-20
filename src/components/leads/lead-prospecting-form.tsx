@@ -22,7 +22,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import type { Lead } from '@/lib/dashboard/types';
+import { getIcpCategoryLabel } from '@/lib/dashboard/utils';
 import { cn } from '@/lib/utils';
+
+import { IcpCategorySelect } from './icp-category-select';
 
 const initialState: ProspectingState = { message: '' };
 
@@ -218,7 +221,7 @@ export function LeadProspectingForm({ lead }: { lead: Lead }) {
       <div className="grid border-t border-border sm:grid-cols-3 sm:divide-x sm:divide-border">
         <div className="px-5 py-4 sm:px-6">
           <IntelligenceLine icon={Building2} label="ICP category">
-            {lead.icpCategory || 'Not classified'}
+            {getIcpCategoryLabel(lead.icpCategory)}
           </IntelligenceLine>
         </div>
         <div className="border-t border-border px-5 py-4 sm:border-t-0 sm:px-6">
@@ -252,13 +255,7 @@ export function LeadProspectingForm({ lead }: { lead: Lead }) {
               <p className="text-sm font-semibold text-foreground">Account fit</p>
               <div className="mt-4 grid gap-5 sm:grid-cols-2">
                 <Field label="ICP category" name="icpCategory">
-                  <Input
-                    id="icpCategory"
-                    name="icpCategory"
-                    defaultValue={lead.icpCategory}
-                    placeholder="Enterprise fintech"
-                    className="h-11"
-                  />
+                  <IcpCategorySelect defaultValue={lead.icpCategory} />
                 </Field>
                 <Field
                   label="Company LinkedIn"

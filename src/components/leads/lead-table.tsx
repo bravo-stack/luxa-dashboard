@@ -48,6 +48,7 @@ import {
 } from '@/lib/dashboard/types';
 import {
   formatDate,
+  getIcpCategoryLabel,
   originLabels,
   priorityLabels,
   statusLabels,
@@ -314,7 +315,7 @@ export function LeadTable({ leads }: LeadTableProps) {
       {
         id: 'icp_category',
         header: 'ICP category',
-        cell: ({ row }) => <span>{row.original.icpCategory ?? 'Not captured'}</span>,
+        cell: ({ row }) => <span>{getIcpCategoryLabel(row.original.icpCategory)}</span>,
       },
       {
         id: 'focus_contact',

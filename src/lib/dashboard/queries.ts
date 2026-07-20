@@ -21,6 +21,7 @@ import type {
 } from './types';
 import { leadStatuses } from './types';
 import {
+  getIcpCategoryLabel,
   getLeadPriority,
   isAwaitingReply,
   isContactedWithoutNextStep,
@@ -361,7 +362,7 @@ export async function getLeadExportRows() {
       email: lead.email,
       company: lead.company,
       website: lead.website ?? '',
-      icp_category: lead.icpCategory ?? '',
+      icp_category: lead.icpCategory ? getIcpCategoryLabel(lead.icpCategory) : '',
       linkedin_profile_url: lead.linkedinProfileUrl ?? '',
       focus_name: lead.focusName ?? '',
       focus_title: lead.focusTitle ?? '',

@@ -25,6 +25,17 @@ export const connectionStatuses = [
 
 export type ConnectionStatus = (typeof connectionStatuses)[number];
 
+export const icpCategories = [
+  { value: 'tier_1_strategic', label: 'Tier 1 — Strategic account' },
+  { value: 'tier_2_core', label: 'Tier 2 — Core ICP' },
+  { value: 'tier_3_growth', label: 'Tier 3 — Growth ICP' },
+  { value: 'tier_4_emerging', label: 'Tier 4 — Emerging fit' },
+  { value: 'partner_channel', label: 'Partner / channel' },
+  { value: 'not_icp', label: 'Not ICP / disqualified' },
+] as const;
+
+export type IcpCategory = (typeof icpCategories)[number]['value'];
+
 export type LeadPriority = 'standard' | 'review_next' | 'contact_overdue' | 'high_fit';
 
 export type SubmissionType = 'quick_start' | 'platform_audit' | 'manual';

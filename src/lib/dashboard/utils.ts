@@ -1,4 +1,10 @@
-import type { Lead, LeadOrigin, LeadPriority, LeadStatus } from './types';
+import {
+  icpCategories,
+  type Lead,
+  type LeadOrigin,
+  type LeadPriority,
+  type LeadStatus,
+} from './types';
 
 export const qualificationThreshold = 72;
 
@@ -32,6 +38,12 @@ export const priorityLabels: Record<LeadPriority, string> = {
   contact_overdue: 'Contact overdue',
   high_fit: 'High-fit lead',
 };
+
+export function getIcpCategoryLabel(value?: string) {
+  if (!value) return 'Not classified';
+
+  return icpCategories.find((category) => category.value === value)?.label ?? value;
+}
 
 export function isAwaitingReply(lead: Lead) {
   return lead.status === 'new' || lead.status === 'qualified';

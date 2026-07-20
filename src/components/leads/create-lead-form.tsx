@@ -11,6 +11,8 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 
+import { IcpCategorySelect } from './icp-category-select';
+
 const initialState: CreateLeadState = { message: '' };
 
 function Field({
@@ -120,12 +122,7 @@ export function CreateLeadForm() {
             />
           </Field>
           <Field label="ICP category" name="icpCategory" optional>
-            <Input
-              id="icpCategory"
-              name="icpCategory"
-              placeholder="Enterprise fintech"
-              className="h-11"
-            />
+            <IcpCategorySelect />
           </Field>
           <Field label="Website" name="website" error={state.errors?.website} optional>
             <Input

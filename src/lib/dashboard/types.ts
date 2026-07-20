@@ -108,6 +108,26 @@ export interface LeadNote {
   body: string;
 }
 
+export type LeadProspectingHistory = Pick<
+  Lead,
+  | 'icpCategory'
+  | 'linkedinProfileUrl'
+  | 'focusName'
+  | 'focusTitle'
+  | 'focusLinkedinUrl'
+  | 'connectionStatus'
+  | 'lastOutreachDate'
+  | 'nextFollowUpAction'
+  | 'painPoints'
+  | 'facebookUrl'
+  | 'whatsapp'
+> & {
+  id: string;
+  lead_id: string;
+  created_at: string;
+  captureType: 'created' | 'updated' | 'backfilled';
+};
+
 export interface MetricSummary {
   key: string;
   label: string;
@@ -206,6 +226,10 @@ export interface LeadDetail {
   submissions: AuditSubmission[];
   events: LeadEvent[];
   notes: LeadNote[];
+  prospectingHistory: LeadProspectingHistory[];
+  prospectingHistoryPage: number;
+  prospectingHistoryTotal: number;
+  prospectingHistoryTotalPages: number;
 }
 
 export interface LeadListItem extends Lead {

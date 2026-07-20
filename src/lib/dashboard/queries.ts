@@ -4,6 +4,7 @@ import { dashboardDateRanges, defaultDashboardDateRange } from './config';
 import {
   type DashboardDataset,
   getSupabaseDashboardDataset,
+  getSupabaseProspectingHistory,
 } from './supabase-repository';
 import type {
   AuditSubmission,
@@ -266,7 +267,10 @@ export async function getLeads(): Promise<LeadListItem[]> {
   }));
 }
 
-export async function getLeadDetail(id: string): Promise<LeadDetail | null> {
+export async function getLeadDetail(
+  id: string,
+  prospectingHistoryPage = 1,
+): Promise<LeadDetail | null> {
   const dataset = await getDashboardDataset();
   const lead = dataset.leads.find((item) => item.id === id);
 
@@ -274,11 +278,33 @@ export async function getLeadDetail(id: string): Promise<LeadDetail | null> {
     return null;
   }
 
+  let historyPage = Math.max(1, Math.floor(prospectingHistoryPage));
+  const historyPageSize = 5;
+  let prospectingHistory = await getSupabaseProspectingHistory(
+    id,
+    historyPage,
+    historyPageSize,
+  );
+  const totalPages = Math.max(1, Math.ceil(prospectingHistory.total / historyPageSize));
+
+  if (historyPage > totalPages) {
+    historyPage = totalPages;
+    prospectingHistory = await getSupabaseProspectingHistory(
+      id,
+      historyPage,
+      historyPageSize,
+    );
+  }
+
   return {
     lead,
     submissions: getSubmissionsForLead(id, dataset.auditSubmissions),
     events: getEventsForLead(id, dataset.leadEvents),
     notes: getNotesForLead(id, dataset.leadNotes),
+    prospectingHistory: prospectingHistory.rows,
+    prospectingHistoryPage: historyPage,
+    prospectingHistoryTotal: prospectingHistory.total,
+    prospectingHistoryTotalPages: totalPages,
   };
 }
 

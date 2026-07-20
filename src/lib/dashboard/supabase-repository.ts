@@ -10,6 +10,7 @@ import type {
   LeadEvent,
   LeadNote,
   LeadOrigin,
+  LeadProspectingHistory,
   LeadStatus,
 } from './types';
 
@@ -110,6 +111,24 @@ const leadSubmissionSelect = [
   'internal_notes',
 ].join(',');
 
+const leadProspectingHistorySelect = [
+  'id',
+  'lead_id',
+  'created_at',
+  'capture_type',
+  'icp_category',
+  'linkedin_profile_url',
+  'focus_name',
+  'focus_title',
+  'focus_linkedin_url',
+  'connection_status',
+  'last_outreach_date',
+  'next_follow_up_action',
+  'pain_points',
+  'facebook_url',
+  'whatsapp',
+].join(',');
+
 function normalizeRecordMap(value: unknown): Record<string, unknown> {
   if (value && typeof value === 'object' && !Array.isArray(value)) {
     return value as Record<string, unknown>;
@@ -160,6 +179,37 @@ function normalizeLead(row: Record<string, unknown>): Lead {
     owner_user_id: row.owner_user_id ? String(row.owner_user_id) : undefined,
     locale: row.locale === 'ar' ? 'ar' : 'en',
     pathname: String(row.pathname),
+  };
+}
+
+function normalizeProspectingHistory(
+  row: Record<string, unknown>,
+): LeadProspectingHistory {
+  return {
+    id: String(row.id),
+    lead_id: String(row.lead_id),
+    created_at: String(row.created_at),
+    captureType:
+      row.capture_type === 'created' || row.capture_type === 'backfilled'
+        ? row.capture_type
+        : 'updated',
+    icpCategory: row.icp_category ? String(row.icp_category) : undefined,
+    linkedinProfileUrl: row.linkedin_profile_url
+      ? String(row.linkedin_profile_url)
+      : undefined,
+    focusName: row.focus_name ? String(row.focus_name) : undefined,
+    focusTitle: row.focus_title ? String(row.focus_title) : undefined,
+    focusLinkedinUrl: row.focus_linkedin_url ? String(row.focus_linkedin_url) : undefined,
+    connectionStatus: row.connection_status
+      ? (String(row.connection_status) as ConnectionStatus)
+      : undefined,
+    lastOutreachDate: row.last_outreach_date ? String(row.last_outreach_date) : undefined,
+    nextFollowUpAction: row.next_follow_up_action
+      ? String(row.next_follow_up_action)
+      : undefined,
+    painPoints: row.pain_points ? String(row.pain_points) : undefined,
+    facebookUrl: row.facebook_url ? String(row.facebook_url) : undefined,
+    whatsapp: row.whatsapp ? String(row.whatsapp) : undefined,
   };
 }
 
@@ -297,6 +347,33 @@ export const getSupabaseDashboardDataset = cache(async () => {
     source: 'supabase',
   } satisfies DashboardDataset;
 });
+
+export async function getSupabaseProspectingHistory(
+  leadId: string,
+  page: number,
+  pageSize: number,
+) {
+  const supabase = await getSupabaseAdminClient();
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+  const { data, error, count } = await supabase
+    .from('lead_prospecting_history')
+    .select(leadProspectingHistorySelect, { count: 'exact' })
+    .eq('lead_id', leadId)
+    .order('created_at', { ascending: false })
+    .range(from, to);
+
+  if (error) {
+    throw new Error(`Supabase prospecting history query failed: ${error.message}`);
+  }
+
+  return {
+    rows: ((data ?? []) as unknown as Record<string, unknown>[]).map(
+      normalizeProspectingHistory,
+    ),
+    total: count ?? 0,
+  };
+}
 
 export async function updateSupabaseLead(
   leadId: string,

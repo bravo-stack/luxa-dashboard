@@ -17,6 +17,7 @@ import {
   ChevronRight,
   Columns3,
   MoreHorizontal,
+  Trash2,
 } from 'lucide-react';
 
 import { EmptyState } from '@/components/dashboard/empty-state';
@@ -38,9 +39,19 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { persistLeadStatus } from '@/lib/dashboard/client';
-import { type LeadListItem, type LeadStatus, leadStatuses } from '@/lib/dashboard/types';
-import { formatDate, originLabels, statusLabels } from '@/lib/dashboard/utils';
+import { deleteLead, persistLeadStatus } from '@/lib/dashboard/client';
+import {
+  type LeadListItem,
+  type LeadPriority,
+  type LeadStatus,
+  leadStatuses,
+} from '@/lib/dashboard/types';
+import {
+  formatDate,
+  originLabels,
+  priorityLabels,
+  statusLabels,
+} from '@/lib/dashboard/utils';
 
 import {
   defaultLeadFilters,
@@ -50,10 +61,16 @@ import {
 } from './lead-filters';
 import { LeadSearch } from './lead-search';
 import { LeadStatusBadge } from './lead-status-badge';
-import { PriorityBadge } from './priority-badge';
 
 type LeadTableProps = {
   leads: LeadListItem[];
+};
+
+const priorityDotClasses: Record<LeadPriority, string> = {
+  standard: 'bg-muted-foreground/45',
+  review_next: 'bg-primary',
+  contact_overdue: 'bg-destructive',
+  high_fit: 'bg-warning',
 };
 
 function getLatestSubmission(lead: LeadListItem) {
@@ -104,6 +121,7 @@ export function LeadTable({ leads }: LeadTableProps) {
     next_follow_up: false,
   });
   const [mutationError, setMutationError] = React.useState('');
+  const [pendingDeletion, setPendingDeletion] = React.useState<LeadListItem | null>(null);
   const [isPending, startTransition] = React.useTransition();
 
   const budgets = React.useMemo(
@@ -250,6 +268,26 @@ export function LeadTable({ leads }: LeadTableProps) {
     [router, rows],
   );
 
+  const handleDeleteLead = React.useCallback(() => {
+    if (!pendingDeletion) return;
+
+    const leadId = pendingDeletion.id;
+    setMutationError('');
+    startTransition(async () => {
+      try {
+        await deleteLead(leadId);
+        setRows((currentRows) => currentRows.filter((lead) => lead.id !== leadId));
+        setPendingDeletion(null);
+        router.refresh();
+      } catch (error: unknown) {
+        setMutationError(
+          'The lead could not be deleted. Refresh the page and try again.',
+        );
+        console.error(error);
+      }
+    });
+  }, [pendingDeletion, router]);
+
   const columns = React.useMemo<ColumnDef<LeadListItem>[]>(
     () => [
       {
@@ -260,10 +298,7 @@ export function LeadTable({ leads }: LeadTableProps) {
 
           return (
             <div className="min-w-56">
-              <div className="flex items-center gap-2">
-                <span className="font-semibold text-foreground">{lead.name}</span>
-                <PriorityBadge priority={lead.priority} />
-              </div>
+              <span className="font-semibold text-foreground">{lead.name}</span>
               <p className="mt-1 text-sm text-muted-foreground">{lead.email}</p>
             </div>
           );
@@ -353,6 +388,21 @@ export function LeadTable({ leads }: LeadTableProps) {
         cell: ({ row }) => <LeadStatusBadge status={row.original.status} />,
       },
       {
+        id: 'priority',
+        header: 'Attention',
+        cell: ({ row }) => (
+          <div className="flex min-w-32 items-center gap-2.5 whitespace-nowrap">
+            <span
+              className={`size-2 shrink-0 rounded-full ${priorityDotClasses[row.original.priority]}`}
+              aria-hidden="true"
+            />
+            <span className="text-xs font-semibold text-foreground">
+              {priorityLabels[row.original.priority]}
+            </span>
+          </div>
+        ),
+      },
+      {
         accessorKey: 'origin',
         header: 'Origin',
         cell: ({ row }) => <span>{originLabels[row.original.origin]}</span>,
@@ -413,6 +463,13 @@ export function LeadTable({ leads }: LeadTableProps) {
                   >
                     <Archive className="size-4" />
                     Mark as spam
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="text-destructive focus:text-destructive"
+                    onSelect={() => setPendingDeletion(lead)}
+                  >
+                    <Trash2 className="size-4" />
+                    Delete lead
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -477,6 +534,51 @@ export function LeadTable({ leads }: LeadTableProps) {
         onFiltersChange={setFilters}
         onSortChange={setSort}
       />
+      {pendingDeletion ? (
+        <div
+          role="group"
+          aria-labelledby="delete-lead-title"
+          aria-describedby="delete-lead-description"
+          className="flex flex-col gap-4 rounded-lg border border-destructive/25 bg-destructive/8 px-4 py-4 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <div className="flex items-start gap-3">
+            <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-destructive/12 text-destructive">
+              <Trash2 className="size-4" aria-hidden="true" />
+            </div>
+            <div>
+              <p id="delete-lead-title" className="text-sm font-semibold text-foreground">
+                Delete {pendingDeletion.name}?
+              </p>
+              <p
+                id="delete-lead-description"
+                className="mt-1 text-sm leading-6 text-muted-foreground"
+              >
+                This permanently removes the {pendingDeletion.company} lead and its saved
+                prospecting history.
+              </p>
+            </div>
+          </div>
+          <div className="flex shrink-0 items-center gap-2 sm:justify-end">
+            <Button
+              type="button"
+              variant="ghost"
+              disabled={isPending}
+              onClick={() => setPendingDeletion(null)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={isPending}
+              onClick={handleDeleteLead}
+            >
+              <Trash2 aria-hidden="true" />
+              {isPending ? 'Deleting' : 'Delete permanently'}
+            </Button>
+          </div>
+        </div>
+      ) : null}
       {mutationError ? (
         <p
           role="alert"

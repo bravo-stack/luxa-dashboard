@@ -264,6 +264,7 @@ export function CreateLeadForm() {
               >
                 <option value="not_researched">Not researched</option>
                 <option value="identified">Identified</option>
+                <option value="not_connected">Not connected</option>
                 <option value="connection_sent">Connection sent</option>
                 <option value="connected">Connected</option>
                 <option value="contacted">Contacted</option>

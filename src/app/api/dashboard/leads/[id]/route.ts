@@ -1,7 +1,10 @@
 import { revalidatePath } from 'next/cache';
 
 import { getAdminUser } from '@/lib/auth/admin';
-import { updateSupabaseLead } from '@/lib/dashboard/supabase-repository';
+import {
+  deleteSupabaseLead,
+  updateSupabaseLead,
+} from '@/lib/dashboard/supabase-repository';
 import { type LeadStatus, leadStatuses } from '@/lib/dashboard/types';
 
 type StatusRequest = {
@@ -64,5 +67,38 @@ export async function PATCH(
       { error: 'The lead status could not be saved' },
       { status: 500 },
     );
+  }
+}
+
+export async function DELETE(
+  _request: Request,
+  context: { params: Promise<{ id: string }> },
+) {
+  const user = await getAdminUser();
+
+  if (!user) {
+    return Response.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const { id } = await context.params;
+
+  if (!isUuid(id)) {
+    return Response.json({ error: 'Invalid lead id' }, { status: 400 });
+  }
+
+  try {
+    const deleted = await deleteSupabaseLead(id);
+
+    if (!deleted) {
+      return Response.json({ error: 'Lead not found' }, { status: 404 });
+    }
+
+    revalidatePath('/dashboard');
+    revalidatePath('/dashboard/leads');
+
+    return Response.json({ ok: true });
+  } catch (error) {
+    console.error('Failed to delete lead', error);
+    return Response.json({ error: 'The lead could not be deleted' }, { status: 500 });
   }
 }

@@ -16,6 +16,7 @@ export type LeadOrigin = (typeof leadOrigins)[number];
 export const connectionStatuses = [
   'not_researched',
   'identified',
+  'not_connected',
   'connection_sent',
   'connected',
   'contacted',

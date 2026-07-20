@@ -3,7 +3,6 @@ import Link from 'next/link';
 import {
   BarChart3,
   CalendarCheck,
-  Download,
   FileCheck2,
   MailQuestion,
   Target,
@@ -125,12 +124,6 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
               <Link href="/dashboard/analytics">
                 <BarChart3 className="size-4" />
                 Deep dive
-              </Link>
-            </Button>
-            <Button asChild>
-              <Link href="/api/dashboard/leads/export">
-                <Download className="size-4" />
-                Export leads
               </Link>
             </Button>
           </>

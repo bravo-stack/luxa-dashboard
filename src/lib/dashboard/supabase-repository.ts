@@ -447,6 +447,22 @@ export async function updateSupabaseLead(
   return Boolean(data);
 }
 
+export async function deleteSupabaseLead(leadId: string) {
+  const supabase = await getSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from('lead_submissions')
+    .delete()
+    .eq('id', leadId)
+    .select('id')
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return Boolean(data);
+}
+
 export async function insertSupabaseLeadNote(leadId: string, body: string) {
   const supabase = await getSupabaseAdminClient();
 

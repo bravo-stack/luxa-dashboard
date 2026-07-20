@@ -20,6 +20,7 @@ alter table public.lead_submissions
     connection_status is null or connection_status in (
       'not_researched',
       'identified',
+      'not_connected',
       'connection_sent',
       'connected',
       'contacted',

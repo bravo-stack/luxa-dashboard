@@ -52,6 +52,7 @@ a future relationship model deliberately links them.
    - `supabase/migrations/202607170002_lead_origin_and_ownership.sql`
    - `supabase/migrations/202607190001_lead_prospecting_fields.sql`
    - `supabase/migrations/202607200001_lead_prospecting_history.sql`
+   - `supabase/migrations/202607200002_not_connected_status.sql`
 
    They add manual CRM records, explicit provenance/ownership, and nullable
    prospecting context without changing the funnel's existing form types or required

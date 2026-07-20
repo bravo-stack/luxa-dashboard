@@ -2,7 +2,6 @@ import { Suspense } from 'react';
 import Link from 'next/link';
 import {
   CalendarCheck,
-  Download,
   Eye,
   FormInput,
   ListChecks,
@@ -73,12 +72,6 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
               <Link href="/dashboard">
                 <MousePointerClick className="size-4" />
                 Overview
-              </Link>
-            </Button>
-            <Button asChild>
-              <Link href="/api/dashboard/leads/export">
-                <Download className="size-4" />
-                Export leads
               </Link>
             </Button>
           </>

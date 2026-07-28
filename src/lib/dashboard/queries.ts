@@ -93,7 +93,7 @@ function getLiveDashboardMetrics(
       value: liveLeads.filter((lead) => lead.status === 'qualified').length,
       trend: 'Live',
       trendDirection: 'flat',
-      note: 'Above the fit threshold',
+      note: 'Marked qualified in the CRM',
     },
     {
       key: 'contacted_leads',
@@ -101,7 +101,7 @@ function getLiveDashboardMetrics(
       value: liveLeads.filter((lead) => lead.status === 'contacted').length,
       trend: 'Live',
       trendDirection: 'flat',
-      note: 'Discovery calls booked',
+      note: 'Marked contacted in the CRM',
     },
     {
       key: 'awaiting_reply',
@@ -109,7 +109,7 @@ function getLiveDashboardMetrics(
       value: liveLeads.filter((lead) => lead.status === 'new').length,
       trend: 'Live',
       trendDirection: 'flat',
-      note: 'New or qualified without contact',
+      note: 'Currently in the new stage',
     },
     {
       key: 'platform_audit_submissions',

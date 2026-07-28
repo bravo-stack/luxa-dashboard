@@ -65,6 +65,7 @@ import { LeadStatusBadge } from './lead-status-badge';
 
 type LeadTableProps = {
   leads: LeadListItem[];
+  initialSearch?: string;
 };
 
 const priorityDotClasses: Record<LeadPriority, string> = {
@@ -101,17 +102,19 @@ function matchesDateFilter(lead: LeadListItem, dateFilter: string) {
 
   const createdAt = new Date(lead.created_at).getTime();
   const now = Date.now();
-  const ageInDays = (now - createdAt) / (1000 * 60 * 60 * 24);
 
   if (dateFilter === 'today') {
-    return ageInDays < 1;
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+
+    return createdAt >= startOfToday.getTime() && createdAt <= now;
   }
 
   if (dateFilter === '7d') {
-    return ageInDays <= 7;
+    return createdAt >= now - 7 * 24 * 60 * 60 * 1000 && createdAt <= now;
   }
 
-  return ageInDays > 7;
+  return createdAt < now - 7 * 24 * 60 * 60 * 1000;
 }
 
 function sortLeads(leads: LeadListItem[], sort: LeadSortKey) {
@@ -124,10 +127,10 @@ function sortLeads(leads: LeadListItem[], sort: LeadSortKey) {
   });
 }
 
-export function LeadTable({ leads }: LeadTableProps) {
+export function LeadTable({ leads, initialSearch = '' }: LeadTableProps) {
   const router = useRouter();
   const [rows, setRows] = React.useState(leads);
-  const [search, setSearch] = React.useState('');
+  const [search, setSearch] = React.useState(initialSearch);
   const [filters, setFilters] = React.useState<LeadFilterState>(defaultLeadFilters);
   const [sort, setSort] = React.useState<LeadSortKey>('newest');
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({
@@ -140,6 +143,14 @@ export function LeadTable({ leads }: LeadTableProps) {
   const [mutationError, setMutationError] = React.useState('');
   const [pendingDeletion, setPendingDeletion] = React.useState<LeadListItem | null>(null);
   const [isPending, startTransition] = React.useTransition();
+
+  React.useEffect(() => {
+    setRows(leads);
+  }, [leads]);
+
+  React.useEffect(() => {
+    setSearch(initialSearch);
+  }, [initialSearch]);
 
   const budgets = React.useMemo(
     () =>
@@ -315,8 +326,18 @@ export function LeadTable({ leads }: LeadTableProps) {
 
           return (
             <div className="min-w-56">
-              <span className="font-semibold text-foreground">{lead.name}</span>
-              <p className="mt-1 text-sm text-muted-foreground">{lead.email}</p>
+              <Link
+                href={`/dashboard/leads/${lead.id}`}
+                className="inline-flex max-w-full flex-col rounded-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <span className="truncate font-semibold text-foreground">
+                  {lead.name}
+                </span>
+                <span className="mt-1 truncate text-sm text-muted-foreground">
+                  {lead.email}
+                </span>
+              </Link>
             </div>
           );
         },
@@ -632,15 +653,8 @@ export function LeadTable({ leads }: LeadTableProps) {
               {table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
-                  role="link"
-                  tabIndex={0}
                   className="cursor-pointer"
                   onClick={() => router.push(`/dashboard/leads/${row.original.id}`)}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter') {
-                      router.push(`/dashboard/leads/${row.original.id}`);
-                    }
-                  }}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>

@@ -41,7 +41,7 @@ function Field({
           <span className="font-normal text-muted-foreground">Optional</span>
         ) : null}
       </label>
-      <div aria-describedby={error ? errorId : undefined}>{children}</div>
+      <div>{children}</div>
       {error ? (
         <p id={errorId} className="text-xs font-medium text-destructive">
           {error}
@@ -97,6 +97,7 @@ export function CreateLeadForm() {
               autoComplete="name"
               className={inputClassName('fullName')}
               aria-invalid={Boolean(state.errors?.fullName)}
+              aria-describedby={state.errors?.fullName ? 'fullName-error' : undefined}
               required
             />
           </Field>
@@ -108,6 +109,7 @@ export function CreateLeadForm() {
               autoComplete="email"
               className={inputClassName('email')}
               aria-invalid={Boolean(state.errors?.email)}
+              aria-describedby={state.errors?.email ? 'email-error' : undefined}
               required
             />
           </Field>
@@ -118,6 +120,7 @@ export function CreateLeadForm() {
               autoComplete="organization"
               className={inputClassName('company')}
               aria-invalid={Boolean(state.errors?.company)}
+              aria-describedby={state.errors?.company ? 'company-error' : undefined}
               required
             />
           </Field>
@@ -134,6 +137,7 @@ export function CreateLeadForm() {
               placeholder="company.com"
               className={inputClassName('website')}
               aria-invalid={Boolean(state.errors?.website)}
+              aria-describedby={state.errors?.website ? 'website-error' : undefined}
             />
           </Field>
           <Field
@@ -149,6 +153,9 @@ export function CreateLeadForm() {
               placeholder="linkedin.com/company/acme"
               className={inputClassName('linkedinProfileUrl')}
               aria-invalid={Boolean(state.errors?.linkedinProfileUrl)}
+              aria-describedby={
+                state.errors?.linkedinProfileUrl ? 'linkedinProfileUrl-error' : undefined
+              }
             />
           </Field>
           <div className="sm:col-span-2">
@@ -163,6 +170,9 @@ export function CreateLeadForm() {
                 placeholder="Revenue operations platform"
                 className={inputClassName('projectType')}
                 aria-invalid={Boolean(state.errors?.projectType)}
+                aria-describedby={
+                  state.errors?.projectType ? 'projectType-error' : undefined
+                }
                 required
               />
             </Field>
@@ -250,6 +260,9 @@ export function CreateLeadForm() {
                 placeholder="linkedin.com/in/name"
                 className={inputClassName('focusLinkedinUrl')}
                 aria-invalid={Boolean(state.errors?.focusLinkedinUrl)}
+                aria-describedby={
+                  state.errors?.focusLinkedinUrl ? 'focusLinkedinUrl-error' : undefined
+                }
               />
             </Field>
             <Field label="Connection status" name="connectionStatus" optional>
@@ -305,6 +318,9 @@ export function CreateLeadForm() {
                 placeholder="facebook.com/acme"
                 className={inputClassName('facebookUrl')}
                 aria-invalid={Boolean(state.errors?.facebookUrl)}
+                aria-describedby={
+                  state.errors?.facebookUrl ? 'facebookUrl-error' : undefined
+                }
               />
             </Field>
             <div className="sm:col-span-2">

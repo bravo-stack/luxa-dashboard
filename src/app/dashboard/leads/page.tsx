@@ -9,7 +9,6 @@ import {
 } from 'lucide-react';
 
 import { DashboardHeader } from '@/components/dashboard/dashboard-header';
-import { DateRangePicker } from '@/components/dashboard/date-range-picker';
 import { InsightCard } from '@/components/dashboard/insight-card';
 import { LeadTable } from '@/components/leads/lead-table';
 import { Button } from '@/components/ui/button';
@@ -18,7 +17,12 @@ import { isAwaitingReply, isQualifiedLead } from '@/lib/dashboard/utils';
 
 export const dynamic = 'force-dynamic';
 
-export default async function LeadsPage() {
+export default async function LeadsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
+  const { q } = await searchParams;
   const leads = await getLeads();
   const platformAuditCount = leads.filter((lead) =>
     lead.submissions.some(
@@ -31,10 +35,9 @@ export default async function LeadsPage() {
       <DashboardHeader
         eyebrow="Lead operations"
         title="Lead management"
-        description="Search, qualify, assign, and move Luxa leads through the follow-up queue without losing audit context."
+        description="Search, qualify, and move Luxa leads through the follow-up queue without losing audit context."
         actions={
           <>
-            <DateRangePicker />
             <Button asChild variant="outline">
               <Link href="/api/dashboard/leads/export">
                 <Download className="size-4" />
@@ -64,14 +67,14 @@ export default async function LeadsPage() {
         <InsightCard
           title="Qualified leads"
           value={leads.filter(isQualifiedLead).length}
-          description="Score meets the current Luxa qualification threshold."
+          description="Records currently marked as qualified or won."
           icon={TrendingUp}
           tone="warning"
         />
         <InsightCard
           title="Awaiting reply"
           value={leads.filter(isAwaitingReply).length}
-          description="New or qualified leads with no contact timestamp."
+          description="New or qualified records still awaiting a response."
           icon={MailQuestion}
           tone="neutral"
         />
@@ -83,7 +86,7 @@ export default async function LeadsPage() {
           tone="success"
         />
       </section>
-      <LeadTable leads={leads} />
+      <LeadTable leads={leads} initialSearch={q?.slice(0, 200) ?? ''} />
     </>
   );
 }

@@ -4,9 +4,15 @@ import { getLeadExportRows } from '@/lib/dashboard/queries';
 export const dynamic = 'force-dynamic';
 
 function escapeCsvValue(value: string | number) {
-  const stringValue = String(value);
+  let stringValue = String(value);
 
-  if (/[",\n]/.test(stringValue)) {
+  // Spreadsheet apps may execute cells beginning with formula control characters.
+  // Lead fields originate outside this trusted admin surface, so neutralize them.
+  if (/^[\t ]*[=+\-@]/.test(stringValue)) {
+    stringValue = `'${stringValue}`;
+  }
+
+  if (/[",\r\n]/.test(stringValue)) {
     return `"${stringValue.replace(/"/g, '""')}"`;
   }
 
@@ -59,6 +65,8 @@ export async function GET() {
     headers: {
       'Content-Type': 'text/csv; charset=utf-8',
       'Content-Disposition': 'attachment; filename="luxa-leads.csv"',
+      'Cache-Control': 'private, no-store',
+      'X-Content-Type-Options': 'nosniff',
     },
   });
 }

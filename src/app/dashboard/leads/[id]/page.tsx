@@ -48,7 +48,11 @@ export default async function LeadDetailPage({
           <LeadTimeline events={detail.events} />
           <LeadNotes leadId={detail.lead.id} notes={detail.notes} />
         </div>
-        <LeadQuickActions lead={detail.lead} latestSubmission={latestSubmission} />
+        <LeadQuickActions
+          key={`${detail.lead.id}:${detail.lead.updated_at}:${detail.lead.status}`}
+          lead={detail.lead}
+          latestSubmission={latestSubmission}
+        />
       </div>
     </>
   );

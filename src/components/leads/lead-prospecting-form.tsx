@@ -47,7 +47,7 @@ function Field({
       <label htmlFor={name} className="text-xs font-semibold text-foreground">
         {label}
       </label>
-      <div aria-describedby={error ? errorId : undefined}>{children}</div>
+      <div>{children}</div>
       {error ? (
         <p id={errorId} className="text-xs font-medium text-destructive">
           {error}
@@ -270,6 +270,11 @@ export function LeadProspectingForm({ lead }: { lead: Lead }) {
                     placeholder="linkedin.com/company/acme"
                     className={urlClassName('linkedinProfileUrl')}
                     aria-invalid={Boolean(state.errors?.linkedinProfileUrl)}
+                    aria-describedby={
+                      state.errors?.linkedinProfileUrl
+                        ? 'linkedinProfileUrl-error'
+                        : undefined
+                    }
                   />
                 </Field>
               </div>
@@ -311,6 +316,11 @@ export function LeadProspectingForm({ lead }: { lead: Lead }) {
                     placeholder="linkedin.com/in/name"
                     className={urlClassName('focusLinkedinUrl')}
                     aria-invalid={Boolean(state.errors?.focusLinkedinUrl)}
+                    aria-describedby={
+                      state.errors?.focusLinkedinUrl
+                        ? 'focusLinkedinUrl-error'
+                        : undefined
+                    }
                   />
                 </Field>
                 <Field label="Connection status" name="connectionStatus">
@@ -391,6 +401,9 @@ export function LeadProspectingForm({ lead }: { lead: Lead }) {
                       placeholder="facebook.com/acme"
                       className={urlClassName('facebookUrl')}
                       aria-invalid={Boolean(state.errors?.facebookUrl)}
+                      aria-describedby={
+                        state.errors?.facebookUrl ? 'facebookUrl-error' : undefined
+                      }
                     />
                   </Field>
                 </div>

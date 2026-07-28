@@ -110,33 +110,43 @@ export async function createLead(
   }
 
   const localeValue = String(formData.get('locale') ?? 'en');
-  const leadId = await insertSupabaseManualLead(
-    {
-      fullName,
-      email,
-      company,
-      projectType,
-      website: website || undefined,
-      icpCategory: normalizeOptionalValue(formData, 'icpCategory'),
-      linkedinProfileUrl: linkedinProfileUrl || undefined,
-      focusName: normalizeOptionalValue(formData, 'focusName'),
-      focusTitle: normalizeOptionalValue(formData, 'focusTitle'),
-      focusLinkedinUrl: focusLinkedinUrl || undefined,
-      connectionStatus: normalizeConnectionStatus(formData.get('connectionStatus')),
-      lastOutreachDate: normalizeOptionalValue(formData, 'lastOutreachDate'),
-      nextFollowUpAction: normalizeOptionalValue(formData, 'nextFollowUpAction'),
-      painPoints: normalizeOptionalValue(formData, 'painPoints'),
-      facebookUrl: facebookUrl || undefined,
-      whatsapp: normalizeOptionalValue(formData, 'whatsapp'),
-      locale: localeValue === 'ar' ? 'ar' : 'en',
-      industry: normalizeOptionalValue(formData, 'industry'),
-      budget: normalizeOptionalValue(formData, 'budget'),
-      timeline: normalizeOptionalValue(formData, 'timeline'),
-      context: normalizeOptionalValue(formData, 'context'),
-      nextStep: normalizeOptionalValue(formData, 'nextStep'),
-    },
-    user.id,
-  );
+  let leadId: string;
+
+  try {
+    leadId = await insertSupabaseManualLead(
+      {
+        fullName,
+        email,
+        company,
+        projectType,
+        website: website || undefined,
+        icpCategory: normalizeOptionalValue(formData, 'icpCategory'),
+        linkedinProfileUrl: linkedinProfileUrl || undefined,
+        focusName: normalizeOptionalValue(formData, 'focusName'),
+        focusTitle: normalizeOptionalValue(formData, 'focusTitle'),
+        focusLinkedinUrl: focusLinkedinUrl || undefined,
+        connectionStatus: normalizeConnectionStatus(formData.get('connectionStatus')),
+        lastOutreachDate: normalizeOptionalValue(formData, 'lastOutreachDate'),
+        nextFollowUpAction: normalizeOptionalValue(formData, 'nextFollowUpAction'),
+        painPoints: normalizeOptionalValue(formData, 'painPoints'),
+        facebookUrl: facebookUrl || undefined,
+        whatsapp: normalizeOptionalValue(formData, 'whatsapp'),
+        locale: localeValue === 'ar' ? 'ar' : 'en',
+        industry: normalizeOptionalValue(formData, 'industry'),
+        budget: normalizeOptionalValue(formData, 'budget'),
+        timeline: normalizeOptionalValue(formData, 'timeline'),
+        context: normalizeOptionalValue(formData, 'context'),
+        nextStep: normalizeOptionalValue(formData, 'nextStep'),
+      },
+      user.id,
+    );
+  } catch (error) {
+    console.error('Failed to create manual lead', error);
+    return {
+      message:
+        'The lead could not be created. Your entries are still here; check the connection and try again.',
+    };
+  }
 
   revalidatePath('/dashboard');
   revalidatePath('/dashboard/leads');
@@ -172,24 +182,35 @@ export async function updateLeadProspecting(
     return { message: 'Review the highlighted fields.', errors };
   }
 
-  const persisted = await updateSupabaseLead(leadId, {
-    icpCategory: normalizeOptionalValue(formData, 'icpCategory') ?? '',
-    linkedinProfileUrl: linkedinProfileUrl || '',
-    focusName: normalizeOptionalValue(formData, 'focusName') ?? '',
-    focusTitle: normalizeOptionalValue(formData, 'focusTitle') ?? '',
-    focusLinkedinUrl: focusLinkedinUrl || '',
-    connectionStatus: normalizeConnectionStatus(formData.get('connectionStatus')),
-    lastOutreachDate: normalizeOptionalValue(formData, 'lastOutreachDate') ?? '',
-    nextFollowUpAction: normalizeOptionalValue(formData, 'nextFollowUpAction') ?? '',
-    painPoints: normalizeOptionalValue(formData, 'painPoints') ?? '',
-    facebookUrl: facebookUrl || '',
-    whatsapp: normalizeOptionalValue(formData, 'whatsapp') ?? '',
-  });
+  let persisted: boolean;
+
+  try {
+    persisted = await updateSupabaseLead(leadId, {
+      icpCategory: normalizeOptionalValue(formData, 'icpCategory') ?? '',
+      linkedinProfileUrl: linkedinProfileUrl || '',
+      focusName: normalizeOptionalValue(formData, 'focusName') ?? '',
+      focusTitle: normalizeOptionalValue(formData, 'focusTitle') ?? '',
+      focusLinkedinUrl: focusLinkedinUrl || '',
+      connectionStatus: normalizeConnectionStatus(formData.get('connectionStatus')),
+      lastOutreachDate: normalizeOptionalValue(formData, 'lastOutreachDate') ?? '',
+      nextFollowUpAction: normalizeOptionalValue(formData, 'nextFollowUpAction') ?? '',
+      painPoints: normalizeOptionalValue(formData, 'painPoints') ?? '',
+      facebookUrl: facebookUrl || '',
+      whatsapp: normalizeOptionalValue(formData, 'whatsapp') ?? '',
+    });
+  } catch (error) {
+    console.error('Failed to update lead prospecting details', error);
+    return {
+      message:
+        'The prospecting details could not be saved. Your entries are still here; try again.',
+    };
+  }
 
   refreshDashboardLeadViews(leadId);
 
   return {
     message: persisted ? 'Prospecting details saved.' : 'Lead not found.',
+    ...(persisted ? {} : { errors: {} }),
   };
 }
 
@@ -269,7 +290,14 @@ export async function addLeadNote(formData: FormData): Promise<DashboardActionRe
     throw new Error('Notes must be 5,000 characters or fewer');
   }
 
-  const persisted = await insertSupabaseLeadNote(leadId, body, user.id);
+  let persisted: boolean;
+
+  try {
+    persisted = await insertSupabaseLeadNote(leadId, body, user.id);
+  } catch (error) {
+    console.error('Failed to add lead note', error);
+    return { ok: false, message: 'The note could not be added. Try again.' };
+  }
 
   refreshDashboardLeadViews(leadId);
 
@@ -291,7 +319,14 @@ export async function updateLeadNote(formData: FormData): Promise<DashboardActio
   if (!body) throw new Error('Missing note body');
   if (body.length > 5000) throw new Error('Notes must be 5,000 characters or fewer');
 
-  const persisted = await updateSupabaseLeadNote(leadId, noteId, body);
+  let persisted: boolean;
+
+  try {
+    persisted = await updateSupabaseLeadNote(leadId, noteId, body);
+  } catch (error) {
+    console.error('Failed to update lead note', error);
+    return { ok: false, message: 'The note could not be updated. Try again.' };
+  }
   refreshDashboardLeadViews(leadId);
 
   return {
@@ -308,7 +343,14 @@ export async function deleteLeadNote(formData: FormData): Promise<DashboardActio
   requireLeadId(leadId);
   if (!noteId) throw new Error('Missing note id');
 
-  const persisted = await deleteSupabaseLeadNote(leadId, noteId);
+  let persisted: boolean;
+
+  try {
+    persisted = await deleteSupabaseLeadNote(leadId, noteId);
+  } catch (error) {
+    console.error('Failed to delete lead note', error);
+    return { ok: false, message: 'The note could not be deleted. Try again.' };
+  }
   refreshDashboardLeadViews(leadId);
 
   return {

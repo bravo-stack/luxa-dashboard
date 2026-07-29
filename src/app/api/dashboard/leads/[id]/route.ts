@@ -1,6 +1,7 @@
 import { revalidatePath } from 'next/cache';
 
 import { getAdminUser } from '@/lib/auth/admin';
+import { getWorkspaceUser } from '@/lib/auth/workspace';
 import {
   deleteSupabaseLead,
   updateSupabaseLead,
@@ -25,7 +26,7 @@ export async function PATCH(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
-  const user = await getAdminUser();
+  const user = await getWorkspaceUser();
 
   if (!user) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
@@ -50,7 +51,11 @@ export async function PATCH(
   }
 
   try {
-    const updated = await updateSupabaseLead(id, { status: payload.status });
+    const updated = await updateSupabaseLead(
+      id,
+      { status: payload.status },
+      user.role === 'sales_exec' ? user.id : undefined,
+    );
 
     if (!updated) {
       return Response.json({ error: 'Lead not found' }, { status: 404 });

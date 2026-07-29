@@ -58,6 +58,7 @@ export type LeadQueueQuery = {
   sort?: 'newest' | 'oldest';
   page?: number;
   pageSize?: number;
+  ownerUserId?: string;
 };
 
 export type SupabaseLeadQueue = {
@@ -99,9 +100,10 @@ async function getSupabaseAdminClient() {
     );
   }
 
-  const { supabaseAdmin } = await import('@/lib/supabase/admin');
+  const { getSupabaseAdminClient: createAdminClient } =
+    await import('@/lib/supabase/admin');
 
-  return supabaseAdmin;
+  return createAdminClient();
 }
 
 const leadSubmissionSelect = [
@@ -377,14 +379,19 @@ function getQueryError(...results: SupabaseResult<Record<string, unknown>>[]) {
   return null;
 }
 
-export const getSupabaseDashboardDataset = cache(async () => {
+export const getSupabaseDashboardDataset = cache(async (ownerUserId?: string) => {
   const supabase = await getSupabaseAdminClient();
 
-  const submissionsResult = await supabase
+  let submissionsQuery = supabase
     .from('lead_submissions')
     .select(leadSubmissionSelect)
     .order('created_at', { ascending: false });
 
+  if (ownerUserId) {
+    submissionsQuery = submissionsQuery.eq('owner_user_id', ownerUserId);
+  }
+
+  const submissionsResult = await submissionsQuery;
   const queryError = getQueryError(
     submissionsResult as SupabaseResult<Record<string, unknown>>,
   );
@@ -432,6 +439,10 @@ export async function getSupabaseLeadQueue(
   const search = sanitizeSearchTerm(options.search ?? '');
   const budget = sanitizeFacetTerm(options.budget);
   const timeline = sanitizeFacetTerm(options.timeline);
+
+  if (options.ownerUserId) {
+    query = query.eq('owner_user_id', options.ownerUserId);
+  }
 
   if (search) {
     const pattern = `*${search}*`;
@@ -488,26 +499,37 @@ export async function getSupabaseLeadQueue(
     );
   }
 
+  let facetQuery = supabase
+    .from('lead_submissions')
+    .select('budget,timeline')
+    .limit(2_000);
+  let platformAuditQuery = supabase
+    .from('lead_submissions')
+    .select('id', { count: 'exact', head: true })
+    .eq('form_type', 'platform_audit');
+
+  if (options.ownerUserId) {
+    facetQuery = facetQuery.eq('owner_user_id', options.ownerUserId);
+    platformAuditQuery = platformAuditQuery.eq('owner_user_id', options.ownerUserId);
+  }
+
   const [pageResult, facetResult, platformAuditResult, ...statusResults] =
     await Promise.all([
       query.order('created_at', { ascending: options.sort === 'oldest' }).range(from, to),
-      resolveOptionalQuery(
-        supabase.from('lead_submissions').select('budget,timeline').limit(2_000),
-      ),
-      resolveOptionalQuery(
-        supabase
+      resolveOptionalQuery(facetQuery),
+      resolveOptionalQuery(platformAuditQuery),
+      ...leadStatuses.map((status) => {
+        let statusQuery = supabase
           .from('lead_submissions')
           .select('id', { count: 'exact', head: true })
-          .eq('form_type', 'platform_audit'),
-      ),
-      ...leadStatuses.map((status) =>
-        resolveOptionalQuery(
-          supabase
-            .from('lead_submissions')
-            .select('id', { count: 'exact', head: true })
-            .eq('status', status),
-        ),
-      ),
+          .eq('status', status);
+
+        if (options.ownerUserId) {
+          statusQuery = statusQuery.eq('owner_user_id', options.ownerUserId);
+        }
+
+        return resolveOptionalQuery(statusQuery);
+      }),
     ]);
 
   if (pageResult.error) {
@@ -619,6 +641,7 @@ export async function updateSupabaseLead(
       | 'whatsapp'
     >
   >,
+  ownerUserId?: string,
 ) {
   const supabase = await getSupabaseAdminClient();
 
@@ -655,20 +678,52 @@ export async function updateSupabaseLead(
     ...(values.whatsapp !== undefined ? { whatsapp: values.whatsapp || null } : {}),
   };
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('lead_submissions')
     .update({
       ...databaseValues,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', leadId);
+
+  if (ownerUserId) {
+    query = query.eq('owner_user_id', ownerUserId);
+  }
+
+  const { data, error } = await query.select('id').maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return Boolean(data);
+}
+
+export async function getSupabaseLeadOwner(leadId: string) {
+  const supabase = await getSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from('lead_submissions')
+    .select('owner_user_id')
+    .eq('id', leadId)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return data?.owner_user_id ? String(data.owner_user_id) : null;
+}
+
+export async function assignSupabaseLead(leadId: string, ownerUserId: string | null) {
+  const supabase = await getSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from('lead_submissions')
+    .update({
+      owner_user_id: ownerUserId,
       updated_at: new Date().toISOString(),
     })
     .eq('id', leadId)
     .select('id')
     .maybeSingle();
 
-  if (error) {
-    throw new Error(error.message);
-  }
-
+  if (error) throw new Error(error.message);
   return Boolean(data);
 }
 

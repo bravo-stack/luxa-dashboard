@@ -51,8 +51,8 @@ function getDateRange(key: DateRangeKey = '7d') {
   );
 }
 
-async function getDashboardDataset(): Promise<DashboardDataset> {
-  return getSupabaseDashboardDataset();
+async function getDashboardDataset(ownerUserId?: string): Promise<DashboardDataset> {
+  return getSupabaseDashboardDataset(ownerUserId);
 }
 
 function sortNewest<T extends { created_at: string }>(items: T[]) {
@@ -287,8 +287,9 @@ export async function getLeadQueue(options: LeadQueueQuery = {}) {
 export async function getLeadDetail(
   id: string,
   prospectingHistoryPage = 1,
+  ownerUserId?: string,
 ): Promise<LeadDetail | null> {
-  const dataset = await getDashboardDataset();
+  const dataset = await getDashboardDataset(ownerUserId);
   const lead = dataset.leads.find((item) => item.id === id);
 
   if (!lead) {
@@ -368,6 +369,60 @@ export async function getLeadDetail(
     prospectingHistoryPage: historyPage,
     prospectingHistoryTotal: prospectingHistory.total,
     prospectingHistoryTotalPages: totalPages,
+  };
+}
+
+export async function getSalesWorkspaceOverview(userId: string) {
+  const dataset = await getDashboardDataset(userId);
+  const staleLeads = dataset.leads.filter(isStaleLead);
+  const qualifiedNotScheduled = dataset.leads.filter(isQualifiedNotScheduled);
+  const contactedWithoutNextStep = dataset.leads.filter(isContactedWithoutNextStep);
+  const recentSubmissions = dataset.auditSubmissions
+    .filter((submission) => dataset.leads.some((lead) => lead.id === submission.lead_id))
+    .sort(
+      (first, second) =>
+        new Date(second.created_at).getTime() - new Date(first.created_at).getTime(),
+    )
+    .slice(0, 8)
+    .map((submission) => ({
+      lead: dataset.leads.find((lead) => lead.id === submission.lead_id) as Lead,
+      submission,
+    }));
+
+  return {
+    metrics: getLiveDashboardMetrics(
+      dataset.leads,
+      dataset.auditSubmissions,
+      dataset.leadEvents,
+    ).slice(0, 4),
+    pipeline: getLivePipelineStages(dataset.leads),
+    recentSubmissions,
+    needsAttention: [
+      {
+        id: 'my-overdue-leads',
+        label: 'Contact overdue',
+        count: staleLeads.length,
+        description: 'Assigned leads older than 48 hours with no contact',
+        priority: 'contact_overdue' as const,
+        leadIds: staleLeads.map((lead) => lead.id),
+      },
+      {
+        id: 'my-qualified-follow-up',
+        label: 'Qualified for follow-up',
+        count: qualifiedNotScheduled.length,
+        description: 'Qualified opportunities waiting for your next action',
+        priority: 'high_fit' as const,
+        leadIds: qualifiedNotScheduled.map((lead) => lead.id),
+      },
+      {
+        id: 'my-contacted-no-next-step',
+        label: 'No next step',
+        count: contactedWithoutNextStep.length,
+        description: 'Contacted leads that need a controlled follow-up path',
+        priority: 'standard' as const,
+        leadIds: contactedWithoutNextStep.map((lead) => lead.id),
+      },
+    ],
   };
 }
 

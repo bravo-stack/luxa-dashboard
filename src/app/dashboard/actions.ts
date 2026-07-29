@@ -3,9 +3,11 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
-import { requireAdmin } from '@/lib/auth/admin';
+import { recordSecurityEvent, requirePermission } from '@/lib/auth/workspace';
 import {
+  assignSupabaseLead,
   deleteSupabaseLeadNote,
+  getSupabaseLeadOwner,
   insertSupabaseLeadNote,
   insertSupabaseManualLead,
   updateSupabaseLead,
@@ -19,6 +21,7 @@ import {
   leadStatuses,
 } from '@/lib/dashboard/types';
 import { normalizeHttpUrl } from '@/lib/dashboard/urls';
+import { getSupabaseAdminClient } from '@/lib/supabase/admin';
 
 export type CreateLeadState = {
   message: string;
@@ -39,6 +42,27 @@ export type CreateLeadState = {
 
 export type ProspectingState = CreateLeadState;
 
+export type AssignmentState = {
+  message: string;
+  success?: boolean;
+};
+
+async function requireLeadMutationAccess(leadId: string) {
+  const user = await requirePermission('leads.update_assigned');
+
+  if (user.role === 'sales_exec') {
+    const ownerUserId = await getSupabaseLeadOwner(leadId);
+
+    if (ownerUserId !== user.id) {
+      throw new Error('You do not have access to this lead.');
+    }
+
+    return { user, ownerUserId: user.id };
+  }
+
+  return { user, ownerUserId: undefined };
+}
+
 function normalizeOptionalValue(formData: FormData, field: string) {
   const value = String(formData.get(field) ?? '').trim();
   return value || undefined;
@@ -56,7 +80,7 @@ export async function createLead(
   _state: CreateLeadState,
   formData: FormData,
 ): Promise<CreateLeadState> {
-  const user = await requireAdmin();
+  const user = await requirePermission('leads.create');
   const fullName = String(formData.get('fullName') ?? '').trim();
   const email = String(formData.get('email') ?? '')
     .trim()
@@ -138,9 +162,9 @@ export async function updateLeadProspecting(
   _state: ProspectingState,
   formData: FormData,
 ): Promise<ProspectingState> {
-  await requireAdmin();
   const leadId = String(formData.get('leadId') ?? '').trim();
   requireLeadId(leadId);
+  const { ownerUserId } = await requireLeadMutationAccess(leadId);
 
   const linkedinProfileUrl = normalizeHttpUrl(
     normalizeOptionalValue(formData, 'linkedinProfileUrl'),
@@ -166,19 +190,23 @@ export async function updateLeadProspecting(
   let persisted: boolean;
 
   try {
-    persisted = await updateSupabaseLead(leadId, {
-      icpCategory: normalizeOptionalValue(formData, 'icpCategory') ?? '',
-      linkedinProfileUrl: linkedinProfileUrl || '',
-      focusName: normalizeOptionalValue(formData, 'focusName') ?? '',
-      focusTitle: normalizeOptionalValue(formData, 'focusTitle') ?? '',
-      focusLinkedinUrl: focusLinkedinUrl || '',
-      connectionStatus: normalizeConnectionStatus(formData.get('connectionStatus')),
-      lastOutreachDate: normalizeOptionalValue(formData, 'lastOutreachDate') ?? '',
-      nextFollowUpAction: normalizeOptionalValue(formData, 'nextFollowUpAction') ?? '',
-      painPoints: normalizeOptionalValue(formData, 'painPoints') ?? '',
-      facebookUrl: facebookUrl || '',
-      whatsapp: normalizeOptionalValue(formData, 'whatsapp') ?? '',
-    });
+    persisted = await updateSupabaseLead(
+      leadId,
+      {
+        icpCategory: normalizeOptionalValue(formData, 'icpCategory') ?? '',
+        linkedinProfileUrl: linkedinProfileUrl || '',
+        focusName: normalizeOptionalValue(formData, 'focusName') ?? '',
+        focusTitle: normalizeOptionalValue(formData, 'focusTitle') ?? '',
+        focusLinkedinUrl: focusLinkedinUrl || '',
+        connectionStatus: normalizeConnectionStatus(formData.get('connectionStatus')),
+        lastOutreachDate: normalizeOptionalValue(formData, 'lastOutreachDate') ?? '',
+        nextFollowUpAction: normalizeOptionalValue(formData, 'nextFollowUpAction') ?? '',
+        painPoints: normalizeOptionalValue(formData, 'painPoints') ?? '',
+        facebookUrl: facebookUrl || '',
+        whatsapp: normalizeOptionalValue(formData, 'whatsapp') ?? '',
+      },
+      ownerUserId,
+    );
   } catch (error) {
     console.error('Failed to update lead prospecting details', error);
     return {
@@ -225,10 +253,10 @@ export async function updateLeadStatus(
   leadId: string,
   status: LeadStatus,
 ): Promise<DashboardActionResult> {
-  await requireAdmin();
   requireLeadId(leadId);
+  const { ownerUserId } = await requireLeadMutationAccess(leadId);
   const nextStatus = parseStatus(status);
-  const persisted = await updateSupabaseLead(leadId, { status: nextStatus });
+  const persisted = await updateSupabaseLead(leadId, { status: nextStatus }, ownerUserId);
 
   refreshDashboardLeadViews(leadId);
 
@@ -239,11 +267,11 @@ export async function updateLeadStatus(
 }
 
 export async function addLeadNote(formData: FormData): Promise<DashboardActionResult> {
-  const user = await requireAdmin();
   const leadId = String(formData.get('leadId') ?? '');
   const body = String(formData.get('body') ?? '').trim();
 
   requireLeadId(leadId);
+  const { user } = await requireLeadMutationAccess(leadId);
 
   if (!body) {
     throw new Error('Missing note body');
@@ -271,12 +299,12 @@ export async function addLeadNote(formData: FormData): Promise<DashboardActionRe
 }
 
 export async function updateLeadNote(formData: FormData): Promise<DashboardActionResult> {
-  await requireAdmin();
   const leadId = String(formData.get('leadId') ?? '');
   const noteId = String(formData.get('noteId') ?? '').trim();
   const body = String(formData.get('body') ?? '').trim();
 
   requireLeadId(leadId);
+  await requireLeadMutationAccess(leadId);
 
   if (!noteId) throw new Error('Missing note id');
   if (!body) throw new Error('Missing note body');
@@ -299,11 +327,11 @@ export async function updateLeadNote(formData: FormData): Promise<DashboardActio
 }
 
 export async function deleteLeadNote(formData: FormData): Promise<DashboardActionResult> {
-  await requireAdmin();
   const leadId = String(formData.get('leadId') ?? '');
   const noteId = String(formData.get('noteId') ?? '').trim();
 
   requireLeadId(leadId);
+  await requireLeadMutationAccess(leadId);
   if (!noteId) throw new Error('Missing note id');
 
   let persisted: boolean;
@@ -323,9 +351,13 @@ export async function deleteLeadNote(formData: FormData): Promise<DashboardActio
 }
 
 export async function markLeadContacted(leadId: string): Promise<DashboardActionResult> {
-  await requireAdmin();
   requireLeadId(leadId);
-  const persisted = await updateSupabaseLead(leadId, { status: 'contacted' });
+  const { ownerUserId } = await requireLeadMutationAccess(leadId);
+  const persisted = await updateSupabaseLead(
+    leadId,
+    { status: 'contacted' },
+    ownerUserId,
+  );
 
   refreshDashboardLeadViews(leadId);
 
@@ -336,14 +368,71 @@ export async function markLeadContacted(leadId: string): Promise<DashboardAction
 }
 
 export async function markLeadSpam(leadId: string): Promise<DashboardActionResult> {
-  await requireAdmin();
   requireLeadId(leadId);
-  const persisted = await updateSupabaseLead(leadId, { status: 'spam' });
+  const { ownerUserId } = await requireLeadMutationAccess(leadId);
+  const persisted = await updateSupabaseLead(leadId, { status: 'spam' }, ownerUserId);
 
   refreshDashboardLeadViews(leadId);
 
   return {
     ok: persisted,
     message: getPersistenceMessage(persisted, 'Spam classification'),
+  };
+}
+
+export async function assignLead(
+  _state: AssignmentState,
+  formData: FormData,
+): Promise<AssignmentState> {
+  const admin = await requirePermission('leads.assign');
+  const leadId = String(formData.get('leadId') ?? '').trim();
+  const requestedOwner = String(formData.get('ownerUserId') ?? '').trim();
+  const ownerUserId = requestedOwner === 'unassigned' ? null : requestedOwner;
+
+  requireLeadId(leadId);
+
+  if (
+    ownerUserId &&
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      ownerUserId,
+    )
+  ) {
+    return { message: 'Choose a valid sales executive.' };
+  }
+
+  if (ownerUserId) {
+    const supabaseAdmin = getSupabaseAdminClient();
+    const { data, error } = await supabaseAdmin
+      .from('workspace_members')
+      .select('user_id')
+      .eq('user_id', ownerUserId)
+      .eq('role', 'sales_exec')
+      .eq('status', 'active')
+      .maybeSingle();
+
+    if (error || !data) {
+      return { message: 'That sales executive is not active.' };
+    }
+  }
+
+  const persisted = await assignSupabaseLead(leadId, ownerUserId);
+
+  if (!persisted) return { message: 'The lead could not be found.' };
+
+  await recordSecurityEvent({
+    action: 'lead_assigned',
+    actorUserId: admin.id,
+    targetUserId: ownerUserId,
+    metadata: { lead_id: leadId, assignment: ownerUserId ? 'assigned' : 'unassigned' },
+  });
+
+  refreshDashboardLeadViews(leadId);
+  revalidatePath('/dashboard/team');
+
+  return {
+    message: ownerUserId
+      ? 'Lead owner updated.'
+      : 'Lead returned to the unassigned queue.',
+    success: true,
   };
 }

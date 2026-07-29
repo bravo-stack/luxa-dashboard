@@ -8,6 +8,8 @@ import { LeadProspectingHistory } from '@/components/leads/lead-prospecting-hist
 import { LeadQuickActions } from '@/components/leads/lead-quick-actions';
 import { LeadSummaryCard } from '@/components/leads/lead-summary-card';
 import { LeadTimeline } from '@/components/leads/lead-timeline';
+import { getAssignableSalesExecutives } from '@/lib/auth/team';
+import { getWorkspaceUser } from '@/lib/auth/workspace';
 import { getLeadDetail } from '@/lib/dashboard/queries';
 
 export default async function LeadDetailPage({
@@ -17,12 +19,22 @@ export default async function LeadDetailPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ historyPage?: string }>;
 }) {
-  const [{ id }, query] = await Promise.all([params, searchParams]);
+  const [{ id }, query, user] = await Promise.all([
+    params,
+    searchParams,
+    getWorkspaceUser(),
+  ]);
+
+  if (!user) notFound();
+
   const requestedHistoryPage = Number.parseInt(query.historyPage ?? '1', 10);
   const historyPage = Number.isFinite(requestedHistoryPage)
     ? Math.max(1, requestedHistoryPage)
     : 1;
-  const detail = await getLeadDetail(id, historyPage);
+  const [detail, assignmentMembers] = await Promise.all([
+    getLeadDetail(id, historyPage, user.role === 'sales_exec' ? user.id : undefined),
+    user.role === 'admin' ? getAssignableSalesExecutives() : Promise.resolve([]),
+  ]);
 
   if (!detail) {
     notFound();
@@ -52,6 +64,8 @@ export default async function LeadDetailPage({
           key={`${detail.lead.id}:${detail.lead.updated_at}:${detail.lead.status}`}
           lead={detail.lead}
           latestSubmission={latestSubmission}
+          canDelete={user.role === 'admin'}
+          assignmentMembers={user.role === 'admin' ? assignmentMembers : undefined}
         />
       </div>
     </>

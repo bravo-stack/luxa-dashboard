@@ -82,14 +82,17 @@ a future relationship model deliberately links them.
    have no ingestion side effect.
 
 7. Create a manual lead from `/dashboard/leads/new`. It is stored with
-   `form_type = 'manual'`, `origin = 'manual'`, and the authenticated administrator as
-   both creator and initial owner. Funnel submissions retain `quick_start` or
+   `form_type = 'manual'`, `origin = 'manual'`, and the authenticated workspace member
+   as both creator and initial owner. Funnel submissions retain `quick_start` or
    `platform_audit`, default to `origin = 'website'`, and have no human creator.
 
 ## Data and security contract
 
 - CRM database access exists only in `server-only` modules.
-- Every dashboard mutation re-authenticates and requires the admin role.
+- Every dashboard mutation re-authenticates and checks a centralized permission.
+  Sales executives can mutate only leads whose `owner_user_id` matches their verified
+  user ID; assignment, export, global analytics, and member administration remain
+  admin-only.
 - Route handlers independently authorize requests.
 - Client Components receive explicit lead DTOs rather than unrestricted Supabase rows.
 - Queries omit `source_hash` and `idempotency_key` from UI projections. Creator and

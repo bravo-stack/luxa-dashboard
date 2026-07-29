@@ -50,7 +50,8 @@ export async function trackEvent(
     return { ok: true, source: 'noop' };
   }
 
-  const { supabaseAdmin } = await import('@/lib/supabase/admin');
+  const { getSupabaseAdminClient } = await import('@/lib/supabase/admin');
+  const supabaseAdmin = getSupabaseAdminClient();
   const { error } = await supabaseAdmin.from('lead_events').insert({
     lead_id: null,
     event_name: eventName,

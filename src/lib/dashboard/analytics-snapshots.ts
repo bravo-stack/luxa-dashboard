@@ -26,7 +26,8 @@ export async function getAnalyticsSnapshot(
     return null;
   }
 
-  const { supabaseAdmin } = await import('@/lib/supabase/admin');
+  const { getSupabaseAdminClient } = await import('@/lib/supabase/admin');
+  const supabaseAdmin = getSupabaseAdminClient();
   const { data, error } = await supabaseAdmin
     .from('analytics_snapshots')
     .select('payload')

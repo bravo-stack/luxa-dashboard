@@ -17,8 +17,10 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
+import type { DashboardIdentity } from '@/lib/auth/types';
 
 const titles = [
+  { href: '/dashboard/team', label: 'Team' },
   { href: '/dashboard/analytics', label: 'Analytics' },
   { href: '/dashboard/leads', label: 'Leads' },
   { href: '/dashboard/settings', label: 'Settings' },
@@ -29,7 +31,16 @@ function getPageTitle(pathname: string) {
   return titles.find((item) => pathname.startsWith(item.href))?.label ?? 'Dashboard';
 }
 
-export function DashboardTopbar() {
+function getInitials(name: string) {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join('');
+}
+
+export function DashboardTopbar({ identity }: { identity: DashboardIdentity }) {
   const pathname = usePathname();
 
   return (
@@ -72,17 +83,26 @@ export function DashboardTopbar() {
                 aria-label="Open user menu"
               >
                 <Avatar className="size-9 border border-border">
-                  <AvatarFallback>LA</AvatarFallback>
+                  <AvatarFallback>
+                    {getInitials(identity.displayName) || 'LX'}
+                  </AvatarFallback>
                 </Avatar>
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Luxa Admin</DropdownMenuLabel>
+              <DropdownMenuLabel className="max-w-56">
+                <span className="block truncate text-foreground">
+                  {identity.displayName}
+                </span>
+                <span className="mt-0.5 block truncate font-normal">
+                  {identity.email}
+                </span>
+              </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
                 <Link href="/dashboard/settings">
                   <Settings2 className="size-4" />
-                  Workspace settings
+                  {identity.role === 'admin' ? 'Workspace settings' : 'Account security'}
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />

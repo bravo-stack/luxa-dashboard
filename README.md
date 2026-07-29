@@ -1,13 +1,12 @@
 # Luxa operations workspace
 
-Private Next.js admin workspace for lead operations and privacy-safe growth
-intelligence.
+Private Next.js workspace for lead operations and privacy-safe growth intelligence.
 
 ## Local setup
 
 Copy `.env.example` to `.env.local` and configure:
 
-- Supabase public URL and anonymous key for admin authentication.
+- Supabase public URL and anonymous key for workspace authentication.
 - Supabase server URL and secret key for protected CRM operations.
 - Umami host, website ID, API URL, and API token for analytics.
 
@@ -34,6 +33,7 @@ Verify the connected production data sources:
 
 ```bash
 npm run crm:verify
+npm run access:verify
 npm run analytics:verify
 ```
 
@@ -51,10 +51,15 @@ npm run crm:smoke
 - Umami supplies native traffic, realtime, page quality, acquisition,
   ordered-funnel, session timing, and Core Web Vitals signals.
 - Analytics property collection is allowlisted and excludes lead identity fields.
-- Dashboard and dashboard API routes require a Supabase user with
-  `app_metadata.role = "admin"`.
+- Dashboard and dashboard API routes require an active Supabase workspace user with a
+  server-controlled `admin` or `sales_exec` role. Sales access is limited to assigned
+  leads; global analytics, export, team administration, and settings remain admin-only.
 - Lead CSV exports are authenticated, non-cacheable, and neutralize spreadsheet
   formula input.
+
+Sales executives are provisioned only from the admin Team screen after the workspace
+access migration and email templates are configured. See
+`docs/supabase-auth-setup.md`.
 
 The analytics layer fetches signal groups independently. Optional endpoint failures
 remain visible in Launch readiness without blanking the rest of the dashboard.

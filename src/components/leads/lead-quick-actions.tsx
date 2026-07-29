@@ -21,14 +21,26 @@ import {
 } from '@/lib/dashboard/types';
 import { formatDate, originLabels, statusLabels } from '@/lib/dashboard/utils';
 
+import { LeadOwnerSelect } from './lead-owner-select';
 import { LeadStatusBadge } from './lead-status-badge';
 
 type LeadQuickActionsProps = {
   lead: Lead;
   latestSubmission?: AuditSubmission;
+  canDelete?: boolean;
+  assignmentMembers?: Array<{
+    id: string;
+    displayName: string;
+    email: string;
+  }>;
 };
 
-export function LeadQuickActions({ lead, latestSubmission }: LeadQuickActionsProps) {
+export function LeadQuickActions({
+  lead,
+  latestSubmission,
+  canDelete = false,
+  assignmentMembers,
+}: LeadQuickActionsProps) {
   const router = useRouter();
   const [status, setStatus] = React.useState<LeadStatus>(lead.status);
   const [mutationError, setMutationError] = React.useState('');
@@ -184,52 +196,64 @@ export function LeadQuickActions({ lead, latestSubmission }: LeadQuickActionsPro
           ) : null}
         </div>
       </section>
-      <section className="rounded-lg border border-destructive/20 bg-destructive/5 p-5">
-        <p className="text-xs font-semibold tracking-[0.08em] text-destructive uppercase">
-          Danger zone
-        </p>
-        {isConfirmingDelete ? (
-          <div className="mt-3">
-            <p className="text-sm font-semibold text-foreground">Delete this lead?</p>
-            <p className="mt-1 text-sm leading-6 text-muted-foreground">
-              The lead, its submitted context, notes, and prospecting history will be
-              permanently removed.
-            </p>
-            <div className="mt-4 flex items-center gap-2">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                disabled={isPending}
-                onClick={() => setIsConfirmingDelete(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                variant="destructive"
-                size="sm"
-                disabled={isPending}
-                onClick={removeLead}
-              >
-                <Trash2 aria-hidden="true" />
-                {isPending ? 'Deleting' : 'Delete permanently'}
-              </Button>
+      {assignmentMembers ? (
+        <section className="surface-elevated rounded-lg p-5">
+          <p className="mb-4 text-xs font-semibold text-primary uppercase">Ownership</p>
+          <LeadOwnerSelect
+            leadId={lead.id}
+            currentOwnerId={lead.owner_user_id}
+            members={assignmentMembers}
+          />
+        </section>
+      ) : null}
+      {canDelete ? (
+        <section className="rounded-lg border border-destructive/20 bg-destructive/5 p-5">
+          <p className="text-xs font-semibold tracking-[0.08em] text-destructive uppercase">
+            Danger zone
+          </p>
+          {isConfirmingDelete ? (
+            <div className="mt-3">
+              <p className="text-sm font-semibold text-foreground">Delete this lead?</p>
+              <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                The lead, its submitted context, notes, and prospecting history will be
+                permanently removed.
+              </p>
+              <div className="mt-4 flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  disabled={isPending}
+                  onClick={() => setIsConfirmingDelete(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  disabled={isPending}
+                  onClick={removeLead}
+                >
+                  <Trash2 aria-hidden="true" />
+                  {isPending ? 'Deleting' : 'Delete permanently'}
+                </Button>
+              </div>
             </div>
-          </div>
-        ) : (
-          <Button
-            type="button"
-            variant="ghost"
-            className="mt-3 w-full justify-start text-destructive hover:text-destructive"
-            disabled={isPending}
-            onClick={() => setIsConfirmingDelete(true)}
-          >
-            <Trash2 aria-hidden="true" />
-            Delete lead
-          </Button>
-        )}
-      </section>
+          ) : (
+            <Button
+              type="button"
+              variant="ghost"
+              className="mt-3 w-full justify-start text-destructive hover:text-destructive"
+              disabled={isPending}
+              onClick={() => setIsConfirmingDelete(true)}
+            >
+              <Trash2 aria-hidden="true" />
+              Delete lead
+            </Button>
+          )}
+        </section>
+      ) : null}
     </aside>
   );
 }

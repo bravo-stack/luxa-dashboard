@@ -1,5 +1,6 @@
 import { Suspense } from 'react';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import {
   Activity,
   ArrowLeft,
@@ -27,6 +28,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { getDashboardAnalytics, normalizeAnalyticsFilters } from '@/lib/analytics/server';
 import type { DateRangeKey } from '@/lib/analytics/types';
+import { getAdminUser } from '@/lib/auth/admin';
 
 export const dynamic = 'force-dynamic';
 
@@ -50,6 +52,8 @@ type AnalyticsPageProps = {
 };
 
 export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps) {
+  if (!(await getAdminUser())) redirect('/dashboard');
+
   const params = await searchParams;
   const filters = normalizeAnalyticsFilters({
     dateRange: params?.range as DateRangeKey,

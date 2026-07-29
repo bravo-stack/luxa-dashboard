@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 
 import { DashboardShell } from '@/components/dashboard/dashboard-shell';
-import { getAdminUser } from '@/lib/auth/admin';
+import { getDashboardIdentity, getWorkspaceUser } from '@/lib/auth/workspace';
 
 export const metadata: Metadata = {
   title: 'Dashboard | Luxa',
@@ -16,9 +16,13 @@ export const metadata: Metadata = {
 export default async function Layout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  if (!(await getAdminUser())) {
-    redirect('/');
-  }
+  const user = await getWorkspaceUser();
 
-  return <DashboardShell>{children}</DashboardShell>;
+  if (!user) redirect('/');
+
+  const identity = await getDashboardIdentity(user);
+
+  if (!identity) redirect('/');
+
+  return <DashboardShell identity={identity}>{children}</DashboardShell>;
 }

@@ -27,13 +27,17 @@ export async function proxy(request: NextRequest) {
     },
   });
   const { data } = await supabase.auth.getClaims();
-  const isAdmin = data?.claims.app_metadata?.role === 'admin';
+  const role = data?.claims.app_metadata?.role;
+  const accountStatus =
+    data?.claims.app_metadata?.account_status ?? (role === 'admin' ? 'active' : null);
+  const hasWorkspaceAccess =
+    (role === 'admin' || role === 'sales_exec') && accountStatus === 'active';
   const { pathname } = request.nextUrl;
 
   const isProtectedDashboardPath =
     pathname.startsWith('/dashboard') || pathname.startsWith('/api/dashboard');
 
-  if (isProtectedDashboardPath && !isAdmin) {
+  if (isProtectedDashboardPath && !hasWorkspaceAccess) {
     // Server Actions authorize themselves. Redirecting their POST requests returns
     // HTML where React expects an action response and produces a transport error.
     if (request.headers.has('next-action')) {
@@ -56,7 +60,7 @@ export async function proxy(request: NextRequest) {
     return redirectResponse;
   }
 
-  if (pathname === '/' && isAdmin) {
+  if (pathname === '/' && hasWorkspaceAccess) {
     const redirectResponse = NextResponse.redirect(new URL('/dashboard', request.url));
     response.cookies.getAll().forEach((cookie) => redirectResponse.cookies.set(cookie));
     return redirectResponse;

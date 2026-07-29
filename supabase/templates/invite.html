@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Your Luxa workspace invitation</title>
+  </head>
+  <body
+    style="margin: 0; background: #f5f4f0; color: #202631; font-family: Arial, sans-serif"
+  >
+    <div style="display: none; max-height: 0; overflow: hidden">
+      Your secure invitation to the Luxa sales workspace.
+    </div>
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+      <tr>
+        <td align="center" style="padding: 40px 16px">
+          <table
+            role="presentation"
+            width="100%"
+            cellspacing="0"
+            cellpadding="0"
+            style="max-width: 600px; border: 1px solid #dedbd2; background: #fffefa"
+          >
+            <tr>
+              <td style="padding: 28px 32px; border-bottom: 1px solid #dedbd2">
+                <table role="presentation" width="100%">
+                  <tr>
+                    <td>
+                      <span
+                        style="
+                          display: inline-block;
+                          padding: 8px 11px;
+                          border-radius: 6px;
+                          background: #17785f;
+                          color: #ffffff;
+                          font-size: 15px;
+                          font-weight: 700;
+                        "
+                        >L</span
+                      >
+                      <span
+                        style="
+                          padding-left: 10px;
+                          font-size: 15px;
+                          font-weight: 700;
+                          letter-spacing: -0.2px;
+                        "
+                        >Luxa Operations</span
+                      >
+                    </td>
+                    <td align="right" style="font-size: 11px; color: #667085">
+                      PRIVATE INVITATION
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding: 40px 32px 20px">
+                <p
+                  style="
+                    margin: 0 0 14px;
+                    color: #17785f;
+                    font-size: 11px;
+                    font-weight: 700;
+                    letter-spacing: 1.4px;
+                    text-transform: uppercase;
+                  "
+                >
+                  Sales workspace access
+                </p>
+                <h1
+                  style="
+                    margin: 0;
+                    color: #202631;
+                    font-size: 30px;
+                    line-height: 1.15;
+                    letter-spacing: -1px;
+                  "
+                >
+                  Welcome to the Luxa team{{ if .Data.full_name }}, {{ .Data.full_name
+                  }}{{ end }}.
+                </h1>
+                <p
+                  style="
+                    margin: 20px 0 0;
+                    color: #596273;
+                    font-size: 15px;
+                    line-height: 1.7;
+                  "
+                >
+                  {{ if .Data.invited_by_name }}{{ .Data.invited_by_name }} has invited
+                  you{{ else }}You have been invited{{ end }} to the private Luxa
+                  operations workspace. Set a password to access assigned leads,
+                  follow-ups, and your sales desk.
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding: 12px 32px 32px">
+                <a
+                  href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=invite"
+                  style="
+                    display: inline-block;
+                    border-radius: 6px;
+                    background: #17785f;
+                    color: #ffffff;
+                    padding: 14px 22px;
+                    font-size: 14px;
+                    font-weight: 700;
+                    text-decoration: none;
+                  "
+                  >Accept invitation and set password</a
+                >
+                <p
+                  style="
+                    margin: 18px 0 0;
+                    color: #7a8290;
+                    font-size: 12px;
+                    line-height: 1.6;
+                  "
+                >
+                  This link is time-limited and can only be used once. If you were not
+                  expecting this invitation, you can safely ignore this email.
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td
+                style="
+                  padding: 24px 32px;
+                  border-top: 1px solid #dedbd2;
+                  background: #faf9f6;
+                "
+              >
+                <p style="margin: 0; color: #7a8290; font-size: 11px; line-height: 1.6">
+                  Luxa will never ask you to share your password or verification code by
+                  email. This invitation was sent to {{ .Email }}.
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

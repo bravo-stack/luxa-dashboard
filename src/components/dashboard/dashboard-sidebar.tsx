@@ -12,6 +12,7 @@ import {
   LayoutDashboard,
   Menu,
   Settings2,
+  ShieldCheck,
   UsersRound,
   Workflow,
 } from 'lucide-react';
@@ -24,13 +25,30 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
+import type { DashboardIdentity, WorkspaceRole } from '@/lib/auth/types';
 import { cn } from '@/lib/utils';
 
 const primaryNav = [
-  { label: 'Overview', href: '/dashboard', icon: LayoutDashboard },
-  { label: 'Leads', href: '/dashboard/leads', icon: UsersRound },
-  { label: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
-  { label: 'Settings', href: '/dashboard/settings', icon: Settings2 },
+  {
+    label: 'Overview',
+    href: '/dashboard',
+    icon: LayoutDashboard,
+    roles: ['admin', 'sales_exec'],
+  },
+  {
+    label: 'Leads',
+    href: '/dashboard/leads',
+    icon: UsersRound,
+    roles: ['admin', 'sales_exec'],
+  },
+  { label: 'Analytics', href: '/dashboard/analytics', icon: BarChart3, roles: ['admin'] },
+  { label: 'Team', href: '/dashboard/team', icon: ShieldCheck, roles: ['admin'] },
+  {
+    label: 'Settings',
+    href: '/dashboard/settings',
+    icon: Settings2,
+    roles: ['admin', 'sales_exec'],
+  },
 ];
 
 const publicSiteUrl = 'https://luxa-funnel.vercel.app';
@@ -46,8 +64,26 @@ const secondaryNav = [
   { label: 'Public Site', href: publicSiteUrl, icon: Home },
 ];
 
-function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
+function getInitials(name: string) {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join('');
+}
+
+function SidebarContent({
+  identity,
+  onNavigate,
+}: {
+  identity: DashboardIdentity;
+  onNavigate?: () => void;
+}) {
   const pathname = usePathname();
+  const visiblePrimaryNav = primaryNav.filter((item) =>
+    item.roles.includes(identity.role as WorkspaceRole),
+  );
 
   return (
     <div className="flex h-full flex-col">
@@ -79,7 +115,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
             Workspace
           </p>
           <div className="mt-2 space-y-1">
-            {primaryNav.map((item) => {
+            {visiblePrimaryNav.map((item) => {
               const isActive =
                 pathname === item.href ||
                 (item.href !== '/dashboard' && pathname.startsWith(item.href));
@@ -133,14 +169,16 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
       <div className="border-t border-sidebar-border p-4">
         <div className="flex items-center gap-3 px-1">
           <span className="grid size-8 place-items-center rounded-full bg-accent text-xs font-semibold text-accent-foreground">
-            LA
+            {getInitials(identity.displayName) || 'LX'}
           </span>
           <span className="grid min-w-0 flex-1">
             <span className="truncate text-xs font-semibold text-sidebar-foreground">
-              Luxa Admin
+              {identity.displayName}
             </span>
             <span className="truncate text-[0.6875rem] text-sidebar-foreground/50">
-              Admin workspace
+              {identity.role === 'admin'
+                ? 'Administrator'
+                : identity.jobTitle || 'Sales executive'}
             </span>
           </span>
           <span className="size-2 rounded-full bg-success" aria-label="Online" />
@@ -150,7 +188,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   );
 }
 
-export function DashboardSidebar() {
+export function DashboardSidebar({ identity }: { identity: DashboardIdentity }) {
   const [open, setOpen] = React.useState(false);
 
   return (
@@ -171,11 +209,11 @@ export function DashboardSidebar() {
           <SheetDescription className="sr-only">
             Navigate Luxa dashboard sections.
           </SheetDescription>
-          <SidebarContent onNavigate={() => setOpen(false)} />
+          <SidebarContent identity={identity} onNavigate={() => setOpen(false)} />
         </SheetContent>
       </Sheet>
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 border-r border-sidebar-border bg-sidebar text-sidebar-foreground lg:block">
-        <SidebarContent />
+        <SidebarContent identity={identity} />
       </aside>
     </>
   );

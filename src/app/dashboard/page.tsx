@@ -5,6 +5,8 @@ import {
   CalendarCheck,
   Eye,
   FileCheck2,
+  Plus,
+  Target,
   TrendingUp,
   UsersRound,
 } from 'lucide-react';
@@ -24,7 +26,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { getDashboardAnalytics, normalizeAnalyticsFilters } from '@/lib/analytics/server';
 import type { DateRangeKey } from '@/lib/analytics/types';
-import { getDashboardOverview } from '@/lib/dashboard/queries';
+import { getWorkspaceUser } from '@/lib/auth/workspace';
+import { getDashboardOverview, getSalesWorkspaceOverview } from '@/lib/dashboard/queries';
 import type { MetricSummary } from '@/lib/dashboard/types';
 
 export const dynamic = 'force-dynamic';
@@ -45,7 +48,94 @@ function selectMetrics(metrics: MetricSummary[]) {
     .filter(Boolean) as MetricSummary[];
 }
 
+async function SalesExecutiveDashboard({
+  user,
+}: {
+  user: NonNullable<Awaited<ReturnType<typeof getWorkspaceUser>>>;
+}) {
+  const overview = await getSalesWorkspaceOverview(user.id);
+  const firstName = user.displayName.split(/\s+/)[0] || 'there';
+  const actionableCount = overview.needsAttention.reduce(
+    (total, item) => total + item.count,
+    0,
+  );
+
+  return (
+    <>
+      <DashboardHeader
+        eyebrow="My workspace / assigned pipeline"
+        title={`Good to see you, ${firstName}`}
+        description="A focused view of the opportunities you own, the follow-ups at risk, and the work that moves your pipeline forward."
+        meta={
+          <div className="flex flex-wrap gap-2">
+            <Badge variant="teal">Private workspace</Badge>
+            <Badge variant={actionableCount ? 'warm' : 'outline'}>
+              {actionableCount
+                ? `${actionableCount} ${actionableCount === 1 ? 'item' : 'items'} need attention`
+                : 'Follow-ups clear'}
+            </Badge>
+          </div>
+        }
+        actions={
+          <>
+            <Button asChild variant="outline">
+              <Link href="/dashboard/leads">
+                <Target className="size-4" />
+                My lead queue
+              </Link>
+            </Button>
+            <Button asChild>
+              <Link href="/dashboard/leads/new">
+                <Plus className="size-4" />
+                Add lead
+              </Link>
+            </Button>
+          </>
+        }
+      />
+
+      <MetricRail
+        metrics={overview.metrics}
+        icons={[UsersRound, TrendingUp, CalendarCheck, FileCheck2]}
+      />
+
+      <DashboardSection
+        eyebrow="Daily operating view"
+        title="Where your attention has the most leverage"
+        description="Only leads assigned to you are included in this pipeline and follow-up view."
+        contentClassName="grid gap-6 xl:grid-cols-[minmax(0,0.88fr)_minmax(0,1.12fr)]"
+      >
+        <PipelineCard stages={overview.pipeline} />
+        <NeedsAttention items={overview.needsAttention} />
+      </DashboardSection>
+
+      <DashboardSection
+        eyebrow="Newest intent"
+        title="Your latest submissions"
+        description="Recent activity from your assigned opportunities, ordered for fast qualification."
+        actions={
+          <Button asChild variant="secondary" size="sm">
+            <Link href="/dashboard/leads">
+              <CalendarCheck className="size-4" />
+              Open my queue
+            </Link>
+          </Button>
+        }
+      >
+        <RecentSubmissions submissions={overview.recentSubmissions} />
+      </DashboardSection>
+    </>
+  );
+}
+
 export default async function DashboardPage({ searchParams }: DashboardPageProps) {
+  const user = await getWorkspaceUser();
+
+  if (!user) return null;
+  if (user.role === 'sales_exec') {
+    return <SalesExecutiveDashboard user={user} />;
+  }
+
   const params = await searchParams;
   const filters = normalizeAnalyticsFilters({
     dateRange: params?.range as DateRangeKey,

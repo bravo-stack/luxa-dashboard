@@ -12,6 +12,7 @@ import { DashboardHeader } from '@/components/dashboard/dashboard-header';
 import { MetricRail } from '@/components/dashboard/metric-rail';
 import { LeadTable } from '@/components/leads/lead-table';
 import { Button } from '@/components/ui/button';
+import { getWorkspaceUser } from '@/lib/auth/workspace';
 import { getLeadQueue } from '@/lib/dashboard/queries';
 import {
   type LeadOrigin,
@@ -37,7 +38,10 @@ export default async function LeadsPage({
     page?: string;
   }>;
 }) {
-  const params = await searchParams;
+  const [params, user] = await Promise.all([searchParams, getWorkspaceUser()]);
+
+  if (!user) return null;
+
   const page = Number.parseInt(params.page ?? '1', 10);
   const requestedStatus = params.status ?? '';
   const requestedOrigin = params.origin ?? '';
@@ -61,6 +65,7 @@ export default async function LeadsPage({
     date,
     sort,
     page: Number.isFinite(page) ? page : 1,
+    ownerUserId: user.role === 'sales_exec' ? user.id : undefined,
   } as const;
   let queue = await getLeadQueue(queueOptions);
   const hasInvalidBudget = budget !== 'all' && !queue.budgets.includes(budget);
@@ -116,16 +121,22 @@ export default async function LeadsPage({
     <>
       <DashboardHeader
         eyebrow="Lead operations"
-        title="Lead command center"
-        description="A fast operating queue for qualification, outreach, status movement, and the context behind every opportunity."
+        title={user.role === 'admin' ? 'Lead command center' : 'My lead workspace'}
+        description={
+          user.role === 'admin'
+            ? 'A fast operating queue for qualification, outreach, status movement, and the context behind every opportunity.'
+            : 'Your assigned opportunities, follow-up risk, and the context needed to move each conversation forward.'
+        }
         actions={
           <>
-            <Button asChild variant="outline">
-              <Link href="/api/dashboard/leads/export">
-                <Download className="size-4" />
-                Export leads
-              </Link>
-            </Button>
+            {user.role === 'admin' ? (
+              <Button asChild variant="outline">
+                <Link href="/api/dashboard/leads/export">
+                  <Download className="size-4" />
+                  Export leads
+                </Link>
+              </Button>
+            ) : null}
             <Button asChild>
               <Link href="/dashboard/leads/new">
                 <Plus className="size-4" />

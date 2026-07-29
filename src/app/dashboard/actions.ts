@@ -21,7 +21,7 @@ import {
   leadStatuses,
 } from '@/lib/dashboard/types';
 import { normalizeHttpUrl } from '@/lib/dashboard/urls';
-import { supabaseAdmin } from '@/lib/supabase/admin';
+import { getSupabaseAdminClient } from '@/lib/supabase/admin';
 
 export type CreateLeadState = {
   message: string;
@@ -401,6 +401,7 @@ export async function assignLead(
   }
 
   if (ownerUserId) {
+    const supabaseAdmin = getSupabaseAdminClient();
     const { data, error } = await supabaseAdmin
       .from('workspace_members')
       .select('user_id')

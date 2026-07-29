@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { supabaseAdmin } from '@/lib/supabase/admin';
+import { getSupabaseAdminClient } from '@/lib/supabase/admin';
 
 import { isWorkspaceRole, isWorkspaceStatus } from './policy';
 import type { WorkspaceRole, WorkspaceStatus, WorkspaceUser } from './types';
@@ -163,6 +163,7 @@ function getMemberStatus(
 }
 
 async function loadAccessTables() {
+  const supabaseAdmin = getSupabaseAdminClient();
   const [membersResult, sessionsResult, eventsResult, leadsResult, notesResult] =
     await Promise.all([
       supabaseAdmin
@@ -232,6 +233,7 @@ async function loadAccessTables() {
 
 export async function getTeamAccessOverview(): Promise<TeamAccessOverview> {
   await requirePermission('members.manage');
+  const supabaseAdmin = getSupabaseAdminClient();
 
   const [authResult, accessData] = await Promise.all([
     supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 200 }),
@@ -400,6 +402,7 @@ export async function getTeamAccessOverview(): Promise<TeamAccessOverview> {
 }
 
 export async function getAccountSecurityOverview(user: WorkspaceUser) {
+  const supabaseAdmin = getSupabaseAdminClient();
   const [sessionsResult, eventsResult] = await Promise.all([
     supabaseAdmin
       .from('workspace_sessions')
@@ -454,6 +457,7 @@ export async function getAccountSecurityOverview(user: WorkspaceUser) {
 
 export async function getAssignableSalesExecutives() {
   await requirePermission('leads.assign');
+  const supabaseAdmin = getSupabaseAdminClient();
 
   const { data, error } = await supabaseAdmin
     .from('workspace_members')

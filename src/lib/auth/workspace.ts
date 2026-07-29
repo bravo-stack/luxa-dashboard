@@ -3,7 +3,7 @@ import 'server-only';
 import { headers } from 'next/headers';
 import type { User } from '@supabase/supabase-js';
 
-import { supabaseAdmin } from '@/lib/supabase/admin';
+import { getSupabaseAdminClient } from '@/lib/supabase/admin';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 
 import {
@@ -80,6 +80,7 @@ function isMissingWorkspaceTable(error: { code?: string; message?: string } | nu
 }
 
 async function getMember(user: User): Promise<MemberRow | null> {
+  const supabaseAdmin = getSupabaseAdminClient();
   const { data, error } = await supabaseAdmin
     .from('workspace_members')
     .select(memberSelect)
@@ -134,6 +135,7 @@ async function getRequestMetadata(): Promise<RequestMetadata> {
 }
 
 async function getRevokedAt(sessionId: string) {
+  const supabaseAdmin = getSupabaseAdminClient();
   const { data, error } = await supabaseAdmin
     .from('workspace_sessions')
     .select('revoked_at')
@@ -147,6 +149,7 @@ async function getRevokedAt(sessionId: string) {
 async function touchWorkspaceSession(user: WorkspaceUser) {
   if (!user.session.id) return;
 
+  const supabaseAdmin = getSupabaseAdminClient();
   const request = await getRequestMetadata();
   const now = new Date().toISOString();
   const { data, error } = await supabaseAdmin
@@ -205,6 +208,7 @@ async function touchWorkspaceSession(user: WorkspaceUser) {
 }
 
 export async function recordSecurityEvent(input: SecurityEventInput) {
+  const supabaseAdmin = getSupabaseAdminClient();
   const request = await getRequestMetadata();
   const { error } = await supabaseAdmin.from('workspace_security_events').insert({
     action: input.action,

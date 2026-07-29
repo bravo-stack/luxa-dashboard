@@ -100,9 +100,10 @@ async function getSupabaseAdminClient() {
     );
   }
 
-  const { supabaseAdmin } = await import('@/lib/supabase/admin');
+  const { getSupabaseAdminClient: createAdminClient } =
+    await import('@/lib/supabase/admin');
 
-  return supabaseAdmin;
+  return createAdminClient();
 }
 
 const leadSubmissionSelect = [

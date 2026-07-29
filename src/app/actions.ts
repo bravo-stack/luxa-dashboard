@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation';
 import { getApplicationOrigin } from '@/lib/auth/origin';
 import { isWorkspaceRole, validateWorkspacePassword } from '@/lib/auth/policy';
 import { getWorkspaceUser, recordSecurityEvent } from '@/lib/auth/workspace';
-import { supabaseAdmin } from '@/lib/supabase/admin';
+import { getSupabaseAdminClient } from '@/lib/supabase/admin';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 
 export type LoginState = {
@@ -169,6 +169,7 @@ export async function updatePassword(
 
   const now = new Date().toISOString();
   const wasInvited = workspaceUser.status === 'invited';
+  const supabaseAdmin = getSupabaseAdminClient();
   const authUserResult = await supabaseAdmin.auth.admin.getUserById(workspaceUser.id);
 
   if (authUserResult.error || !authUserResult.data.user) {

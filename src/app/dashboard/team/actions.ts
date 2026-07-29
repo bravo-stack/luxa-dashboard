@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 
 import { getApplicationOrigin } from '@/lib/auth/origin';
 import { recordSecurityEvent, requirePermission } from '@/lib/auth/workspace';
-import { supabaseAdmin } from '@/lib/supabase/admin';
+import { getSupabaseAdminClient } from '@/lib/supabase/admin';
 
 export type TeamActionState = {
   message: string;
@@ -31,6 +31,7 @@ function isUuid(value: string) {
 async function getSalesExecutive(userId: string) {
   if (!isUuid(userId)) return null;
 
+  const supabaseAdmin = getSupabaseAdminClient();
   const { data, error } = await supabaseAdmin.auth.admin.getUserById(userId);
 
   if (error || !data.user || data.user.app_metadata?.role !== 'sales_exec') {
@@ -45,6 +46,7 @@ export async function inviteSalesExecutive(
   formData: FormData,
 ): Promise<TeamActionState> {
   const admin = await requirePermission('members.manage');
+  const supabaseAdmin = getSupabaseAdminClient();
   const displayName = String(formData.get('displayName') ?? '')
     .trim()
     .slice(0, 100);
@@ -180,6 +182,7 @@ export async function revokeMemberSessions(
   formData: FormData,
 ): Promise<TeamActionState> {
   const admin = await requirePermission('members.manage');
+  const supabaseAdmin = getSupabaseAdminClient();
   const userId = String(formData.get('userId') ?? '');
   const target = await getSalesExecutive(userId);
 
@@ -238,6 +241,7 @@ export async function freezeMemberAccess(
   formData: FormData,
 ): Promise<TeamActionState> {
   const admin = await requirePermission('members.manage');
+  const supabaseAdmin = getSupabaseAdminClient();
   const userId = String(formData.get('userId') ?? '');
   const reason = String(formData.get('reason') ?? '')
     .trim()
@@ -313,6 +317,7 @@ export async function restoreMemberAccess(
   formData: FormData,
 ): Promise<TeamActionState> {
   const admin = await requirePermission('members.manage');
+  const supabaseAdmin = getSupabaseAdminClient();
   const userId = String(formData.get('userId') ?? '');
   const target = await getSalesExecutive(userId);
 

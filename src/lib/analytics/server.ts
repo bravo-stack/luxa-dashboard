@@ -74,7 +74,9 @@ export async function getTrafficSummary(
   const analytics = await getDashboardAnalytics(filters);
 
   return {
+    dailyPageViews: analytics.dailyPageViews,
     dailyVisitors: analytics.dailyVisitors,
+    dailyVisits: analytics.dailyVisits,
     dailyFormStarts: analytics.dailyFormStarts ?? [],
     dailySubmissions: analytics.dailySubmissions,
     dailyScheduleClicks: analytics.dailyScheduleClicks,

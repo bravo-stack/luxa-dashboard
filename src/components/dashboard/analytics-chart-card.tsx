@@ -2,11 +2,12 @@
 
 import { LineChart as LineChartIcon } from 'lucide-react';
 import {
+  Area,
+  AreaChart,
   Bar,
   BarChart,
   CartesianGrid,
   Line,
-  LineChart,
   ReferenceLine,
   Tooltip,
   XAxis,
@@ -30,6 +31,7 @@ type AnalyticsChartCardProps = {
   description: string;
   data: SourceSummary[];
   secondaryData?: SourceSummary[];
+  secondaryLabel?: string;
   variant?: 'bar' | 'line';
   color?: string;
   className?: string;
@@ -64,6 +66,7 @@ export function AnalyticsChartCard({
   description,
   data,
   secondaryData,
+  secondaryLabel = 'Lead submissions',
   variant = 'line',
   color = 'var(--chart-1)',
   className,
@@ -73,10 +76,13 @@ export function AnalyticsChartCard({
   emptyDescription = 'Once this signal starts collecting events, the trend will appear here.',
   state = 'loaded',
 }: AnalyticsChartCardProps) {
-  const chartData = data.map((item, index) => ({
+  const secondaryByKey = new Map(
+    secondaryData?.map((item) => [item.key, item.value]) ?? [],
+  );
+  const chartData = data.map((item) => ({
     ...item,
     primary: item.value,
-    secondary: secondaryData?.[index]?.value,
+    secondary: secondaryByKey.get(item.key),
   }));
   const total = data.reduce((sum, item) => sum + item.value, 0);
   const aggregateValue = valueSuffix === '%' ? total / Math.max(data.length, 1) : total;
@@ -91,37 +97,51 @@ export function AnalyticsChartCard({
   const hasData = data.length > 0;
 
   return (
-    <Card className={cn('overflow-hidden', className)}>
-      <CardHeader className="gap-5 pb-3">
+    <Card
+      className={cn(
+        'overflow-hidden rounded-xl shadow-[0_18px_55px_rgba(18,24,40,0.045)]',
+        className,
+      )}
+    >
+      <CardHeader className="gap-6 border-b border-border pb-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="max-w-xl">
-            <CardTitle>{title}</CardTitle>
+            <p className="mb-2 text-[0.6875rem] font-semibold tracking-[0.12em] text-primary uppercase">
+              Trend intelligence
+            </p>
+            <CardTitle className="text-lg tracking-[-0.02em]">{title}</CardTitle>
             <CardDescription>{description}</CardDescription>
           </div>
           {insight ? (
-            <p className="max-w-64 rounded-md border border-border bg-muted/35 px-3 py-2 text-xs leading-5 text-muted-foreground">
+            <p className="max-w-72 border-l-2 border-primary pl-3 text-xs leading-5 text-muted-foreground">
               {insight}
             </p>
           ) : null}
         </div>
-        <div className="-mx-5 grid gap-3 border-y border-border bg-muted/25 px-5 py-3 sm:grid-cols-3">
+        <div className="grid grid-cols-3 gap-3">
           <div>
-            <p className="text-xs font-medium text-muted-foreground">{aggregateLabel}</p>
-            <p className="mt-1 text-lg font-semibold text-foreground tabular-nums">
+            <p className="text-[0.6875rem] font-semibold tracking-[0.08em] text-muted-foreground uppercase">
+              {aggregateLabel}
+            </p>
+            <p className="mt-1 text-xl font-semibold tracking-[-0.035em] text-foreground tabular-nums">
               {formatChartValue(aggregateValue, valueSuffix)}
             </p>
           </div>
-          <div>
-            <p className="text-xs font-medium text-muted-foreground">Latest</p>
-            <p className="mt-1 text-lg font-semibold text-foreground tabular-nums">
+          <div className="border-l border-border pl-4">
+            <p className="text-[0.6875rem] font-semibold tracking-[0.08em] text-muted-foreground uppercase">
+              Latest
+            </p>
+            <p className="mt-1 text-xl font-semibold tracking-[-0.035em] text-foreground tabular-nums">
               {formatChartValue(lastPoint, valueSuffix)}
             </p>
           </div>
-          <div>
-            <p className="text-xs font-medium text-muted-foreground">Change</p>
+          <div className="border-l border-border pl-4">
+            <p className="text-[0.6875rem] font-semibold tracking-[0.08em] text-muted-foreground uppercase">
+              Momentum
+            </p>
             <p
               className={cn(
-                'mt-1 text-lg font-semibold tabular-nums',
+                'mt-1 truncate text-sm font-semibold tabular-nums sm:text-base',
                 change > 0
                   ? 'text-success'
                   : change < 0
@@ -134,7 +154,7 @@ export function AnalyticsChartCard({
           </div>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-3 pt-5 sm:p-5 sm:pt-6">
         {state === 'loading' ? (
           <div className="h-72 rounded-md border border-border bg-muted/20 p-5">
             <Skeleton className="h-full w-full" />
@@ -162,104 +182,123 @@ export function AnalyticsChartCard({
             </div>
           </div>
         ) : (
-          <ChartContainer
-            className="h-72 w-full"
-            config={{
-              primary: { label: title, color },
-              secondary: {
-                label: 'Lead submissions',
-                color: 'var(--chart-2)',
-              },
-            }}
-          >
-            {variant === 'bar' ? (
-              <BarChart
-                data={chartData}
-                margin={{ top: 12, right: 12, left: -4, bottom: 0 }}
-              >
-                <CartesianGrid vertical={false} strokeDasharray="3 5" />
-                <XAxis
-                  dataKey="label"
-                  tickFormatter={formatAxisLabel}
-                  tickLine={false}
-                  axisLine={false}
-                  tickMargin={12}
-                  minTickGap={14}
-                />
-                <YAxis
-                  width={42}
-                  tickFormatter={(value: number) => formatChartValue(value)}
-                  tickLine={false}
-                  axisLine={false}
-                  tickMargin={8}
-                />
-                <ReferenceLine y={0} stroke="var(--border)" />
-                <Tooltip
-                  cursor={{ fill: 'var(--muted)' }}
-                  content={<ChartTooltipContent valueSuffix={valueSuffix} />}
-                />
-                <Bar
-                  dataKey="primary"
-                  name={title}
-                  fill="var(--color-primary)"
-                  maxBarSize={38}
-                  radius={[4, 4, 1, 1]}
-                />
-              </BarChart>
-            ) : (
-              <LineChart
-                data={chartData}
-                margin={{ top: 12, right: 12, left: -4, bottom: 0 }}
-              >
-                <CartesianGrid vertical={false} strokeDasharray="3 5" />
-                <XAxis
-                  dataKey="label"
-                  tickFormatter={formatAxisLabel}
-                  tickLine={false}
-                  axisLine={false}
-                  tickMargin={12}
-                  minTickGap={14}
-                />
-                <YAxis
-                  width={44}
-                  tickFormatter={(value: number) => formatChartValue(value)}
-                  tickLine={false}
-                  axisLine={false}
-                  tickMargin={8}
-                />
-                <ReferenceLine y={0} stroke="var(--border)" />
-                <Tooltip
-                  cursor={{ stroke: 'var(--border)' }}
-                  content={<ChartTooltipContent valueSuffix={valueSuffix} />}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="primary"
-                  name={title}
-                  stroke="var(--color-primary)"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2.5}
-                  dot={false}
-                  activeDot={{ r: 4, strokeWidth: 2 }}
-                />
-                {secondaryData ? (
-                  <Line
+          <>
+            <ul className="sr-only">
+              {chartData.map((point) => (
+                <li key={point.key}>
+                  {point.label}: {formatChartValue(point.primary, valueSuffix)}
+                  {typeof point.secondary === 'number'
+                    ? `; ${secondaryLabel}: ${formatChartValue(point.secondary, valueSuffix)}`
+                    : ''}
+                </li>
+              ))}
+            </ul>
+            <ChartContainer
+              className="h-80 w-full"
+              role="img"
+              aria-label={`${title} chart`}
+              config={{
+                primary: { label: title, color },
+                secondary: {
+                  label: secondaryLabel,
+                  color: 'var(--chart-2)',
+                },
+              }}
+            >
+              {variant === 'bar' ? (
+                <BarChart
+                  data={chartData}
+                  margin={{ top: 12, right: 12, left: -4, bottom: 0 }}
+                >
+                  <CartesianGrid vertical={false} strokeDasharray="3 5" />
+                  <XAxis
+                    dataKey="label"
+                    tickFormatter={formatAxisLabel}
+                    tickLine={false}
+                    axisLine={false}
+                    tickMargin={12}
+                    minTickGap={14}
+                  />
+                  <YAxis
+                    width={42}
+                    tickFormatter={(value: number) => formatChartValue(value)}
+                    tickLine={false}
+                    axisLine={false}
+                    tickMargin={8}
+                  />
+                  <ReferenceLine y={0} stroke="var(--border)" />
+                  <Tooltip
+                    cursor={{ fill: 'var(--muted)', fillOpacity: 0.55 }}
+                    content={<ChartTooltipContent valueSuffix={valueSuffix} />}
+                  />
+                  <Bar
+                    dataKey="primary"
+                    name={title}
+                    fill="var(--color-primary)"
+                    maxBarSize={38}
+                    radius={[6, 6, 2, 2]}
+                    isAnimationActive={false}
+                  />
+                </BarChart>
+              ) : (
+                <AreaChart
+                  data={chartData}
+                  margin={{ top: 12, right: 12, left: -4, bottom: 0 }}
+                >
+                  <CartesianGrid vertical={false} strokeDasharray="3 5" />
+                  <XAxis
+                    dataKey="label"
+                    tickFormatter={formatAxisLabel}
+                    tickLine={false}
+                    axisLine={false}
+                    tickMargin={12}
+                    minTickGap={14}
+                  />
+                  <YAxis
+                    width={44}
+                    tickFormatter={(value: number) => formatChartValue(value)}
+                    tickLine={false}
+                    axisLine={false}
+                    tickMargin={8}
+                  />
+                  <ReferenceLine y={0} stroke="var(--border)" />
+                  <Tooltip
+                    cursor={{ stroke: 'var(--border)' }}
+                    content={<ChartTooltipContent valueSuffix={valueSuffix} />}
+                  />
+                  <Area
                     type="monotone"
-                    dataKey="secondary"
-                    name="Lead submissions"
-                    stroke="var(--color-secondary)"
-                    strokeDasharray="5 5"
+                    dataKey="primary"
+                    name={title}
+                    stroke="var(--color-primary)"
+                    fill="var(--color-primary)"
+                    fillOpacity={0.09}
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    strokeWidth={2.25}
+                    strokeWidth={2.5}
                     dot={false}
                     activeDot={{ r: 4, strokeWidth: 2 }}
+                    isAnimationActive={false}
                   />
-                ) : null}
-              </LineChart>
-            )}
-          </ChartContainer>
+                  {secondaryData ? (
+                    <Line
+                      type="monotone"
+                      dataKey="secondary"
+                      name={secondaryLabel}
+                      stroke="var(--color-secondary)"
+                      strokeDasharray="5 5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2.25}
+                      dot={false}
+                      activeDot={{ r: 4, strokeWidth: 2 }}
+                      isAnimationActive={false}
+                    />
+                  ) : null}
+                </AreaChart>
+              )}
+            </ChartContainer>
+          </>
         )}
       </CardContent>
     </Card>

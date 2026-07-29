@@ -7,6 +7,8 @@ import { TelemetryProvider } from '@/lib/analytics/provider';
 
 import './globals.css';
 
+const themeBootstrap = `(()=>{try{const s=localStorage.getItem('luxa-theme');const m=s==='light'||s==='dark'||s==='system'?s:'system';const d=m==='system'?matchMedia('(prefers-color-scheme: dark)').matches:m==='dark';document.documentElement.classList.toggle('dark',d);document.documentElement.dataset.theme=m}catch{}})();`;
+
 const ibmPlexSans = IBM_Plex_Sans({
   variable: '--font-ibm-plex-sans',
   subsets: ['latin'],
@@ -37,11 +39,9 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="flex min-h-full flex-col">
-        <Script
-          id="luxa-theme-bootstrap"
-          src="/theme-bootstrap.js"
-          strategy="beforeInteractive"
-        />
+        <Script id="luxa-theme-bootstrap" strategy="beforeInteractive">
+          {themeBootstrap}
+        </Script>
         <ThemeProvider>
           <TelemetryProvider>{children}</TelemetryProvider>
         </ThemeProvider>

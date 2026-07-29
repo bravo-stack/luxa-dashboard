@@ -13,6 +13,8 @@ import type {
   LeadProspectingHistory,
   LeadStatus,
 } from './types';
+import { leadStatuses } from './types';
+import { normalizeHttpUrl } from './urls';
 
 export type DashboardDataset = {
   leads: Lead[];
@@ -46,10 +48,42 @@ export type ManualLeadInput = {
   locale: 'en' | 'ar';
 };
 
+export type LeadQueueQuery = {
+  search?: string;
+  status?: string;
+  budget?: string;
+  timeline?: string;
+  origin?: string;
+  date?: string;
+  sort?: 'newest' | 'oldest';
+  page?: number;
+  pageSize?: number;
+};
+
+export type SupabaseLeadQueue = {
+  leads: Lead[];
+  submissions: AuditSubmission[];
+  total: number;
+  page: number;
+  pageSize: number;
+  statusCounts: Record<LeadStatus, number>;
+  platformAuditCount: number;
+  budgets: string[];
+  timelines: string[];
+};
+
 type SupabaseResult<T> = {
   data: T[] | null;
   error: { message: string } | null;
 };
+
+async function resolveOptionalQuery<T>(query: PromiseLike<T>): Promise<T | null> {
+  try {
+    return await query;
+  } catch {
+    return null;
+  }
+}
 
 function hasSupabaseServerConfig() {
   return Boolean(
@@ -161,14 +195,18 @@ function normalizeLead(row: Record<string, unknown>): Lead {
     name: String(row.full_name),
     email: String(row.email),
     company: String(row.company),
-    website: row.website ? String(row.website) : undefined,
+    website: normalizeHttpUrl(row.website ? String(row.website) : undefined) ?? undefined,
     icpCategory: row.icp_category ? String(row.icp_category) : undefined,
-    linkedinProfileUrl: row.linkedin_profile_url
-      ? String(row.linkedin_profile_url)
-      : undefined,
+    linkedinProfileUrl:
+      normalizeHttpUrl(
+        row.linkedin_profile_url ? String(row.linkedin_profile_url) : undefined,
+      ) ?? undefined,
     focusName: row.focus_name ? String(row.focus_name) : undefined,
     focusTitle: row.focus_title ? String(row.focus_title) : undefined,
-    focusLinkedinUrl: row.focus_linkedin_url ? String(row.focus_linkedin_url) : undefined,
+    focusLinkedinUrl:
+      normalizeHttpUrl(
+        row.focus_linkedin_url ? String(row.focus_linkedin_url) : undefined,
+      ) ?? undefined,
     connectionStatus: row.connection_status
       ? (String(row.connection_status) as ConnectionStatus)
       : undefined,
@@ -177,7 +215,9 @@ function normalizeLead(row: Record<string, unknown>): Lead {
       ? String(row.next_follow_up_action)
       : undefined,
     painPoints: row.pain_points ? String(row.pain_points) : undefined,
-    facebookUrl: row.facebook_url ? String(row.facebook_url) : undefined,
+    facebookUrl:
+      normalizeHttpUrl(row.facebook_url ? String(row.facebook_url) : undefined) ??
+      undefined,
     whatsapp: row.whatsapp ? String(row.whatsapp) : undefined,
     status: row.status as LeadStatus,
     origin,
@@ -201,12 +241,16 @@ function normalizeProspectingHistory(
         ? row.capture_type
         : 'updated',
     icpCategory: row.icp_category ? String(row.icp_category) : undefined,
-    linkedinProfileUrl: row.linkedin_profile_url
-      ? String(row.linkedin_profile_url)
-      : undefined,
+    linkedinProfileUrl:
+      normalizeHttpUrl(
+        row.linkedin_profile_url ? String(row.linkedin_profile_url) : undefined,
+      ) ?? undefined,
     focusName: row.focus_name ? String(row.focus_name) : undefined,
     focusTitle: row.focus_title ? String(row.focus_title) : undefined,
-    focusLinkedinUrl: row.focus_linkedin_url ? String(row.focus_linkedin_url) : undefined,
+    focusLinkedinUrl:
+      normalizeHttpUrl(
+        row.focus_linkedin_url ? String(row.focus_linkedin_url) : undefined,
+      ) ?? undefined,
     connectionStatus: row.connection_status
       ? (String(row.connection_status) as ConnectionStatus)
       : undefined,
@@ -215,7 +259,9 @@ function normalizeProspectingHistory(
       ? String(row.next_follow_up_action)
       : undefined,
     painPoints: row.pain_points ? String(row.pain_points) : undefined,
-    facebookUrl: row.facebook_url ? String(row.facebook_url) : undefined,
+    facebookUrl:
+      normalizeHttpUrl(row.facebook_url ? String(row.facebook_url) : undefined) ??
+      undefined,
     whatsapp: row.whatsapp ? String(row.whatsapp) : undefined,
   };
 }
@@ -356,6 +402,161 @@ export const getSupabaseDashboardDataset = cache(async () => {
     source: 'supabase',
   } satisfies DashboardDataset;
 });
+
+function sanitizeSearchTerm(value: string) {
+  return value
+    .replace(/[,%_()]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 200);
+}
+
+function sanitizeFacetTerm(value: string | undefined) {
+  return value
+    ?.replace(/[\u0000-\u001f\u007f]/g, '')
+    .trim()
+    .slice(0, 120);
+}
+
+export async function getSupabaseLeadQueue(
+  options: LeadQueueQuery = {},
+): Promise<SupabaseLeadQueue> {
+  const supabase = await getSupabaseAdminClient();
+  const pageSize = Math.min(100, Math.max(10, Math.floor(options.pageSize ?? 20)));
+  const page = Math.max(1, Math.floor(options.page ?? 1));
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+  let query = supabase
+    .from('lead_submissions')
+    .select(leadSubmissionSelect, { count: 'exact' });
+  const search = sanitizeSearchTerm(options.search ?? '');
+  const budget = sanitizeFacetTerm(options.budget);
+  const timeline = sanitizeFacetTerm(options.timeline);
+
+  if (search) {
+    const pattern = `*${search}*`;
+    query = query.or(
+      [
+        `full_name.ilike.${pattern}`,
+        `email.ilike.${pattern}`,
+        `company.ilike.${pattern}`,
+        `website.ilike.${pattern}`,
+        `focus_name.ilike.${pattern}`,
+        `focus_title.ilike.${pattern}`,
+        `pain_points.ilike.${pattern}`,
+        `project_type.ilike.${pattern}`,
+      ].join(','),
+    );
+  }
+
+  if (leadStatuses.includes(options.status as LeadStatus)) {
+    query = query.eq('status', options.status);
+  }
+
+  if (budget && budget !== 'all') {
+    query = query.eq('budget', budget);
+  }
+
+  if (timeline && timeline !== 'all') {
+    query = query.eq('timeline', timeline);
+  }
+
+  if (
+    options.origin === 'website' ||
+    options.origin === 'manual' ||
+    options.origin === 'import' ||
+    options.origin === 'integration'
+  ) {
+    query = query.eq('origin', options.origin);
+  }
+
+  const now = new Date();
+
+  if (options.date === 'today') {
+    const start = new Date(now);
+    start.setHours(0, 0, 0, 0);
+    query = query.gte('created_at', start.toISOString());
+  } else if (options.date === '7d') {
+    query = query.gte(
+      'created_at',
+      new Date(now.getTime() - 7 * 24 * 60 * 60 * 1_000).toISOString(),
+    );
+  } else if (options.date === 'older') {
+    query = query.lt(
+      'created_at',
+      new Date(now.getTime() - 7 * 24 * 60 * 60 * 1_000).toISOString(),
+    );
+  }
+
+  const [pageResult, facetResult, platformAuditResult, ...statusResults] =
+    await Promise.all([
+      query.order('created_at', { ascending: options.sort === 'oldest' }).range(from, to),
+      resolveOptionalQuery(
+        supabase.from('lead_submissions').select('budget,timeline').limit(2_000),
+      ),
+      resolveOptionalQuery(
+        supabase
+          .from('lead_submissions')
+          .select('id', { count: 'exact', head: true })
+          .eq('form_type', 'platform_audit'),
+      ),
+      ...leadStatuses.map((status) =>
+        resolveOptionalQuery(
+          supabase
+            .from('lead_submissions')
+            .select('id', { count: 'exact', head: true })
+            .eq('status', status),
+        ),
+      ),
+    ]);
+
+  if (pageResult.error) {
+    throw new Error(`Supabase lead queue query failed: ${pageResult.error.message}`);
+  }
+
+  const rows = (pageResult.data ?? []) as unknown as Record<string, unknown>[];
+  const facets =
+    facetResult && !facetResult.error
+      ? ((facetResult.data ?? []) as Array<{
+          budget: string | null;
+          timeline: string | null;
+        }>)
+      : rows.map((row) => ({
+          budget: row.budget ? String(row.budget) : null,
+          timeline: row.timeline ? String(row.timeline) : null,
+        }));
+  const statusCounts = Object.fromEntries(
+    leadStatuses.map((status, index) => {
+      const result = statusResults[index];
+
+      return [
+        status,
+        result && !result.error
+          ? (result.count ?? 0)
+          : rows.filter((row) => row.status === status).length,
+      ];
+    }),
+  ) as Record<LeadStatus, number>;
+
+  return {
+    leads: rows.map(normalizeLead),
+    submissions: rows.map(normalizeAuditSubmission),
+    total: pageResult.count ?? 0,
+    page,
+    pageSize,
+    statusCounts,
+    platformAuditCount:
+      platformAuditResult && !platformAuditResult.error
+        ? (platformAuditResult.count ?? 0)
+        : rows.filter((row) => row.form_type === 'platform_audit').length,
+    budgets: Array.from(
+      new Set(facets.map((item) => item.budget).filter(Boolean) as string[]),
+    ).sort(),
+    timelines: Array.from(
+      new Set(facets.map((item) => item.timeline).filter(Boolean) as string[]),
+    ).sort(),
+  };
+}
 
 export async function getSupabaseProspectingHistory(
   leadId: string,

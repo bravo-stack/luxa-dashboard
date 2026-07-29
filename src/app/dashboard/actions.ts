@@ -18,6 +18,7 @@ import {
   type LeadStatus,
   leadStatuses,
 } from '@/lib/dashboard/types';
+import { normalizeHttpUrl } from '@/lib/dashboard/urls';
 
 export type CreateLeadState = {
   message: string;
@@ -43,26 +44,6 @@ function normalizeOptionalValue(formData: FormData, field: string) {
   return value || undefined;
 }
 
-function normalizeWebsite(value: string | undefined) {
-  if (!value) {
-    return undefined;
-  }
-
-  const candidate = /^https?:\/\//i.test(value) ? value : `https://${value}`;
-
-  try {
-    const url = new URL(candidate);
-
-    if (url.protocol !== 'http:' && url.protocol !== 'https:') {
-      return null;
-    }
-
-    return url.toString();
-  } catch {
-    return null;
-  }
-}
-
 function normalizeConnectionStatus(value: FormDataEntryValue | null) {
   const status = String(value ?? '');
 
@@ -82,14 +63,14 @@ export async function createLead(
     .toLowerCase();
   const company = String(formData.get('company') ?? '').trim();
   const projectType = String(formData.get('projectType') ?? '').trim();
-  const website = normalizeWebsite(normalizeOptionalValue(formData, 'website'));
-  const linkedinProfileUrl = normalizeWebsite(
+  const website = normalizeHttpUrl(normalizeOptionalValue(formData, 'website'));
+  const linkedinProfileUrl = normalizeHttpUrl(
     normalizeOptionalValue(formData, 'linkedinProfileUrl'),
   );
-  const focusLinkedinUrl = normalizeWebsite(
+  const focusLinkedinUrl = normalizeHttpUrl(
     normalizeOptionalValue(formData, 'focusLinkedinUrl'),
   );
-  const facebookUrl = normalizeWebsite(normalizeOptionalValue(formData, 'facebookUrl'));
+  const facebookUrl = normalizeHttpUrl(normalizeOptionalValue(formData, 'facebookUrl'));
   const errors: NonNullable<CreateLeadState['errors']> = {};
 
   if (!fullName) errors.fullName = 'Enter the lead’s full name.';
@@ -161,13 +142,13 @@ export async function updateLeadProspecting(
   const leadId = String(formData.get('leadId') ?? '').trim();
   requireLeadId(leadId);
 
-  const linkedinProfileUrl = normalizeWebsite(
+  const linkedinProfileUrl = normalizeHttpUrl(
     normalizeOptionalValue(formData, 'linkedinProfileUrl'),
   );
-  const focusLinkedinUrl = normalizeWebsite(
+  const focusLinkedinUrl = normalizeHttpUrl(
     normalizeOptionalValue(formData, 'focusLinkedinUrl'),
   );
-  const facebookUrl = normalizeWebsite(normalizeOptionalValue(formData, 'facebookUrl'));
+  const facebookUrl = normalizeHttpUrl(normalizeOptionalValue(formData, 'facebookUrl'));
   const errors: NonNullable<ProspectingState['errors']> = {};
 
   if (linkedinProfileUrl === null) {
@@ -238,24 +219,6 @@ function getPersistenceMessage(persisted: boolean, action: string) {
   return persisted
     ? `${action} saved to Supabase.`
     : `${action} validated, but Supabase server credentials are not configured.`;
-}
-
-export async function submitQuickAuditLead(): Promise<DashboardActionResult> {
-  await requireAdmin();
-
-  return {
-    ok: true,
-    message: 'Quick-start lead submission is prepared for Supabase wiring.',
-  };
-}
-
-export async function submitPlatformAudit(): Promise<DashboardActionResult> {
-  await requireAdmin();
-
-  return {
-    ok: true,
-    message: 'Platform audit submission is prepared for Supabase wiring.',
-  };
 }
 
 export async function updateLeadStatus(

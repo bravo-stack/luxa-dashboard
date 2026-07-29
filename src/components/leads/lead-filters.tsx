@@ -23,14 +23,6 @@ export type LeadFilterState = {
   date: string;
 };
 
-export const defaultLeadFilters: LeadFilterState = {
-  status: 'all',
-  budget: 'all',
-  timeline: 'all',
-  origin: 'all',
-  date: 'all',
-};
-
 type LeadFiltersProps = {
   filters: LeadFilterState;
   sort: LeadSortKey;
@@ -38,6 +30,8 @@ type LeadFiltersProps = {
   timelines: string[];
   onFiltersChange: (filters: LeadFilterState) => void;
   onSortChange: (sort: LeadSortKey) => void;
+  onClear: () => void;
+  disabled?: boolean;
 };
 
 function updateFilter(
@@ -58,6 +52,8 @@ export function LeadFilters({
   timelines,
   onFiltersChange,
   onSortChange,
+  onClear,
+  disabled = false,
 }: LeadFiltersProps) {
   const hasFilters =
     Object.values(filters).some((value) => value !== 'all') || sort !== 'newest';
@@ -70,6 +66,7 @@ export function LeadFilters({
           Filters
         </div>
         <Select
+          disabled={disabled}
           value={filters.status}
           onValueChange={(value) =>
             onFiltersChange(updateFilter(filters, 'status', value))
@@ -88,6 +85,7 @@ export function LeadFilters({
           </SelectContent>
         </Select>
         <Select
+          disabled={disabled}
           value={filters.budget}
           onValueChange={(value) =>
             onFiltersChange(updateFilter(filters, 'budget', value))
@@ -106,6 +104,7 @@ export function LeadFilters({
           </SelectContent>
         </Select>
         <Select
+          disabled={disabled}
           value={filters.timeline}
           onValueChange={(value) =>
             onFiltersChange(updateFilter(filters, 'timeline', value))
@@ -124,6 +123,7 @@ export function LeadFilters({
           </SelectContent>
         </Select>
         <Select
+          disabled={disabled}
           value={filters.origin}
           onValueChange={(value) =>
             onFiltersChange(updateFilter(filters, 'origin', value))
@@ -142,6 +142,7 @@ export function LeadFilters({
           </SelectContent>
         </Select>
         <Select
+          disabled={disabled}
           value={filters.date}
           onValueChange={(value) => onFiltersChange(updateFilter(filters, 'date', value))}
         >
@@ -156,6 +157,7 @@ export function LeadFilters({
           </SelectContent>
         </Select>
         <Select
+          disabled={disabled}
           value={sort}
           onValueChange={(value) => onSortChange(value as LeadSortKey)}
         >
@@ -168,14 +170,7 @@ export function LeadFilters({
           </SelectContent>
         </Select>
         {hasFilters ? (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              onFiltersChange(defaultLeadFilters);
-              onSortChange('newest');
-            }}
-          >
+          <Button variant="ghost" size="sm" disabled={disabled} onClick={onClear}>
             <X className="size-4" />
             Clear
           </Button>

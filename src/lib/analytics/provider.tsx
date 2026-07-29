@@ -22,6 +22,7 @@ export function TelemetryProvider({ children }: TelemetryProviderProps) {
           strategy="afterInteractive"
           data-website-id={umamiWebsiteId}
           data-auto-track="false"
+          data-performance="true"
         />
       ) : null}
     </>

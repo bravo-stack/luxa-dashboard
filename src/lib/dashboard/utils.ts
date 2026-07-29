@@ -135,6 +135,8 @@ export function getEventLabel(eventType: string) {
     lead_status_changed: 'Status changed',
     note_added: 'Note added',
     lead_note_added: 'Note added',
+    lead_created: 'Lead created',
+    prospecting_updated: 'Prospecting details updated',
     proposal_sent: 'Proposal sent',
   };
 

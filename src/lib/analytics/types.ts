@@ -34,7 +34,9 @@ export type AnalyticsApiResponse<T> = {
 };
 
 export type TrafficSummary = {
+  dailyPageViews: SourceSummary[];
   dailyVisitors: SourceSummary[];
+  dailyVisits: SourceSummary[];
   dailyFormStarts: SourceSummary[];
   dailySubmissions: SourceSummary[];
   dailyScheduleClicks: SourceSummary[];

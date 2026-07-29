@@ -3,9 +3,8 @@ import Link from 'next/link';
 import {
   BarChart3,
   CalendarCheck,
+  Eye,
   FileCheck2,
-  MailQuestion,
-  Target,
   TrendingUp,
   UsersRound,
 } from 'lucide-react';
@@ -15,16 +14,18 @@ import { DashboardHeader } from '@/components/dashboard/dashboard-header';
 import { DashboardSection } from '@/components/dashboard/dashboard-section';
 import { DateRangePicker } from '@/components/dashboard/date-range-picker';
 import { FunnelCard } from '@/components/dashboard/funnel-card';
-import { InsightCard } from '@/components/dashboard/insight-card';
-import { MetricCard } from '@/components/dashboard/metric-card';
+import { MetricRail } from '@/components/dashboard/metric-rail';
 import { NeedsAttention } from '@/components/dashboard/needs-attention';
+import { PipelineCard } from '@/components/dashboard/pipeline-card';
+import { RealtimeStrip } from '@/components/dashboard/realtime-strip';
 import { RecentSubmissions } from '@/components/dashboard/recent-submissions';
 import { SourcePerformance } from '@/components/dashboard/source-performance';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { getDashboardAnalytics, normalizeAnalyticsFilters } from '@/lib/analytics/server';
 import type { DateRangeKey } from '@/lib/analytics/types';
 import { getDashboardOverview } from '@/lib/dashboard/queries';
-import type { MetricSummary, SourceSummary } from '@/lib/dashboard/types';
+import type { MetricSummary } from '@/lib/dashboard/types';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,51 +37,12 @@ type DashboardPageProps = {
   }>;
 };
 
-function findMetric(metrics: MetricSummary[], key: string) {
-  return metrics.find((metric) => metric.key === key);
-}
+function selectMetrics(metrics: MetricSummary[]) {
+  const priority = ['pageviews', 'visitors', 'conversion_rate', 'lead_form_submitted'];
 
-function sumValues(items: SourceSummary[]) {
-  return items.reduce((total, item) => total + item.value, 0);
-}
-
-function getPointChange(items: SourceSummary[], suffix = '') {
-  const latest = items.at(-1)?.value ?? 0;
-  const previous = items.at(-2)?.value ?? latest;
-  const change = latest - previous;
-
-  if (change === 0) {
-    return { trend: 'No movement', trendDirection: 'flat' as const };
-  }
-
-  return {
-    trend: `${change > 0 ? '+' : ''}${change.toFixed(suffix ? 1 : 0)}${suffix} vs prior`,
-    trendDirection: change > 0 ? ('up' as const) : ('down' as const),
-  };
-}
-
-function buildPrimaryMetrics(metrics: MetricSummary[], conversionData: SourceSummary[]) {
-  const pageViews = findMetric(metrics, 'page_viewed');
-  const submissions = findMetric(metrics, 'lead_form_submitted');
-  const bookCallClicks = findMetric(metrics, 'book_call_clicked');
-  const averageConversion =
-    conversionData.length > 0
-      ? conversionData.reduce((total, item) => total + item.value, 0) /
-        conversionData.length
-      : 0;
-  const conversionChange = getPointChange(conversionData, 'pt');
-  const conversionRate: MetricSummary = {
-    key: 'conversion_rate',
-    label: 'Conversion rate',
-    value: `${averageConversion.toFixed(1)}%`,
-    trend: conversionChange.trend,
-    trendDirection: conversionChange.trendDirection,
-    note: 'Page view to submission',
-  };
-
-  return [pageViews, conversionRate, submissions, bookCallClicks].filter(
-    Boolean,
-  ) as MetricSummary[];
+  return priority
+    .map((key) => metrics.find((metric) => metric.key === key))
+    .filter(Boolean) as MetricSummary[];
 }
 
 export default async function DashboardPage({ searchParams }: DashboardPageProps) {
@@ -94,23 +56,24 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
     getDashboardOverview(filters.dateRange),
     getDashboardAnalytics(filters),
   ]);
-  const primaryMetrics = buildPrimaryMetrics(
-    analytics.metrics,
-    analytics.dailyConversionRate,
-  );
-  const totalPageViews = sumValues(analytics.dailyVisitors);
-  const totalSubmissions = sumValues(analytics.dailySubmissions);
-  const conversionInsight =
-    totalPageViews > 0
-      ? `${totalSubmissions.toLocaleString()} submissions from ${totalPageViews.toLocaleString()} page views in ${overview.dateRange.label.toLowerCase()}.`
-      : 'Traffic volume is not available for this range yet.';
+  const priorityMetrics = selectMetrics(analytics.metrics);
+  const submissions =
+    analytics.metrics.find((metric) => metric.key === 'lead_form_submitted')?.value ?? 0;
+  const visitorCount =
+    analytics.metrics.find((metric) => metric.key === 'visitors')?.value ?? 0;
 
   return (
     <>
       <DashboardHeader
-        eyebrow={`${overview.dateRange.label} - ${analytics.source} analytics`}
-        title="Growth dashboard"
-        description="Understand traffic quality, conversion movement, source performance, and the follow-up work that needs attention."
+        eyebrow={`${overview.dateRange.label} / operating view`}
+        title="Growth operations cockpit"
+        description="A decisive view of demand movement, conversion quality, and the exact lead work that needs attention now."
+        meta={
+          <div className="flex flex-wrap gap-2">
+            <Badge variant="teal">Live analytics</Badge>
+            <Badge variant="outline">Live CRM</Badge>
+          </div>
+        }
         actions={
           <>
             <Suspense
@@ -123,105 +86,75 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
             <Button asChild variant="outline">
               <Link href="/dashboard/analytics">
                 <BarChart3 className="size-4" />
-                Deep dive
+                Signal room
               </Link>
             </Button>
           </>
         }
       />
 
-      <DashboardSection
-        title="Executive readout"
-        description="The few numbers that answer whether demand is increasing and turning into qualified intent."
-        contentClassName="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
-      >
-        {primaryMetrics.map((metric, index) => {
-          const Icon =
-            metric.key === 'page_viewed'
-              ? UsersRound
-              : metric.key === 'conversion_rate'
-                ? TrendingUp
-                : metric.key === 'lead_form_submitted'
-                  ? FileCheck2
-                  : CalendarCheck;
+      <RealtimeStrip data={analytics.realtime} />
 
-          return (
-            <MetricCard
-              key={metric.key}
-              metric={metric}
-              icon={Icon}
-              emphasis={index === 0}
-            />
-          );
-        })}
-      </DashboardSection>
+      <MetricRail
+        metrics={priorityMetrics}
+        icons={[Eye, UsersRound, TrendingUp, FileCheck2]}
+      />
 
       <DashboardSection
-        title="Traffic and conversion"
-        description="A fast read on whether acquisition volume is translating into lead intent."
-        contentClassName="grid gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.65fr)]"
+        eyebrow="Executive readout"
+        title="Is attention becoming demand?"
+        description={`${submissions.toLocaleString()} validated submissions from ${visitorCount.toLocaleString()} visitors in this range.`}
+        contentClassName="grid gap-6 xl:grid-cols-[minmax(0,1.45fr)_minmax(340px,0.55fr)]"
       >
         <AnalyticsChartCard
-          title="Page views and submissions over time"
-          description="Daily explicit page-view events compared with validated form submissions."
-          data={analytics.dailyVisitors}
+          title="Demand trajectory"
+          description="Native page views layered with validated form submissions."
+          data={analytics.dailyPageViews}
           secondaryData={analytics.dailySubmissions}
+          secondaryLabel="Submissions"
           variant="line"
-          insight={conversionInsight}
-          emptyDescription="Once traffic and lead events are captured, this chart will show whether acquisition is turning into demand."
+          insight="Read the distance between the lines as conversion leverage: traffic without submissions needs a proposition or path diagnosis."
+          emptyDescription="This view will populate after native page views and submission events are recorded."
         />
-        <FunnelCard steps={overview.funnel} />
+        <FunnelCard steps={analytics.funnel} />
       </DashboardSection>
 
       <DashboardSection
-        title="Booked intent"
-        description="Where visitors show readiness for a sales conversation."
-        contentClassName="grid gap-6 xl:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]"
+        eyebrow="Lead operations"
+        title="What the team should act on"
+        description="Pipeline distribution and follow-up risk from the live CRM."
+        contentClassName="grid gap-6 xl:grid-cols-[minmax(0,0.88fr)_minmax(0,1.12fr)]"
       >
-        <AnalyticsChartCard
-          title="Book-call clicks"
-          description="Booked-intent clicks across audit, calendar, and book-call paths."
-          data={analytics.dailyScheduleClicks}
-          variant="bar"
-          insight="Use this to separate passive traffic from visitors ready to talk."
-          emptyDescription="Once visitors click scheduling paths, this chart will show booked-intent movement by day."
-        />
+        <PipelineCard stages={overview.pipeline} />
         <NeedsAttention items={overview.needsAttention} />
       </DashboardSection>
 
       <DashboardSection
-        title="Acquisition quality"
-        description="Source, page, campaign, and device signals that explain where qualified demand is forming."
+        eyebrow="Acquisition quality"
+        title="Where demand is concentrating"
+        description="A compact matrix of high-attention pages, sources, campaigns, placements, and devices."
       >
         <SourcePerformance
           routes={analytics.topLandingPages}
           ctaSources={analytics.ctaClicksBySource}
           campaigns={analytics.utmCampaignPerformance}
           referrers={analytics.topReferrers}
-          devices={overview.deviceCategories}
+          devices={analytics.deviceCategories ?? []}
         />
       </DashboardSection>
 
       <DashboardSection
-        title="Lead quality"
-        description="A short operating view of fit, reply risk, and proposal readiness."
-        contentClassName="grid gap-4 lg:grid-cols-3"
-      >
-        {overview.leadQuality.map((item, index) => (
-          <InsightCard
-            key={item.label}
-            title={item.label}
-            value={item.value}
-            description={item.context}
-            icon={index === 0 ? TrendingUp : index === 1 ? MailQuestion : Target}
-            tone={index === 0 ? 'warning' : index === 1 ? 'primary' : 'success'}
-          />
-        ))}
-      </DashboardSection>
-
-      <DashboardSection
-        title="Newest audit signals"
-        description="Recent submissions ordered by intent depth and time for sales review."
+        eyebrow="Newest intent"
+        title="Latest audit signals"
+        description="Recent submissions ordered for fast qualification and follow-up."
+        actions={
+          <Button asChild variant="secondary" size="sm">
+            <Link href="/dashboard/leads">
+              <CalendarCheck className="size-4" />
+              Open lead queue
+            </Link>
+          </Button>
+        }
       >
         <RecentSubmissions submissions={overview.recentSubmissions} />
       </DashboardSection>

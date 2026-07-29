@@ -1,36 +1,60 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Luxa operations workspace
 
-## Getting Started
+Private Next.js admin workspace for lead operations and privacy-safe growth
+intelligence.
 
-First, run the development server:
+## Local setup
+
+Copy `.env.example` to `.env.local` and configure:
+
+- Supabase public URL and anonymous key for admin authentication.
+- Supabase server URL and secret key for protected CRM operations.
+- Umami host, website ID, API URL, and API token for analytics.
+
+Then run:
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Launch verification
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Run the complete local quality gate:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run typecheck
+npm run lint
+npm run format:check
+npm test
+npm run build
+```
 
-## Learn More
+Verify the connected production data sources:
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm run crm:verify
+npm run analytics:verify
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+`crm:smoke` performs a reversible live create/update/note/delete lifecycle against
+the configured CRM project. Use it immediately before launch or after database
+changes:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+npm run crm:smoke
+```
 
-## Deploy on Vercel
+## Data boundaries
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- Supabase is the source of truth for leads, notes, and prospecting history.
+- Umami supplies native traffic, realtime, page quality, acquisition,
+  ordered-funnel, session timing, and Core Web Vitals signals.
+- Analytics property collection is allowlisted and excludes lead identity fields.
+- Dashboard and dashboard API routes require a Supabase user with
+  `app_metadata.role = "admin"`.
+- Lead CSV exports are authenticated, non-cacheable, and neutralize spreadsheet
+  formula input.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The analytics layer fetches signal groups independently. Optional endpoint failures
+remain visible in Launch readiness without blanking the rest of the dashboard.

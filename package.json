@@ -16,8 +16,10 @@
     "admin:grant": "node --env-file=.env.local scripts/grant-admin.mjs",
     "crm:verify": "node --env-file=.env.local scripts/verify-crm-source.mjs",
     "crm:smoke": "node --env-file=.env.local scripts/smoke-crm.mjs",
+    "analytics:verify": "node --env-file=.env.local scripts/verify-umami-source.mjs",
     "prepare": "husky",
-    "test": "echo \"No tests configured yet\""
+    "test": "vitest run --pool=threads --maxWorkers=1 --no-file-parallelism",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.2.2",
@@ -63,6 +65,7 @@
     "prettier": "^3.9.4",
     "prettier-plugin-tailwindcss": "^0.8.0",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.10"
   }
 }

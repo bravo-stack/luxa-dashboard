@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
 type DashboardSectionProps = {
+  eyebrow?: string;
   title: string;
   description?: string;
   actions?: ReactNode;
@@ -12,6 +13,7 @@ type DashboardSectionProps = {
 };
 
 export function DashboardSection({
+  eyebrow,
   title,
   description,
   actions,
@@ -25,7 +27,15 @@ export function DashboardSection({
     <section className={cn('space-y-4', className)} aria-labelledby={headingId}>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div className="max-w-2xl">
-          <h2 id={headingId} className="text-lg font-semibold text-foreground">
+          {eyebrow ? (
+            <p className="mb-2 text-[0.6875rem] font-semibold tracking-[0.12em] text-primary uppercase">
+              {eyebrow}
+            </p>
+          ) : null}
+          <h2
+            id={headingId}
+            className="text-xl font-semibold tracking-[-0.025em] text-foreground"
+          >
             {title}
           </h2>
           {description ? (

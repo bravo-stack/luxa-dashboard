@@ -20,6 +20,14 @@ describe('workspace authorization policy', () => {
     expect(canAccessLead('admin', 'admin-1', 'user-2')).toBe(true);
   });
 
+  it('allows sales feedback while keeping workspace triage admin-only', () => {
+    expect(hasWorkspacePermission('sales_exec', 'feedback.submit')).toBe(true);
+    expect(hasWorkspacePermission('sales_exec', 'feedback.read_own')).toBe(true);
+    expect(hasWorkspacePermission('sales_exec', 'feedback.read_all')).toBe(false);
+    expect(hasWorkspacePermission('sales_exec', 'feedback.manage')).toBe(false);
+    expect(hasWorkspacePermission('admin', 'feedback.manage')).toBe(true);
+  });
+
   it('enforces the workspace password policy', () => {
     expect(validateWorkspacePassword('Short1!').valid).toBe(false);
     expect(validateWorkspacePassword('Luxa-Strong-2026!', 'alex@example.com')).toEqual({

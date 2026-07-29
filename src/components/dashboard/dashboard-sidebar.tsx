@@ -5,12 +5,14 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   BarChart3,
+  BookOpenCheck,
   BriefcaseBusiness,
   CalendarClock,
   ExternalLink,
   Home,
   LayoutDashboard,
   Menu,
+  MessageSquareText,
   Settings2,
   ShieldCheck,
   UsersRound,
@@ -39,6 +41,18 @@ const primaryNav = [
     label: 'Leads',
     href: '/dashboard/leads',
     icon: UsersRound,
+    roles: ['admin', 'sales_exec'],
+  },
+  {
+    label: 'Guide',
+    href: '/dashboard/guide',
+    icon: BookOpenCheck,
+    roles: ['admin', 'sales_exec'],
+  },
+  {
+    label: 'Feedback',
+    href: '/dashboard/feedback',
+    icon: MessageSquareText,
     roles: ['admin', 'sales_exec'],
   },
   { label: 'Analytics', href: '/dashboard/analytics', icon: BarChart3, roles: ['admin'] },

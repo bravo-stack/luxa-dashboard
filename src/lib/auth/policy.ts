@@ -19,12 +19,18 @@ const rolePermissions: Record<WorkspaceRole, ReadonlySet<WorkspacePermission>> =
     'leads.export',
     'members.manage',
     'settings.manage',
+    'feedback.submit',
+    'feedback.read_own',
+    'feedback.read_all',
+    'feedback.manage',
   ]),
   sales_exec: new Set([
     'dashboard.access',
     'leads.read_assigned',
     'leads.create',
     'leads.update_assigned',
+    'feedback.submit',
+    'feedback.read_own',
   ]),
 };
 

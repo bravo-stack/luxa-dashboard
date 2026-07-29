@@ -42,6 +42,25 @@ export type CreateLeadState = {
 
 export type ProspectingState = CreateLeadState;
 
+export type LeadRecordState = {
+  message: string;
+  success?: boolean;
+  errors?: Partial<
+    Record<
+      | 'fullName'
+      | 'email'
+      | 'company'
+      | 'projectType'
+      | 'website'
+      | 'linkedinProfileUrl'
+      | 'focusLinkedinUrl'
+      | 'facebookUrl'
+      | 'nextFollowUpDate',
+      string
+    >
+  >;
+};
+
 export type AssignmentState = {
   message: string;
   success?: boolean;
@@ -63,9 +82,9 @@ async function requireLeadMutationAccess(leadId: string) {
   return { user, ownerUserId: undefined };
 }
 
-function normalizeOptionalValue(formData: FormData, field: string) {
+function normalizeOptionalValue(formData: FormData, field: string, maxLength = 5000) {
   const value = String(formData.get(field) ?? '').trim();
-  return value || undefined;
+  return value ? value.slice(0, maxLength) : undefined;
 }
 
 function normalizeConnectionStatus(value: FormDataEntryValue | null) {
@@ -158,23 +177,46 @@ export async function createLead(
   redirect(`/dashboard/leads/${leadId}`);
 }
 
-export async function updateLeadProspecting(
-  _state: ProspectingState,
+export async function updateLeadRecord(
+  _state: LeadRecordState,
   formData: FormData,
-): Promise<ProspectingState> {
+): Promise<LeadRecordState> {
   const leadId = String(formData.get('leadId') ?? '').trim();
   requireLeadId(leadId);
   const { ownerUserId } = await requireLeadMutationAccess(leadId);
+  const fullName = String(formData.get('fullName') ?? '').trim();
+  const email = String(formData.get('email') ?? '')
+    .trim()
+    .toLowerCase();
+  const company = String(formData.get('company') ?? '').trim();
+  const projectType = String(formData.get('projectType') ?? '').trim();
+  const website = normalizeHttpUrl(normalizeOptionalValue(formData, 'website', 2048));
 
   const linkedinProfileUrl = normalizeHttpUrl(
-    normalizeOptionalValue(formData, 'linkedinProfileUrl'),
+    normalizeOptionalValue(formData, 'linkedinProfileUrl', 2048),
   );
   const focusLinkedinUrl = normalizeHttpUrl(
-    normalizeOptionalValue(formData, 'focusLinkedinUrl'),
+    normalizeOptionalValue(formData, 'focusLinkedinUrl', 2048),
   );
-  const facebookUrl = normalizeHttpUrl(normalizeOptionalValue(formData, 'facebookUrl'));
-  const errors: NonNullable<ProspectingState['errors']> = {};
+  const facebookUrl = normalizeHttpUrl(
+    normalizeOptionalValue(formData, 'facebookUrl', 2048),
+  );
+  const nextFollowUpDate = normalizeOptionalValue(formData, 'nextFollowUpDate', 10);
+  const errors: NonNullable<LeadRecordState['errors']> = {};
 
+  if (fullName.length < 2 || fullName.length > 120) {
+    errors.fullName = 'Enter a complete name of 2–120 characters.';
+  }
+  if (email.length > 320 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    errors.email = 'Enter a valid work email address.';
+  }
+  if (company.length < 2 || company.length > 160) {
+    errors.company = 'Enter a company name of 2–160 characters.';
+  }
+  if (projectType.length < 2 || projectType.length > 240) {
+    errors.projectType = 'Describe the opportunity in 2–240 characters.';
+  }
+  if (website === null) errors.website = 'Enter a valid website address.';
   if (linkedinProfileUrl === null) {
     errors.linkedinProfileUrl = 'Enter a valid LinkedIn URL.';
   }
@@ -182,6 +224,13 @@ export async function updateLeadProspecting(
     errors.focusLinkedinUrl = 'Enter a valid LinkedIn URL.';
   }
   if (facebookUrl === null) errors.facebookUrl = 'Enter a valid Facebook URL.';
+  if (
+    nextFollowUpDate &&
+    (!/^\d{4}-\d{2}-\d{2}$/.test(nextFollowUpDate) ||
+      !Number.isFinite(new Date(`${nextFollowUpDate}T00:00:00Z`).getTime()))
+  ) {
+    errors.nextFollowUpDate = 'Choose a valid follow-up date.';
+  }
 
   if (Object.keys(errors).length) {
     return { message: 'Review the highlighted fields.', errors };
@@ -193,32 +242,54 @@ export async function updateLeadProspecting(
     persisted = await updateSupabaseLead(
       leadId,
       {
-        icpCategory: normalizeOptionalValue(formData, 'icpCategory') ?? '',
+        name: fullName,
+        email,
+        company,
+        projectType,
+        website: website || '',
+        phone: normalizeOptionalValue(formData, 'phone', 50) ?? '',
+        locale: String(formData.get('locale')) === 'ar' ? 'ar' : 'en',
+        industry: normalizeOptionalValue(formData, 'industry', 160) ?? '',
+        systemStatus: normalizeOptionalValue(formData, 'systemStatus', 3000) ?? '',
+        problems: normalizeOptionalValue(formData, 'problems', 5000) ?? '',
+        improveFirst: normalizeOptionalValue(formData, 'improveFirst', 3000) ?? '',
+        budget: normalizeOptionalValue(formData, 'budget', 200) ?? '',
+        timeline: normalizeOptionalValue(formData, 'timeline', 200) ?? '',
+        decisionStage: normalizeOptionalValue(formData, 'decisionStage', 500) ?? '',
+        context: normalizeOptionalValue(formData, 'context', 5000) ?? '',
+        nextStep: normalizeOptionalValue(formData, 'nextStep', 1000) ?? '',
+        icpCategory: normalizeOptionalValue(formData, 'icpCategory', 100) ?? '',
         linkedinProfileUrl: linkedinProfileUrl || '',
-        focusName: normalizeOptionalValue(formData, 'focusName') ?? '',
-        focusTitle: normalizeOptionalValue(formData, 'focusTitle') ?? '',
+        focusName: normalizeOptionalValue(formData, 'focusName', 120) ?? '',
+        focusTitle: normalizeOptionalValue(formData, 'focusTitle', 160) ?? '',
         focusLinkedinUrl: focusLinkedinUrl || '',
         connectionStatus: normalizeConnectionStatus(formData.get('connectionStatus')),
         lastOutreachDate: normalizeOptionalValue(formData, 'lastOutreachDate') ?? '',
-        nextFollowUpAction: normalizeOptionalValue(formData, 'nextFollowUpAction') ?? '',
-        painPoints: normalizeOptionalValue(formData, 'painPoints') ?? '',
+        nextFollowUpAction:
+          normalizeOptionalValue(formData, 'nextFollowUpAction', 1000) ?? '',
+        nextFollowUpDate: nextFollowUpDate ?? '',
+        painPoints: normalizeOptionalValue(formData, 'painPoints', 5000) ?? '',
+        qualificationNotes:
+          normalizeOptionalValue(formData, 'qualificationNotes', 5000) ?? '',
+        outcomeReason: normalizeOptionalValue(formData, 'outcomeReason', 1000) ?? '',
         facebookUrl: facebookUrl || '',
-        whatsapp: normalizeOptionalValue(formData, 'whatsapp') ?? '',
+        whatsapp: normalizeOptionalValue(formData, 'whatsapp', 50) ?? '',
       },
       ownerUserId,
     );
   } catch (error) {
-    console.error('Failed to update lead prospecting details', error);
+    console.error('Failed to update lead record', error);
     return {
       message:
-        'The prospecting details could not be saved. Your entries are still here; try again.',
+        'The lead record could not be saved. Your entries are still here; try again.',
     };
   }
 
   refreshDashboardLeadViews(leadId);
 
   return {
-    message: persisted ? 'Prospecting details saved.' : 'Lead not found.',
+    message: persisted ? 'Lead record saved.' : 'Lead not found.',
+    success: persisted,
     ...(persisted ? {} : { errors: {} }),
   };
 }

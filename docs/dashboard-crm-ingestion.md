@@ -54,10 +54,11 @@ a future relationship model deliberately links them.
    - `supabase/migrations/202607200001_lead_prospecting_history.sql`
    - `supabase/migrations/202607200002_not_connected_status.sql`
    - `supabase/migrations/202607200003_lead_submission_notes.sql`
+   - `supabase/migrations/202607290002_sales_operations_experience.sql`
 
    They add manual CRM records, explicit provenance/ownership, and nullable
-   prospecting context without changing the funnel's existing form types or required
-   insert fields.
+   sales context such as phone, dated follow-up, qualification evidence, and outcome
+   reason without changing the funnel's existing form types or required insert fields.
 
 5. Verify connectivity without returning lead PII:
 

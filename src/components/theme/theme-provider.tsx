@@ -2,8 +2,13 @@
 
 import * as React from 'react';
 
-type ThemeMode = 'light' | 'dark' | 'system';
-type ResolvedTheme = 'light' | 'dark';
+import {
+  isThemeMode,
+  type ResolvedTheme,
+  resolveTheme,
+  THEME_STORAGE_KEY,
+  type ThemeMode,
+} from '@/lib/theme';
 
 type ThemeContextValue = {
   mode: ThemeMode;
@@ -12,7 +17,6 @@ type ThemeContextValue = {
 };
 
 const ThemeContext = React.createContext<ThemeContextValue | null>(null);
-const storageKey = 'luxa-theme';
 const themeChangeEvent = 'luxa-theme-change';
 let memoryMode: ThemeMode = 'system';
 
@@ -21,7 +25,10 @@ function getSystemTheme(): ResolvedTheme {
     return 'light';
   }
 
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  return resolveTheme(
+    'system',
+    window.matchMedia('(prefers-color-scheme: dark)').matches,
+  );
 }
 
 function getStoredMode(): ThemeMode {
@@ -30,19 +37,21 @@ function getStoredMode(): ThemeMode {
   }
 
   try {
-    const storedTheme = window.localStorage.getItem(storageKey);
+    const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
 
-    return storedTheme === 'light' || storedTheme === 'dark' || storedTheme === 'system'
-      ? storedTheme
-      : memoryMode;
+    return isThemeMode(storedTheme) ? storedTheme : 'system';
   } catch {
     return memoryMode;
   }
 }
 
 function applyTheme(mode: ThemeMode, resolvedTheme: ResolvedTheme) {
-  document.documentElement.classList.toggle('dark', resolvedTheme === 'dark');
-  document.documentElement.dataset.theme = mode;
+  const root = document.documentElement;
+
+  root.classList.toggle('dark', resolvedTheme === 'dark');
+  root.dataset.theme = mode;
+  root.dataset.resolvedTheme = resolvedTheme;
+  root.style.colorScheme = resolvedTheme;
 }
 
 function subscribeToSystemTheme(onStoreChange: () => void) {
@@ -54,7 +63,7 @@ function subscribeToSystemTheme(onStoreChange: () => void) {
 
 function subscribeToStoredMode(onStoreChange: () => void) {
   const onStorage = (event: StorageEvent) => {
-    if (event.key === storageKey) {
+    if (event.key === THEME_STORAGE_KEY) {
       onStoreChange();
     }
   };
@@ -96,7 +105,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     applyTheme(nextMode, nextMode === 'system' ? getSystemTheme() : nextMode);
 
     try {
-      window.localStorage.setItem(storageKey, nextMode);
+      window.localStorage.setItem(THEME_STORAGE_KEY, nextMode);
     } catch {
       // The in-memory preference still works when storage is unavailable.
     }

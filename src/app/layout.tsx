@@ -1,13 +1,11 @@
 import type { Metadata } from 'next';
 import { Geist_Mono, IBM_Plex_Sans } from 'next/font/google';
-import Script from 'next/script';
 
 import { ThemeProvider } from '@/components/theme/theme-provider';
 import { TelemetryProvider } from '@/lib/analytics/provider';
+import { THEME_BOOTSTRAP_SCRIPT } from '@/lib/theme';
 
 import './globals.css';
-
-const themeBootstrap = `(()=>{try{const s=localStorage.getItem('luxa-theme');const m=s==='light'||s==='dark'||s==='system'?s:'system';const d=m==='system'?matchMedia('(prefers-color-scheme: dark)').matches:m==='dark';document.documentElement.classList.toggle('dark',d);document.documentElement.dataset.theme=m}catch{}})();`;
 
 const ibmPlexSans = IBM_Plex_Sans({
   variable: '--font-ibm-plex-sans',
@@ -35,13 +33,14 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      data-theme="system"
       className={`${ibmPlexSans.variable} ${geistMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP_SCRIPT }} />
+      </head>
       <body className="flex min-h-full flex-col">
-        <Script id="luxa-theme-bootstrap" strategy="beforeInteractive">
-          {themeBootstrap}
-        </Script>
         <ThemeProvider>
           <TelemetryProvider>{children}</TelemetryProvider>
         </ThemeProvider>

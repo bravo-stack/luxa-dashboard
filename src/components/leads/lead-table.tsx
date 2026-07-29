@@ -2,22 +2,22 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   type ColumnDef,
   flexRender,
   getCoreRowModel,
-  getPaginationRowModel,
   useReactTable,
   type VisibilityState,
 } from '@tanstack/react-table';
 import {
   Archive,
+  ArrowUpRight,
   ChevronLeft,
   ChevronRight,
   Columns3,
+  Mail,
   MoreHorizontal,
-  Trash2,
 } from 'lucide-react';
 
 import { EmptyState } from '@/components/dashboard/empty-state';
@@ -39,7 +39,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { deleteLead, persistLeadStatus } from '@/lib/dashboard/client';
+import { persistLeadStatus } from '@/lib/dashboard/client';
 import {
   type LeadListItem,
   type LeadPriority,
@@ -54,17 +54,21 @@ import {
   statusLabels,
 } from '@/lib/dashboard/utils';
 
-import {
-  defaultLeadFilters,
-  LeadFilters,
-  type LeadFilterState,
-  type LeadSortKey,
-} from './lead-filters';
+import { LeadFilters, type LeadFilterState, type LeadSortKey } from './lead-filters';
 import { LeadSearch } from './lead-search';
 import { LeadStatusBadge } from './lead-status-badge';
 
 type LeadTableProps = {
   leads: LeadListItem[];
+  total: number;
+  page: number;
+  totalPages: number;
+  statusCounts: Record<LeadStatus, number>;
+  budgets: string[];
+  timelines: string[];
+  initialSearch?: string;
+  initialFilters: LeadFilterState;
+  initialSort: LeadSortKey;
 };
 
 const priorityDotClasses: Record<LeadPriority, string> = {
@@ -94,128 +98,123 @@ function TableValue({ value }: { value?: string }) {
   return <span>{value}</span>;
 }
 
-function matchesDateFilter(lead: LeadListItem, dateFilter: string) {
-  if (dateFilter === 'all') {
-    return true;
-  }
-
-  const createdAt = new Date(lead.created_at).getTime();
-  const now = Date.now();
-  const ageInDays = (now - createdAt) / (1000 * 60 * 60 * 24);
-
-  if (dateFilter === 'today') {
-    return ageInDays < 1;
-  }
-
-  if (dateFilter === '7d') {
-    return ageInDays <= 7;
-  }
-
-  return ageInDays > 7;
-}
-
-function sortLeads(leads: LeadListItem[], sort: LeadSortKey) {
-  return leads.slice().sort((first, second) => {
-    if (sort === 'oldest') {
-      return new Date(first.created_at).getTime() - new Date(second.created_at).getTime();
-    }
-
-    return new Date(second.created_at).getTime() - new Date(first.created_at).getTime();
-  });
-}
-
-export function LeadTable({ leads }: LeadTableProps) {
+export function LeadTable({
+  leads,
+  total,
+  page,
+  totalPages,
+  statusCounts,
+  budgets,
+  timelines,
+  initialSearch = '',
+  initialFilters,
+  initialSort,
+}: LeadTableProps) {
+  const pathname = usePathname();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [rows, setRows] = React.useState(leads);
-  const [search, setSearch] = React.useState('');
-  const [filters, setFilters] = React.useState<LeadFilterState>(defaultLeadFilters);
-  const [sort, setSort] = React.useState<LeadSortKey>('newest');
+  const [search, setSearch] = React.useState(initialSearch);
+  const [filters, setFilters] = React.useState<LeadFilterState>(initialFilters);
+  const [sort, setSort] = React.useState<LeadSortKey>(initialSort);
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({
     icp_category: false,
     focus_contact: false,
     connection_status: false,
     last_outreach_date: false,
-    next_follow_up: false,
+    next_follow_up: true,
+    timeline: false,
+    origin: false,
   });
   const [mutationError, setMutationError] = React.useState('');
-  const [pendingDeletion, setPendingDeletion] = React.useState<LeadListItem | null>(null);
   const [isPending, startTransition] = React.useTransition();
+  const lastAppliedSearch = React.useRef(initialSearch);
 
-  const budgets = React.useMemo(
-    () =>
-      Array.from(
-        new Set(
-          rows.map((lead) => getLatestSubmission(lead)?.budget_range).filter(Boolean),
-        ),
-      ).sort() as string[],
-    [rows],
+  React.useEffect(() => {
+    setRows(leads);
+  }, [leads]);
+
+  React.useEffect(() => {
+    lastAppliedSearch.current = initialSearch;
+    setSearch(initialSearch);
+    setFilters(initialFilters);
+    setSort(initialSort);
+  }, [initialFilters, initialSearch, initialSort]);
+
+  const replaceQueueUrl = React.useCallback(
+    (
+      nextSearch: string,
+      nextFilters: LeadFilterState,
+      nextSort: LeadSortKey,
+      nextPage = 1,
+    ) => {
+      const params = new URLSearchParams(searchParams.toString());
+      const setOptional = (key: string, value: string, defaultValue = 'all') => {
+        if (!value || value === defaultValue) {
+          params.delete(key);
+        } else {
+          params.set(key, value);
+        }
+      };
+
+      setOptional('q', nextSearch.trim(), '');
+      setOptional('status', nextFilters.status);
+      setOptional('budget', nextFilters.budget);
+      setOptional('timeline', nextFilters.timeline);
+      setOptional('origin', nextFilters.origin);
+      setOptional('date', nextFilters.date);
+      setOptional('sort', nextSort, 'newest');
+
+      if (nextPage > 1) {
+        params.set('page', String(nextPage));
+      } else {
+        params.delete('page');
+      }
+
+      const query = params.toString();
+      startTransition(() => {
+        router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+      });
+    },
+    [pathname, router, searchParams],
   );
-  const timelines = React.useMemo(
-    () =>
-      Array.from(
-        new Set(rows.map((lead) => getLatestSubmission(lead)?.timeline).filter(Boolean)),
-      ).sort() as string[],
-    [rows],
-  );
-  const filteredRows = React.useMemo(() => {
-    const searchValue = search.trim().toLowerCase();
 
-    return sortLeads(
-      rows.filter((lead) => {
-        const latestSubmission = getLatestSubmission(lead);
-        const searchable = [
-          lead.name,
-          lead.email,
-          lead.company,
-          lead.website ?? '',
-          lead.icpCategory ?? '',
-          lead.linkedinProfileUrl ?? '',
-          lead.focusName ?? '',
-          lead.focusTitle ?? '',
-          lead.focusLinkedinUrl ?? '',
-          lead.connectionStatus?.replace(/_/g, ' ') ?? '',
-          lead.nextFollowUpAction ?? '',
-          lead.painPoints ?? '',
-          lead.facebookUrl ?? '',
-          lead.whatsapp ?? '',
-          originLabels[lead.origin],
-          lead.marketingSource ?? '',
-          latestSubmission?.project_type ?? '',
-        ]
-          .join(' ')
-          .toLowerCase();
+  React.useEffect(() => {
+    if (search === lastAppliedSearch.current) {
+      return;
+    }
 
-        if (searchValue && !searchable.includes(searchValue)) {
-          return false;
-        }
+    const timer = window.setTimeout(() => {
+      lastAppliedSearch.current = search;
+      replaceQueueUrl(search, filters, sort);
+    }, 300);
 
-        if (filters.status !== 'all' && lead.status !== filters.status) {
-          return false;
-        }
+    return () => window.clearTimeout(timer);
+  }, [filters, replaceQueueUrl, search, sort]);
 
-        if (
-          filters.budget !== 'all' &&
-          latestSubmission?.budget_range !== filters.budget
-        ) {
-          return false;
-        }
+  function handleFiltersChange(nextFilters: LeadFilterState) {
+    setFilters(nextFilters);
+    replaceQueueUrl(search, nextFilters, sort);
+  }
 
-        if (
-          filters.timeline !== 'all' &&
-          latestSubmission?.timeline !== filters.timeline
-        ) {
-          return false;
-        }
+  function handleSortChange(nextSort: LeadSortKey) {
+    setSort(nextSort);
+    replaceQueueUrl(search, filters, nextSort);
+  }
 
-        if (filters.origin !== 'all' && lead.origin !== filters.origin) {
-          return false;
-        }
+  function handleClearFilters() {
+    const clearedFilters: LeadFilterState = {
+      status: 'all',
+      budget: 'all',
+      timeline: 'all',
+      origin: 'all',
+      date: 'all',
+    };
 
-        return matchesDateFilter(lead, filters.date);
-      }),
-      sort,
-    );
-  }, [filters, rows, search, sort]);
+    setFilters(clearedFilters);
+    setSort('newest');
+    replaceQueueUrl(search, clearedFilters, 'newest');
+  }
 
   const handleStatusChange = React.useCallback(
     (leadId: string, status: LeadStatus) => {
@@ -285,26 +284,6 @@ export function LeadTable({ leads }: LeadTableProps) {
     [router, rows],
   );
 
-  const handleDeleteLead = React.useCallback(() => {
-    if (!pendingDeletion) return;
-
-    const leadId = pendingDeletion.id;
-    setMutationError('');
-    startTransition(async () => {
-      try {
-        await deleteLead(leadId);
-        setRows((currentRows) => currentRows.filter((lead) => lead.id !== leadId));
-        setPendingDeletion(null);
-        router.refresh();
-      } catch (error: unknown) {
-        setMutationError(
-          'The lead could not be deleted. Refresh the page and try again.',
-        );
-        console.error(error);
-      }
-    });
-  }, [pendingDeletion, router]);
-
   const columns = React.useMemo<ColumnDef<LeadListItem>[]>(
     () => [
       {
@@ -315,8 +294,18 @@ export function LeadTable({ leads }: LeadTableProps) {
 
           return (
             <div className="min-w-56">
-              <span className="font-semibold text-foreground">{lead.name}</span>
-              <p className="mt-1 text-sm text-muted-foreground">{lead.email}</p>
+              <Link
+                href={`/dashboard/leads/${lead.id}`}
+                className="inline-flex max-w-full flex-col rounded-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <span className="truncate font-semibold text-foreground">
+                  {lead.name}
+                </span>
+                <span className="mt-1 truncate text-sm text-muted-foreground">
+                  {lead.email}
+                </span>
+              </Link>
             </div>
           );
         },
@@ -489,13 +478,6 @@ export function LeadTable({ leads }: LeadTableProps) {
                     <Archive className="size-4" />
                     Mark as spam
                   </DropdownMenuItem>
-                  <DropdownMenuItem
-                    className="text-destructive focus:text-destructive"
-                    onSelect={() => setPendingDeletion(lead)}
-                  >
-                    <Trash2 className="size-4" />
-                    Delete lead
-                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -508,23 +490,22 @@ export function LeadTable({ leads }: LeadTableProps) {
 
   // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
-    data: filteredRows,
+    data: rows,
     columns,
     state: {
       columnVisibility,
     },
     onColumnVisibilityChange: setColumnVisibility,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    initialState: {
-      pagination: {
-        pageSize: 8,
-      },
-    },
   });
+  const allLeadCount = Object.values(statusCounts).reduce((sum, count) => sum + count, 0);
 
   return (
-    <div className="space-y-4">
+    <section
+      className="space-y-4"
+      aria-label="Lead operating queue"
+      aria-busy={isPending}
+    >
       <div className="flex flex-col gap-3 xl:flex-row">
         <LeadSearch value={search} onValueChange={setSearch} />
         <DropdownMenu>
@@ -551,59 +532,55 @@ export function LeadTable({ leads }: LeadTableProps) {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+      <div className="overflow-x-auto rounded-xl border border-border bg-card p-1.5">
+        <div className="flex min-w-max items-center gap-1">
+          {(['all', ...leadStatuses] as const).map((status) => {
+            const active = filters.status === status;
+
+            return (
+              <Button
+                key={status}
+                type="button"
+                variant={active ? 'secondary' : 'ghost'}
+                size="sm"
+                className={active ? 'text-foreground' : undefined}
+                disabled={isPending}
+                onClick={() => handleFiltersChange({ ...filters, status })}
+              >
+                {status === 'all' ? 'All leads' : statusLabels[status]}
+                <span
+                  className={`rounded-sm px-1.5 py-0.5 font-mono text-[0.625rem] ${
+                    active
+                      ? 'bg-background text-foreground'
+                      : 'bg-muted text-muted-foreground'
+                  }`}
+                >
+                  {status === 'all' ? allLeadCount : statusCounts[status]}
+                </span>
+              </Button>
+            );
+          })}
+        </div>
+      </div>
       <LeadFilters
         filters={filters}
         sort={sort}
         budgets={budgets}
         timelines={timelines}
-        onFiltersChange={setFilters}
-        onSortChange={setSort}
+        onFiltersChange={handleFiltersChange}
+        onSortChange={handleSortChange}
+        onClear={handleClearFilters}
+        disabled={isPending}
       />
-      {pendingDeletion ? (
-        <div
-          role="group"
-          aria-labelledby="delete-lead-title"
-          aria-describedby="delete-lead-description"
-          className="flex flex-col gap-4 rounded-lg border border-destructive/25 bg-destructive/8 px-4 py-4 sm:flex-row sm:items-center sm:justify-between"
-        >
-          <div className="flex items-start gap-3">
-            <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-destructive/12 text-destructive">
-              <Trash2 className="size-4" aria-hidden="true" />
-            </div>
-            <div>
-              <p id="delete-lead-title" className="text-sm font-semibold text-foreground">
-                Delete {pendingDeletion.name}?
-              </p>
-              <p
-                id="delete-lead-description"
-                className="mt-1 text-sm leading-6 text-muted-foreground"
-              >
-                This permanently removes the {pendingDeletion.company} lead and its saved
-                prospecting history.
-              </p>
-            </div>
-          </div>
-          <div className="flex shrink-0 items-center gap-2 sm:justify-end">
-            <Button
-              type="button"
-              variant="ghost"
-              disabled={isPending}
-              onClick={() => setPendingDeletion(null)}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              disabled={isPending}
-              onClick={handleDeleteLead}
-            >
-              <Trash2 aria-hidden="true" />
-              {isPending ? 'Deleting' : 'Delete permanently'}
-            </Button>
-          </div>
-        </div>
-      ) : null}
+      <p
+        role="status"
+        aria-live="polite"
+        className="min-h-5 text-xs font-medium text-muted-foreground"
+      >
+        {isPending
+          ? 'Updating the lead queue…'
+          : 'Search and filters apply across the complete lead database.'}
+      </p>
       {mutationError ? (
         <p
           role="alert"
@@ -612,7 +589,7 @@ export function LeadTable({ leads }: LeadTableProps) {
           {mutationError}
         </p>
       ) : null}
-      <div className="surface-premium overflow-hidden rounded-lg">
+      <div className="hidden overflow-hidden rounded-xl border border-border bg-card shadow-[0_18px_55px_rgba(18,24,40,0.035)] lg:block">
         {table.getRowModel().rows.length ? (
           <Table>
             <TableHeader>
@@ -632,15 +609,8 @@ export function LeadTable({ leads }: LeadTableProps) {
               {table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
-                  role="link"
-                  tabIndex={0}
-                  className="cursor-pointer"
+                  className="cursor-pointer hover:bg-primary/4"
                   onClick={() => router.push(`/dashboard/leads/${row.original.id}`)}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter') {
-                      router.push(`/dashboard/leads/${row.original.id}`);
-                    }
-                  }}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
@@ -660,40 +630,119 @@ export function LeadTable({ leads }: LeadTableProps) {
           />
         )}
       </div>
+      <div className="grid gap-3 lg:hidden">
+        {table.getRowModel().rows.length ? (
+          table.getRowModel().rows.map((row) => {
+            const lead = row.original;
+            const submission = getLatestSubmission(lead);
+
+            return (
+              <article
+                key={lead.id}
+                className="overflow-hidden rounded-xl border border-border bg-card shadow-[0_10px_35px_rgba(18,24,40,0.04)]"
+              >
+                <div className="flex items-start justify-between gap-4 border-b border-border px-4 py-4">
+                  <div className="min-w-0">
+                    <Link
+                      href={`/dashboard/leads/${lead.id}`}
+                      className="group inline-flex max-w-full items-center gap-2 font-semibold text-foreground"
+                    >
+                      <span className="truncate">{lead.name}</span>
+                      <ArrowUpRight
+                        className="size-3.5 shrink-0 text-muted-foreground group-hover:text-primary"
+                        aria-hidden="true"
+                      />
+                    </Link>
+                    <p className="mt-1 truncate text-sm text-muted-foreground">
+                      {lead.company}
+                    </p>
+                  </div>
+                  <LeadStatusBadge status={lead.status} />
+                </div>
+                <div className="grid grid-cols-2 divide-x divide-border border-b border-border">
+                  <div className="px-4 py-3">
+                    <p className="text-[0.625rem] font-semibold tracking-[0.08em] text-muted-foreground uppercase">
+                      Opportunity
+                    </p>
+                    <p className="mt-1 line-clamp-2 text-sm font-medium text-foreground">
+                      {submission?.project_type || 'Not captured'}
+                    </p>
+                  </div>
+                  <div className="px-4 py-3">
+                    <p className="text-[0.625rem] font-semibold tracking-[0.08em] text-muted-foreground uppercase">
+                      Next action
+                    </p>
+                    <p className="mt-1 line-clamp-2 text-sm font-medium text-foreground">
+                      {lead.nextFollowUpAction || 'No action set'}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between gap-3 px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`size-2 rounded-full ${priorityDotClasses[lead.priority]}`}
+                      aria-hidden="true"
+                    />
+                    <span className="text-xs font-semibold text-muted-foreground">
+                      {priorityLabels[lead.priority]}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button asChild variant="ghost" size="icon">
+                      <a href={`mailto:${lead.email}`} aria-label={`Email ${lead.name}`}>
+                        <Mail className="size-4" />
+                      </a>
+                    </Button>
+                    <Button asChild variant="secondary" size="sm">
+                      <Link href={`/dashboard/leads/${lead.id}`}>Open lead</Link>
+                    </Button>
+                  </div>
+                </div>
+              </article>
+            );
+          })
+        ) : (
+          <EmptyState
+            icon={Archive}
+            title="No leads match this view"
+            description="Adjust the filters or search query to bring the lead queue back into focus."
+          />
+        )}
+      </div>
       <div className="flex flex-col gap-3 rounded-lg border border-border bg-muted/45 p-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-muted-foreground">
           Showing{' '}
           <span className="font-mono text-foreground">
             {table.getRowModel().rows.length}
           </span>{' '}
-          of <span className="font-mono text-foreground">{filteredRows.length}</span>{' '}
-          leads
+          of <span className="font-mono text-foreground">{total}</span> leads
         </p>
         <div className="flex items-center gap-2">
           <Button
             variant="secondary"
             size="sm"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
+            onClick={() => replaceQueueUrl(search, filters, sort, Math.max(1, page - 1))}
+            disabled={page <= 1 || isPending}
           >
             <ChevronLeft className="size-4" />
             Previous
           </Button>
           <span className="rounded-md border border-border bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
-            Page {table.getState().pagination.pageIndex + 1} of{' '}
-            {table.getPageCount() || 1}
+            Page {page} of {totalPages}
           </span>
           <Button
             variant="secondary"
             size="sm"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
+            onClick={() =>
+              replaceQueueUrl(search, filters, sort, Math.min(totalPages, page + 1))
+            }
+            disabled={page >= totalPages || isPending}
           >
             Next
             <ChevronRight className="size-4" />
           </Button>
         </div>
       </div>
-    </div>
+    </section>
   );
 }

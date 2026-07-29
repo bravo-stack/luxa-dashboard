@@ -1,34 +1,45 @@
 import { Suspense } from 'react';
 import Link from 'next/link';
 import {
-  CalendarCheck,
+  Activity,
+  ArrowLeft,
+  Clock3,
   Eye,
-  FormInput,
-  ListChecks,
-  Mail,
+  Gauge,
   MousePointerClick,
   Send,
+  TrendingUp,
+  UsersRound,
 } from 'lucide-react';
 
+import { ActivityHeatmap } from '@/components/dashboard/activity-heatmap';
 import { AnalyticsChartCard } from '@/components/dashboard/analytics-chart-card';
 import { DashboardHeader } from '@/components/dashboard/dashboard-header';
+import { DashboardSection } from '@/components/dashboard/dashboard-section';
 import { DateRangePicker } from '@/components/dashboard/date-range-picker';
 import { FunnelCard } from '@/components/dashboard/funnel-card';
-import { MetricCard } from '@/components/dashboard/metric-card';
+import { MetricRail } from '@/components/dashboard/metric-rail';
+import { PageQualityTable } from '@/components/dashboard/page-quality-table';
+import { RealtimeStrip } from '@/components/dashboard/realtime-strip';
 import { SourcePerformance } from '@/components/dashboard/source-performance';
+import { WebVitalsPanel } from '@/components/dashboard/web-vitals-panel';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-  getDashboardAnalytics,
-  getLeadFunnelSummary,
-  getTrafficSummary,
-  normalizeAnalyticsFilters,
-} from '@/lib/analytics/server';
+import { getDashboardAnalytics, normalizeAnalyticsFilters } from '@/lib/analytics/server';
 import type { DateRangeKey } from '@/lib/analytics/types';
 
 export const dynamic = 'force-dynamic';
 
-const metricIcons = [Eye, FormInput, ListChecks, Send, CalendarCheck, Mail];
+const metricIcons = [
+  Eye,
+  UsersRound,
+  Activity,
+  TrendingUp,
+  Gauge,
+  Clock3,
+  Send,
+  MousePointerClick,
+];
 
 type AnalyticsPageProps = {
   searchParams?: Promise<{
@@ -45,22 +56,34 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
     project: params?.project,
     funnel: params?.funnel,
   });
-  const [analytics, traffic, leadFunnel] = await Promise.all([
-    getDashboardAnalytics(filters),
-    getTrafficSummary(filters),
-    getLeadFunnelSummary(filters),
-  ]);
+  const analytics = await getDashboardAnalytics(filters);
+  const signalCount = analytics.availability.available.length;
+  const totalSignals = signalCount + analytics.availability.unavailable.length;
 
   return (
     <>
       <DashboardHeader
-        title="Conversion intelligence"
-        description="Read the privacy-safe Umami journey from page view to form submission and booked-call intent. No lead details enter analytics."
+        eyebrow="Growth intelligence / live"
+        title="Demand signal room"
+        description="A privacy-safe view of reach, attention quality, acquisition, ordered conversion, and the experience conditions behind demand."
+        meta={
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant="teal">
+              <span className="mr-1.5 size-1.5 rounded-full bg-success" />
+              Umami live
+            </Badge>
+            <Badge variant="outline">
+              {signalCount}/{totalSignals} signal groups online
+            </Badge>
+            {analytics.availability.unavailable.length ? (
+              <Badge variant="warm">
+                {analytics.availability.unavailable.length} gracefully unavailable
+              </Badge>
+            ) : null}
+          </div>
+        }
         actions={
           <>
-            <Badge variant={analytics.source === 'umami' ? 'teal' : 'secondary'}>
-              {analytics.source === 'umami' ? 'Live · Umami' : 'Preview data'}
-            </Badge>
             <Suspense
               fallback={
                 <div className="h-11 w-48 rounded-md border border-border bg-muted/35" />
@@ -70,7 +93,7 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
             </Suspense>
             <Button asChild variant="secondary">
               <Link href="/dashboard">
-                <MousePointerClick className="size-4" />
+                <ArrowLeft className="size-4" />
                 Overview
               </Link>
             </Button>
@@ -78,96 +101,128 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
         }
       />
 
-      <section
-        className="grid gap-4 md:grid-cols-2 xl:grid-cols-3"
-        aria-label="Analytics summary"
+      <RealtimeStrip data={analytics.realtime} />
+
+      <MetricRail metrics={analytics.metrics} icons={metricIcons} />
+
+      <DashboardSection
+        eyebrow="Demand movement"
+        title="Reach and attention over time"
+        description="Native page views and unique visitors, aligned by day and compared with the previous range."
       >
-        {analytics.metrics.map((metric, index) => {
-          const Icon = metricIcons[index] ?? MousePointerClick;
-
-          return (
-            <MetricCard
-              key={metric.key}
-              metric={metric}
-              icon={Icon}
-              emphasis={index === 0}
-            />
-          );
-        })}
-      </section>
-
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-        <FunnelCard steps={leadFunnel.funnel} />
         <AnalyticsChartCard
-          title="Daily page views"
-          description="Explicit App Router page-view events by day."
-          data={traffic.dailyVisitors}
+          title="Traffic trajectory"
+          description="Page-view volume with visitor reach layered on the same timeline."
+          data={analytics.dailyPageViews}
+          secondaryData={analytics.dailyVisitors}
+          secondaryLabel="Visitors"
           variant="line"
+          insight="A widening gap between views and visitors usually means deeper exploration or repeat attention."
+          emptyDescription="Traffic movement will appear after Umami records native sessions."
         />
-      </div>
+      </DashboardSection>
 
-      <section className="grid gap-6 xl:grid-cols-2" aria-label="Trend cards">
-        <AnalyticsChartCard
-          title="Daily form starts"
-          description="First interaction with either lead form, counted once per form visit."
-          data={traffic.dailyFormStarts}
-          variant="bar"
-        />
-        <AnalyticsChartCard
-          title="Daily submissions"
-          description="Validated frontend success states across both forms."
-          data={traffic.dailySubmissions}
-          variant="bar"
-        />
-        <AnalyticsChartCard
-          title="Daily book-call clicks"
-          description="Scheduling intent across audit, calendar, and book-call paths."
-          data={traffic.dailyScheduleClicks}
-          variant="bar"
-        />
-        <AnalyticsChartCard
-          title="Daily conversion rate"
-          description="Page-view to validated-submission rate by day."
-          data={traffic.dailyConversionRate}
-          variant="line"
-          valueSuffix="%"
-        />
-      </section>
+      <DashboardSection
+        eyebrow="Conversion mechanics"
+        title="How attention turns into intent"
+        description="An ordered visitor funnel beside the hours when sessions concentrate."
+        contentClassName="grid gap-6 xl:grid-cols-[minmax(340px,0.72fr)_minmax(0,1.28fr)]"
+      >
+        <FunnelCard steps={analytics.funnel} />
+        <ActivityHeatmap data={analytics.weeklyActivity} />
+      </DashboardSection>
 
-      <section className="grid gap-6 xl:grid-cols-2" aria-label="Behavior breakdowns">
-        <AnalyticsChartCard
-          title="Event mix"
-          description="The complete controlled event catalogue observed in this range."
-          data={traffic.eventVolume}
-          variant="bar"
+      <PageQualityTable pages={analytics.pageQuality} />
+
+      <DashboardSection
+        eyebrow="Acquisition"
+        title="Where qualified attention forms"
+        description="Native route and referrer data combined with first-click attribution and controlled conversion placements."
+      >
+        <SourcePerformance
+          routes={analytics.topLandingPages}
+          referrers={analytics.topReferrers}
+          campaigns={analytics.utmCampaignPerformance}
+          ctaSources={analytics.ctaClicksBySource}
+          devices={analytics.deviceCategories ?? []}
         />
+      </DashboardSection>
+
+      <DashboardSection
+        eyebrow="Behavior and experience"
+        title="What visitors do—and what the interface costs them"
+        description="Controlled product events paired with real-user Core Web Vitals."
+        contentClassName="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]"
+      >
         <AnalyticsChartCard
-          title="Conversion placement"
-          description="Where controlled book-call, email, pricing, and case-study interactions happen."
-          data={traffic.ctaClicksBySource}
+          title="Behavioral event mix"
+          description="Every controlled action observed in the selected range."
+          data={analytics.eventVolume ?? []}
           variant="bar"
+          emptyDescription="Controlled interaction events will appear as visitors use the site."
         />
+        <WebVitalsPanel vitals={analytics.webVitals} />
+      </DashboardSection>
+
+      <DashboardSection
+        eyebrow="Conversion diagnostics"
+        title="Form and intent detail"
+        description="Completion volume, submitted industry context, and daily scheduling intent."
+        contentClassName="grid gap-6 xl:grid-cols-3"
+      >
         <AnalyticsChartCard
           title="Submissions by form"
-          description="Platform audit and quick-start completions, with no submitted fields attached."
-          data={leadFunnel.formPerformance}
+          description="Quick-start and platform-audit completions."
+          data={analytics.formPerformance ?? []}
           variant="bar"
         />
         <AnalyticsChartCard
           title="Submitted industries"
-          description="Only the controlled industry value included in the event contract."
-          data={leadFunnel.industryPerformance}
+          description="Controlled industry values attached to successful submissions."
+          data={analytics.industryPerformance ?? []}
           variant="bar"
         />
-      </section>
+        <AnalyticsChartCard
+          title="Book-call intent"
+          description="Daily clicks into scheduling paths."
+          data={analytics.dailyScheduleClicks}
+          variant="bar"
+        />
+      </DashboardSection>
 
-      <SourcePerformance
-        routes={traffic.topLandingPages}
-        ctaSources={traffic.ctaClicksBySource}
-        campaigns={traffic.utmCampaignPerformance}
-        referrers={traffic.topReferrers}
-        devices={traffic.deviceCategories}
-      />
+      <DashboardSection
+        eyebrow="Audience composition"
+        title="Market and technology context"
+        description="Channel, country, source, language, and browser distributions without personal profiles."
+      >
+        <SourcePerformance
+          title="Audience composition matrix"
+          description="A compact operating view of who is arriving, through which channel, and in what technical context."
+          routes={analytics.countries}
+          referrers={analytics.channels}
+          campaigns={analytics.utmSources}
+          ctaSources={analytics.languages}
+          devices={analytics.browsers}
+          labels={['Countries', 'Channels', 'UTM sources', 'Languages', 'Browsers']}
+        />
+      </DashboardSection>
+
+      <DashboardSection
+        eyebrow="Journey context"
+        title="How sessions enter, leave, and render"
+        description="Entry and exit concentration beside the locations and screen classes shaping the experience."
+      >
+        <SourcePerformance
+          title="Session context matrix"
+          description="Useful for finding weak landing paths, premature exits, and experience patterns tied to market or viewport."
+          routes={analytics.entryPages}
+          referrers={analytics.exitPages}
+          campaigns={analytics.regions}
+          ctaSources={analytics.cities}
+          devices={analytics.screens}
+          labels={['Entry pages', 'Exit pages', 'Regions', 'Cities', 'Screens']}
+        />
+      </DashboardSection>
     </>
   );
 }

@@ -69,6 +69,7 @@ function subscribeToStoredMode(onStoreChange: () => void) {
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
+  const hasHydrated = React.useRef(false);
   const mode = React.useSyncExternalStore(
     subscribeToStoredMode,
     getStoredMode,
@@ -82,11 +83,17 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const resolvedTheme = mode === 'system' ? systemTheme : mode;
 
   React.useLayoutEffect(() => {
+    if (!hasHydrated.current) {
+      hasHydrated.current = true;
+      return;
+    }
+
     applyTheme(mode, resolvedTheme);
   }, [mode, resolvedTheme]);
 
   const setMode = React.useCallback((nextMode: ThemeMode) => {
     memoryMode = nextMode;
+    applyTheme(nextMode, nextMode === 'system' ? getSystemTheme() : nextMode);
 
     try {
       window.localStorage.setItem(storageKey, nextMode);

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Bell, CheckCircle2, LogOut, Search, Settings2, UserRound } from 'lucide-react';
+import { LogOut, Search, Settings2 } from 'lucide-react';
 
 import { logout } from '@/app/actions';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
@@ -43,41 +43,24 @@ export function DashboardTopbar() {
             </h1>
           </div>
           <div className="hidden min-w-80 items-center md:flex">
-            <div className="relative w-full">
+            <form action="/dashboard/leads" className="relative w-full">
               <Search
                 className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
                 aria-hidden="true"
               />
               <Input
+                name="q"
+                type="search"
+                maxLength={200}
                 className="h-9 bg-muted/35 pl-9"
                 placeholder="Search leads, audits, sources"
                 aria-label="Search dashboard"
               />
-            </div>
+            </form>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <ThemeToggle />
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" aria-label="Dashboard notifications">
-                <Bell className="size-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-72">
-              <DropdownMenuLabel>Notifications</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem className="items-start gap-3">
-                <CheckCircle2 className="mt-0.5 size-4 text-success" />
-                <span className="grid gap-0.5">
-                  <span className="font-medium">Analytics snapshot ready</span>
-                  <span className="text-xs text-muted-foreground">
-                    Latest dashboard summaries are available.
-                  </span>
-                </span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
           <Button asChild variant="outline" className="hidden sm:inline-flex">
             <Link href="/dashboard/leads">Review queue</Link>
           </Button>
@@ -96,13 +79,11 @@ export function DashboardTopbar() {
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Luxa Admin</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                <UserRound className="size-4" />
-                Profile
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Settings2 className="size-4" />
-                Workspace settings
+              <DropdownMenuItem asChild>
+                <Link href="/dashboard/settings">
+                  <Settings2 className="size-4" />
+                  Workspace settings
+                </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>

@@ -172,6 +172,52 @@ export interface SourceSummary {
   value: number;
   context: string;
   trend?: string;
+  secondaryValue?: number;
+  secondaryLabel?: string;
+  rate?: number;
+}
+
+export interface PageQualitySummary extends SourceSummary {
+  pageviews: number;
+  visitors: number;
+  visits: number;
+  bounces: number;
+  bounceRate: number;
+  averageTimeSeconds: number;
+}
+
+export interface ActivityCell {
+  day: number;
+  hour: number;
+  value: number;
+}
+
+export type WebVitalKey = 'lcp' | 'inp' | 'cls' | 'fcp' | 'ttfb';
+
+export interface WebVitalSummary {
+  key: WebVitalKey;
+  label: string;
+  p50: number | null;
+  p75: number | null;
+  p95: number | null;
+  unit: 'ms' | 'score';
+  rating: 'good' | 'needs-improvement' | 'poor' | 'unavailable';
+}
+
+export interface RealtimeSummary {
+  activeVisitors: number;
+  views: number;
+  visitors: number;
+  events: number;
+  topPages: SourceSummary[];
+  topCountries: SourceSummary[];
+  updatedAt: string;
+}
+
+export interface AnalyticsAvailability {
+  available: string[];
+  unavailable: string[];
+  lastUpdated: string;
 }
 
 export interface LeadQualitySummary {
@@ -214,7 +260,10 @@ export interface AnalyticsSummary {
   dateRange: DateRange;
   metrics: MetricSummary[];
   funnel: FunnelStepSummary[];
+  activeVisitors: number;
+  dailyPageViews: SourceSummary[];
   dailyVisitors: SourceSummary[];
+  dailyVisits: SourceSummary[];
   dailyFormStarts?: SourceSummary[];
   dailySubmissions: SourceSummary[];
   dailyScheduleClicks: SourceSummary[];
@@ -229,8 +278,28 @@ export interface AnalyticsSummary {
   submissionsByBudget: SourceSummary[];
   submissionsByTimeline: SourceSummary[];
   topLandingPages: SourceSummary[];
+  entryPages: SourceSummary[];
+  exitPages: SourceSummary[];
+  pageQuality: PageQualitySummary[];
   topReferrers: SourceSummary[];
+  channels: SourceSummary[];
+  countries: SourceSummary[];
+  regions: SourceSummary[];
+  cities: SourceSummary[];
+  browsers: SourceSummary[];
+  operatingSystems: SourceSummary[];
+  screens: SourceSummary[];
+  languages: SourceSummary[];
   utmCampaignPerformance: SourceSummary[];
+  utmSources: SourceSummary[];
+  utmMediums: SourceSummary[];
+  utmContent: SourceSummary[];
+  utmTerms: SourceSummary[];
+  paidAdSources: SourceSummary[];
+  weeklyActivity: ActivityCell[];
+  webVitals: WebVitalSummary[];
+  realtime: RealtimeSummary;
+  availability: AnalyticsAvailability;
   source: AnalyticsSource;
 }
 

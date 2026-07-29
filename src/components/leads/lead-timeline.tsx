@@ -4,6 +4,7 @@ import {
   Mail,
   MessageSquarePlus,
   MousePointerClick,
+  SearchCheck,
   Send,
   Shuffle,
 } from 'lucide-react';
@@ -27,6 +28,8 @@ const eventIcons: Partial<Record<LeadEventType, typeof FileCheck2>> = {
   lead_status_changed: Shuffle,
   note_added: MessageSquarePlus,
   lead_note_added: MessageSquarePlus,
+  lead_created: FileCheck2,
+  prospecting_updated: SearchCheck,
   proposal_sent: Send,
   cta_clicked: MousePointerClick,
 };

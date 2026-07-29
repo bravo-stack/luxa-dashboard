@@ -1,3 +1,5 @@
+import { cache } from 'react';
+
 import { getUmamiAnalytics } from '@/lib/analytics/umami';
 
 import { dashboardDateRanges, defaultDashboardDateRange } from './config';
@@ -5,7 +7,9 @@ import {
   type DashboardDataset,
   getSupabaseDashboardDataset,
   getSupabaseLeadNotes,
+  getSupabaseLeadQueue,
   getSupabaseProspectingHistory,
+  type LeadQueueQuery,
 } from './supabase-repository';
 import type {
   AuditSubmission,
@@ -38,6 +42,8 @@ const pipelineIntentByStatus = new Map<LeadStatus, PipelineStageSummary['intent'
   ['lost', 'destructive'],
   ['spam', 'neutral'],
 ]);
+
+const getCachedUmamiAnalytics = cache(getUmamiAnalytics);
 
 function getDateRange(key: DateRangeKey = '7d') {
   return (
@@ -93,7 +99,7 @@ function getLiveDashboardMetrics(
       value: liveLeads.filter((lead) => lead.status === 'qualified').length,
       trend: 'Live',
       trendDirection: 'flat',
-      note: 'Above the fit threshold',
+      note: 'Marked qualified in the CRM',
     },
     {
       key: 'contacted_leads',
@@ -101,7 +107,7 @@ function getLiveDashboardMetrics(
       value: liveLeads.filter((lead) => lead.status === 'contacted').length,
       trend: 'Live',
       trendDirection: 'flat',
-      note: 'Discovery calls booked',
+      note: 'Marked contacted in the CRM',
     },
     {
       key: 'awaiting_reply',
@@ -109,7 +115,7 @@ function getLiveDashboardMetrics(
       value: liveLeads.filter((lead) => lead.status === 'new').length,
       trend: 'Live',
       trendDirection: 'flat',
-      note: 'New or qualified without contact',
+      note: 'Currently in the new stage',
     },
     {
       key: 'platform_audit_submissions',
@@ -264,6 +270,20 @@ export async function getLeads(): Promise<LeadListItem[]> {
   }));
 }
 
+export async function getLeadQueue(options: LeadQueueQuery = {}) {
+  const queue = await getSupabaseLeadQueue(options);
+
+  return {
+    ...queue,
+    leads: queue.leads.map((lead) => ({
+      ...lead,
+      submissions: getSubmissionsForLead(lead.id, queue.submissions),
+      priority: getLeadPriority(lead),
+    })),
+    totalPages: Math.max(1, Math.ceil(queue.total / queue.pageSize)),
+  };
+}
+
 export async function getLeadDetail(
   id: string,
   prospectingHistoryPage = 1,
@@ -296,7 +316,53 @@ export async function getLeadDetail(
   return {
     lead,
     submissions: getSubmissionsForLead(id, dataset.auditSubmissions),
-    events: getEventsForLead(id, dataset.leadEvents),
+    events: sortNewest([
+      ...getEventsForLead(id, dataset.leadEvents),
+      ...getSubmissionsForLead(id, dataset.auditSubmissions).map(
+        (submission): LeadEvent => ({
+          id: `submission-${submission.id}`,
+          lead_id: id,
+          created_at: submission.created_at,
+          event_type:
+            submission.submission_type === 'platform_audit'
+              ? 'lead_audit_submitted'
+              : 'lead_quick_start_submitted',
+          event_name: 'Submission received',
+          source: submission.source || 'Website',
+          metadata: {
+            submission_type: submission.submission_type,
+            project_type: submission.project_type,
+          },
+        }),
+      ),
+      ...notes.map((note): LeadEvent => ({
+        id: `note-${note.id}`,
+        lead_id: id,
+        created_at: note.created_at,
+        event_type: 'lead_note_added',
+        event_name: 'Internal note added',
+        source: 'Dashboard',
+        metadata: {},
+      })),
+      ...prospectingHistory.rows.map((history): LeadEvent => ({
+        id: `prospecting-${history.id}`,
+        lead_id: id,
+        created_at: history.created_at,
+        event_type: 'prospecting_updated',
+        event_name: 'Prospecting details updated',
+        source: 'Dashboard',
+        metadata: { capture_type: history.captureType },
+      })),
+      {
+        id: `lead-created-${lead.id}`,
+        lead_id: id,
+        created_at: lead.created_at,
+        event_type: 'lead_created',
+        event_name: 'Lead created',
+        source: lead.origin,
+        metadata: {},
+      },
+    ]),
     notes,
     prospectingHistory: prospectingHistory.rows,
     prospectingHistoryPage: historyPage,
@@ -306,7 +372,7 @@ export async function getLeadDetail(
 }
 
 export async function getAnalyticsOverview(dateRange: DateRangeKey = '7d') {
-  const umami = await getUmamiAnalytics(dateRange);
+  const umami = await getCachedUmamiAnalytics(dateRange);
 
   if (umami) {
     return umami;

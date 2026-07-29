@@ -1,10 +1,3 @@
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
 import type { PipelineStageSummary } from '@/lib/dashboard/types';
 import { cn } from '@/lib/utils';
 
@@ -28,46 +21,65 @@ export function PipelineStage({
   stage: PipelineStageSummary;
   maxCount: number;
 }) {
-  const width = Math.max(8, Math.round((stage.count / Math.max(maxCount, 1)) * 100));
+  const width =
+    stage.count === 0
+      ? 0
+      : Math.max(4, Math.round((stage.count / Math.max(maxCount, 1)) * 100));
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between gap-3">
-        <span className="text-sm font-semibold text-foreground">{stage.label}</span>
-        <span className="text-sm text-muted-foreground tabular-nums">{stage.value}</span>
+    <li className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2">
+      <div className="flex min-w-0 items-center gap-2">
+        <span
+          className={cn('size-2 shrink-0 rounded-full', intentClasses[stage.intent])}
+          aria-hidden="true"
+        />
+        <span className="truncate text-sm font-semibold text-foreground">
+          {stage.label}
+        </span>
       </div>
-      <div className="h-2 rounded-md bg-muted/80">
+      <span className="text-sm font-semibold text-foreground tabular-nums">
+        {stage.count.toLocaleString()}
+      </span>
+      <div className="col-span-2 h-1.5 overflow-hidden rounded-full bg-muted">
         <div
-          className={cn('h-2 rounded-md', intentClasses[stage.intent])}
+          className={cn('h-full rounded-full', intentClasses[stage.intent])}
           style={{ width: `${width}%` }}
         />
       </div>
-      <p className="text-xs text-muted-foreground">
-        <span className="font-semibold text-foreground tabular-nums">{stage.count}</span>{' '}
-        leads
-      </p>
-    </div>
+    </li>
   );
 }
 
 export function PipelineCard({ stages }: PipelineCardProps) {
-  const maxCount = Math.max(...stages.map((stage) => stage.count));
+  const maxCount = Math.max(...stages.map((stage) => stage.count), 0);
+  const total = stages.reduce((sum, stage) => sum + stage.count, 0);
 
   return (
-    <Card>
-      <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+    <section className="overflow-hidden rounded-xl border border-border bg-card">
+      <div className="flex items-end justify-between gap-4 border-b border-border px-5 py-5">
         <div>
-          <CardTitle>Revenue movement by stage</CardTitle>
-          <CardDescription>
-            Pipeline health across the persisted CRM statuses.
-          </CardDescription>
+          <p className="text-[0.6875rem] font-semibold tracking-[0.12em] text-primary uppercase">
+            CRM distribution
+          </p>
+          <h2 className="mt-2 text-lg font-semibold tracking-[-0.02em] text-foreground">
+            Pipeline movement
+          </h2>
+          <p className="mt-1 text-sm leading-6 text-muted-foreground">
+            Live lead volume by operating stage.
+          </p>
         </div>
-      </CardHeader>
-      <CardContent className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="text-right">
+          <p className="text-2xl font-semibold tracking-[-0.04em] text-foreground tabular-nums">
+            {total.toLocaleString()}
+          </p>
+          <p className="text-[0.6875rem] text-muted-foreground">Total records</p>
+        </div>
+      </div>
+      <ol className="space-y-5 p-5">
         {stages.map((stage) => (
           <PipelineStage key={stage.status} stage={stage} maxCount={maxCount} />
         ))}
-      </CardContent>
-    </Card>
+      </ol>
+    </section>
   );
 }

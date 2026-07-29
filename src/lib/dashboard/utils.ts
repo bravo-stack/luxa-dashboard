@@ -6,8 +6,6 @@ import {
   type LeadStatus,
 } from './types';
 
-export const qualificationThreshold = 72;
-
 export const statusLabels: Record<LeadStatus, string> = {
   new: 'New',
   contacted: 'Contacted',
@@ -66,7 +64,7 @@ export function isQualifiedNotScheduled(lead: Lead) {
 }
 
 export function isContactedWithoutNextStep(lead: Lead) {
-  return lead.status === 'contacted';
+  return lead.status === 'contacted' && !lead.nextFollowUpAction?.trim();
 }
 
 export function getLeadPriority(lead: Lead): LeadPriority {
@@ -78,7 +76,7 @@ export function getLeadPriority(lead: Lead): LeadPriority {
     return 'contact_overdue';
   }
 
-  if (isQualifiedNotScheduled(lead)) {
+  if (lead.status === 'new') {
     return 'review_next';
   }
 
@@ -137,6 +135,8 @@ export function getEventLabel(eventType: string) {
     lead_status_changed: 'Status changed',
     note_added: 'Note added',
     lead_note_added: 'Note added',
+    lead_created: 'Lead created',
+    prospecting_updated: 'Prospecting details updated',
     proposal_sent: 'Proposal sent',
   };
 

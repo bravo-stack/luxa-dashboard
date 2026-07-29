@@ -1,76 +1,97 @@
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { ArrowDown, LockKeyhole } from 'lucide-react';
+
 import type { FunnelStepSummary } from '@/lib/dashboard/types';
-import { cn } from '@/lib/utils';
 
 type FunnelCardProps = {
   steps: FunnelStepSummary[];
 };
 
-export function FunnelStep({ step, index }: { step: FunnelStepSummary; index: number }) {
+export function FunnelStep({
+  step,
+  index,
+  isLast,
+}: {
+  step: FunnelStepSummary;
+  index: number;
+  isLast: boolean;
+}) {
   return (
-    <div className="grid gap-3 border-b border-border pb-4 last:border-b-0 last:pb-0 sm:grid-cols-[minmax(0,1fr)_110px_90px] sm:items-center">
-      <div>
-        <div className="flex items-center gap-3">
-          <span className="flex size-7 items-center justify-center rounded-sm border border-border bg-muted/50 text-xs font-semibold text-muted-foreground tabular-nums">
-            {index + 1}
-          </span>
-          <span className="text-sm font-semibold text-foreground">{step.label}</span>
+    <li>
+      <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3">
+        <span className="flex size-7 items-center justify-center rounded-full border border-border bg-background text-[0.6875rem] font-semibold text-muted-foreground tabular-nums">
+          {index + 1}
+        </span>
+        <div className="min-w-0">
+          <div className="flex items-center justify-between gap-3">
+            <span className="truncate text-sm font-semibold text-foreground">
+              {step.label}
+            </span>
+            <span className="text-xs font-medium text-muted-foreground">
+              {step.delta}
+            </span>
+          </div>
+          <div className="mt-2 h-8 overflow-hidden rounded-md bg-muted/70">
+            <div
+              className="flex h-full items-center rounded-md bg-primary px-3 text-xs font-semibold text-primary-foreground transition-[width]"
+              style={{ width: `${Math.max(8, Math.min(100, step.rate))}%` }}
+            >
+              <span className="truncate">{step.rate.toFixed(1)}%</span>
+            </div>
+          </div>
         </div>
-        <div className="mt-3 h-2 rounded-sm bg-muted/80">
-          <div
-            className="h-2 rounded-sm bg-primary"
-            style={{ width: `${Math.min(100, step.rate)}%` }}
-          />
-        </div>
+        <span className="min-w-14 text-right text-xl font-semibold tracking-[-0.03em] text-foreground tabular-nums">
+          {step.value.toLocaleString()}
+        </span>
       </div>
-      <span className="text-xl font-semibold text-foreground tabular-nums sm:text-right">
-        {step.value.toLocaleString()}
-      </span>
-      <span
-        className={cn(
-          'rounded-sm border px-2.5 py-1 text-center text-xs font-semibold',
-          step.delta.startsWith('-')
-            ? 'border-destructive/20 bg-destructive/10 text-destructive'
-            : 'border-success/20 bg-success/10 text-success',
-        )}
-      >
-        {step.delta}
-      </span>
-    </div>
+      {!isLast ? (
+        <div className="ml-3.5 flex h-7 items-center border-l border-dashed border-border pl-4 text-muted-foreground">
+          <ArrowDown className="size-3.5 -translate-x-[1.2rem]" aria-hidden="true" />
+        </div>
+      ) : null}
+    </li>
   );
 }
 
 export function FunnelCard({ steps }: FunnelCardProps) {
   return (
-    <Card>
-      <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+    <section className="overflow-hidden rounded-xl border border-border bg-card shadow-[0_18px_55px_rgba(18,24,40,0.045)]">
+      <div className="flex items-start justify-between gap-4 border-b border-border px-5 py-5">
         <div>
-          <CardTitle>Behavior to booked intent</CardTitle>
-          <CardDescription>
-            Directional event rates against page views; anonymous sessions are not
-            stitched into user profiles.
-          </CardDescription>
+          <p className="text-[0.6875rem] font-semibold tracking-[0.12em] text-primary uppercase">
+            Ordered conversion
+          </p>
+          <h2 className="mt-2 text-lg font-semibold tracking-[-0.02em] text-foreground">
+            Intent funnel
+          </h2>
+          <p className="mt-1 text-sm leading-6 text-muted-foreground">
+            Anonymous visitors completing each step in sequence.
+          </p>
         </div>
-        <p className="text-sm text-muted-foreground">Privacy-safe</p>
-      </CardHeader>
-      <CardContent className="space-y-4">
+        <div
+          className="flex size-9 shrink-0 items-center justify-center rounded-full border border-border bg-muted/50 text-muted-foreground"
+          title="Privacy-safe anonymous funnel"
+        >
+          <LockKeyhole className="size-4" aria-hidden="true" />
+        </div>
+      </div>
+      <div className="p-5">
         {steps.length ? (
-          steps.map((step, index) => (
-            <FunnelStep key={step.key} step={step} index={index} />
-          ))
+          <ol>
+            {steps.map((step, index) => (
+              <FunnelStep
+                key={step.key}
+                step={step}
+                index={index}
+                isLast={index === steps.length - 1}
+              />
+            ))}
+          </ol>
         ) : (
-          <div className="rounded-md border border-dashed border-border bg-muted/20 p-6 text-sm leading-6 text-muted-foreground">
-            No conversion data yet. Once visitors begin completing the audit form, this
-            chart will show step completion and drop-off.
+          <div className="rounded-lg border border-dashed border-border bg-muted/20 p-6 text-sm leading-6 text-muted-foreground">
+            The ordered funnel will populate after visitors begin the form.
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </section>
   );
 }

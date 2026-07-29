@@ -1,13 +1,23 @@
 import 'server-only';
 
+import {
+  compareTrend,
+  conversionSeries,
+  fillDailySeries,
+  percentageRate,
+} from '@/lib/analytics/math';
 import type {
+  ActivityCell,
   AnalyticsSummary,
   DateRange,
   DateRangeKey,
   FunnelStepSummary,
   MetricSummary,
+  PageQualitySummary,
+  RealtimeSummary,
   SourceSummary,
-  TrendDirection,
+  WebVitalKey,
+  WebVitalSummary,
 } from '@/lib/dashboard/types';
 
 const eventNames = [
@@ -34,15 +44,96 @@ type EventSeriesPoint = {
   y: number;
 };
 
+type MetricPoint = {
+  x: string;
+  y: number;
+};
+
 type PropertyValue = {
   value: string;
   total: number;
+};
+
+type UmamiStats = {
+  pageviews: number;
+  visitors: number;
+  visits: number;
+  bounces: number;
+  totaltime: number;
+  comparison?: Omit<UmamiStats, 'comparison'>;
+};
+
+type UmamiPageviews = {
+  pageviews: MetricPoint[];
+  sessions: MetricPoint[];
+};
+
+type ExpandedMetric = {
+  name: string;
+  pageviews: number;
+  visitors: number;
+  visits: number;
+  bounces: number;
+  totaltime: number;
+};
+
+type FunnelReportStep = {
+  type: 'path' | 'event';
+  value: string;
+  visitors: number;
+  previous: number;
+  dropped: number;
+  dropoff: number | null;
+  remaining: number;
+};
+
+type AttributionReport = {
+  referrer?: Array<{ name: string; value: number }>;
+  paidAds?: Array<{ name: string; value: number }>;
+  utm_source?: Array<{ name: string; value: number }>;
+  utm_medium?: Array<{ name: string; value: number }>;
+  utm_campaign?: Array<{ name: string; value: number }>;
+};
+
+type UtmReport = {
+  utm_source?: Array<{ utm: string; views: number }>;
+  utm_medium?: Array<{ utm: string; views: number }>;
+  utm_campaign?: Array<{ utm: string; views: number }>;
+  utm_content?: Array<{ utm: string; views: number }>;
+  utm_term?: Array<{ utm: string; views: number }>;
+};
+
+type PerformanceValue = {
+  p50: number | null;
+  p75: number | null;
+  p95: number | null;
+};
+
+type PerformanceReport = {
+  summary?: Partial<Record<WebVitalKey, PerformanceValue>> & { count?: number };
+};
+
+type RealtimeResponse = {
+  countries?: Record<string, number>;
+  urls?: Record<string, number>;
+  events?: unknown[];
+  totals?: {
+    views?: number;
+    visitors?: number;
+    events?: number;
+  };
+  timestamp?: number;
 };
 
 type UmamiConfig = {
   apiUrl: string;
   websiteId: string;
   headers: HeadersInit;
+};
+
+type Signal<T> = {
+  name: string;
+  result: PromiseSettledResult<T>;
 };
 
 const rangeDays: Record<DateRangeKey, number> = {
@@ -53,7 +144,7 @@ const rangeDays: Record<DateRangeKey, number> = {
 };
 
 const eventLabels: Record<EventName, string> = {
-  page_viewed: 'Page views',
+  page_viewed: 'Tracked page views',
   lead_form_started: 'Form starts',
   lead_form_step_completed: 'Steps completed',
   lead_form_submitted: 'Forms submitted',
@@ -66,6 +157,22 @@ const eventLabels: Record<EventName, string> = {
   lead_form_abandoned: 'Form abandons',
   language_changed: 'Language changes',
   theme_changed: 'Theme changes',
+};
+
+const vitalMeta: Record<
+  WebVitalKey,
+  {
+    label: string;
+    unit: WebVitalSummary['unit'];
+    good: number;
+    poor: number;
+  }
+> = {
+  lcp: { label: 'Largest Contentful Paint', unit: 'ms', good: 2_500, poor: 4_000 },
+  inp: { label: 'Interaction to Next Paint', unit: 'ms', good: 200, poor: 500 },
+  cls: { label: 'Cumulative Layout Shift', unit: 'score', good: 0.1, poor: 0.25 },
+  fcp: { label: 'First Contentful Paint', unit: 'ms', good: 1_800, poor: 3_000 },
+  ttfb: { label: 'Time to First Byte', unit: 'ms', good: 800, poor: 1_800 },
 };
 
 function getConfig(): UmamiConfig | null {
@@ -94,17 +201,35 @@ function getConfig(): UmamiConfig | null {
 
 function getDateRange(key: DateRangeKey) {
   const endAt = Date.now();
-  const startAt = endAt - rangeDays[key] * 24 * 60 * 60 * 1000;
-  const previousStartAt = startAt - rangeDays[key] * 24 * 60 * 60 * 1000;
+  const startAt = endAt - rangeDays[key] * 24 * 60 * 60 * 1_000;
+  const previousStartAt = startAt - rangeDays[key] * 24 * 60 * 60 * 1_000;
 
   return { startAt, endAt, previousStartAt };
 }
 
-async function getJson<T>(config: UmamiConfig, path: string): Promise<T> {
+function rangeParams(startAt: number, endAt: number, extras = {}) {
+  return new URLSearchParams({
+    startAt: String(startAt),
+    endAt: String(endAt),
+    unit: 'day',
+    timezone: 'UTC',
+    ...extras,
+  });
+}
+
+async function requestJson<T>(
+  config: UmamiConfig,
+  path: string,
+  body?: Record<string, unknown>,
+): Promise<T> {
   const response = await fetch(`${config.apiUrl}${path}`, {
-    headers: config.headers,
+    method: body ? 'POST' : 'GET',
+    headers: body
+      ? { ...config.headers, 'Content-Type': 'application/json' }
+      : config.headers,
+    body: body ? JSON.stringify(body) : undefined,
     cache: 'no-store',
-    signal: AbortSignal.timeout(8_000),
+    signal: AbortSignal.timeout(12_000),
   });
 
   if (!response.ok) {
@@ -118,50 +243,35 @@ function unwrapArray<T>(value: T[] | { data?: T[] }): T[] {
   return Array.isArray(value) ? value : (value.data ?? []);
 }
 
-async function getEventSeries(config: UmamiConfig, startAt: number, endAt: number) {
-  const params = new URLSearchParams({
-    startAt: String(startAt),
-    endAt: String(endAt),
-    unit: 'day',
-    timezone: 'UTC',
-  });
-  const result = await getJson<EventSeriesPoint[] | { data?: EventSeriesPoint[] }>(
-    config,
-    `/websites/${config.websiteId}/events/series?${params}`,
-  );
-
-  return unwrapArray(result).filter(
-    (point) =>
-      typeof point.x === 'string' &&
-      typeof point.t === 'string' &&
-      Number.isFinite(point.y),
-  );
+function fulfilled<T>(signal: Signal<T>, fallback: T): T {
+  return signal.result.status === 'fulfilled' ? signal.result.value : fallback;
 }
 
-async function getPropertyValues(
-  config: UmamiConfig,
-  startAt: number,
-  endAt: number,
-  eventName: EventName,
-  propertyName: string,
-) {
-  const params = new URLSearchParams({
-    startAt: String(startAt),
-    endAt: String(endAt),
-    eventName,
-    propertyName,
-  });
-  const result = await getJson<PropertyValue[] | { data?: PropertyValue[] }>(
-    config,
-    `/websites/${config.websiteId}/event-data/values?${params}`,
-  );
+function metric(
+  key: string,
+  label: string,
+  value: number | string,
+  current: number,
+  previous: number,
+  note: string,
+  inverseTrend = false,
+): MetricSummary {
+  const change = compareTrend(current, previous);
+  const trendDirection =
+    inverseTrend && change.direction !== 'flat'
+      ? change.direction === 'up'
+        ? 'down'
+        : 'up'
+      : change.direction;
 
-  return unwrapArray(result).filter(
-    (item) =>
-      typeof item.value === 'string' &&
-      item.value.length > 0 &&
-      Number.isFinite(item.total),
-  );
+  return {
+    key,
+    label,
+    value,
+    trend: change.label,
+    trendDirection,
+    note,
+  };
 }
 
 function totalEvents(points: EventSeriesPoint[], eventName: EventName) {
@@ -170,107 +280,11 @@ function totalEvents(points: EventSeriesPoint[], eventName: EventName) {
     .reduce((total, point) => total + point.y, 0);
 }
 
-function trend(current: number, previous: number) {
-  if (current === previous) {
-    return { label: 'No change', direction: 'flat' as TrendDirection };
-  }
-
-  if (previous === 0) {
-    return { label: 'New', direction: 'up' as TrendDirection };
-  }
-
-  const percentage = Math.round(((current - previous) / previous) * 100);
-
-  return {
-    label: `${percentage > 0 ? '+' : ''}${percentage}%`,
-    direction: percentage > 0 ? ('up' as const) : ('down' as const),
-  };
-}
-
-function metric(
-  key: EventName,
-  label: string,
-  note: string,
-  currentPoints: EventSeriesPoint[],
-  previousPoints: EventSeriesPoint[],
-): MetricSummary {
-  const value = totalEvents(currentPoints, key);
-  const change = trend(value, totalEvents(previousPoints, key));
-
-  return {
-    key,
-    label,
-    value,
-    trend: change.label,
-    trendDirection: change.direction,
-    note,
-  };
-}
-
-function toDateKey(value: string) {
-  return value.slice(0, 10);
-}
-
-function formatDateLabel(value: string) {
-  return new Intl.DateTimeFormat('en', {
-    month: 'short',
-    day: 'numeric',
-    timeZone: 'UTC',
-  }).format(new Date(`${value}T00:00:00.000Z`));
-}
-
-function dailySeries(
-  points: EventSeriesPoint[],
-  eventName: EventName,
-  startAt: number,
-  endAt: number,
-  context: string,
-): SourceSummary[] {
-  const totals = new Map<string, number>();
-
-  for (const point of points) {
-    if (point.x === eventName) {
-      const key = toDateKey(point.t);
-      totals.set(key, (totals.get(key) ?? 0) + point.y);
-    }
-  }
-
-  const result: SourceSummary[] = [];
-  const cursor = new Date(startAt);
-  cursor.setUTCHours(0, 0, 0, 0);
-  const last = new Date(endAt);
-  last.setUTCHours(0, 0, 0, 0);
-
-  while (cursor <= last) {
-    const key = cursor.toISOString().slice(0, 10);
-    result.push({
-      key,
-      label: formatDateLabel(key),
-      value: totals.get(key) ?? 0,
-      context,
-    });
-    cursor.setUTCDate(cursor.getUTCDate() + 1);
-  }
-
-  return result;
-}
-
-function conversionSeries(
-  views: SourceSummary[],
-  submissions: SourceSummary[],
-): SourceSummary[] {
-  return views.map((view, index) => ({
-    key: view.key,
-    label: view.label,
-    value:
-      view.value > 0
-        ? Number((((submissions[index]?.value ?? 0) / view.value) * 100).toFixed(1))
-        : 0,
-    context: 'Page view to submission',
-  }));
-}
-
 function labelValue(value: string) {
+  if (value === '') {
+    return 'Direct';
+  }
+
   if (value.startsWith('/')) {
     return value === '/'
       ? 'Home'
@@ -288,15 +302,40 @@ function labelValue(value: string) {
     .replace(/\b\w/g, (character) => character.toUpperCase());
 }
 
-function toSummary(values: PropertyValue[], context: string, limit = 6): SourceSummary[] {
+function toSummary(
+  values: Array<{
+    value?: string | number;
+    total?: number;
+    name?: string;
+    x?: string;
+    y?: number;
+    utm?: string;
+    views?: number;
+  }>,
+  context: string,
+  limit = 8,
+): SourceSummary[] {
   return values
-    .slice()
-    .sort((first, second) => second.total - first.total)
+    .map((item) => {
+      const key =
+        typeof item.value === 'string'
+          ? item.value
+          : (item.name ?? item.x ?? item.utm ?? '');
+      const value =
+        item.total ??
+        item.y ??
+        item.views ??
+        (typeof item.value === 'number' ? item.value : 0);
+
+      return { key, value };
+    })
+    .filter((item) => item.key.length > 0 && Number.isFinite(item.value))
+    .sort((first, second) => second.value - first.value)
     .slice(0, limit)
     .map((item) => ({
-      key: item.value,
-      label: labelValue(item.value),
-      value: item.total,
+      key: item.key,
+      label: labelValue(item.key),
+      value: item.value,
       context,
     }));
 }
@@ -313,25 +352,201 @@ function mergeValues(groups: PropertyValue[][]) {
   return Array.from(totals, ([value, total]) => ({ value, total }));
 }
 
-function funnelStep(
-  eventName: EventName,
+function pageQuality(items: ExpandedMetric[]): PageQualitySummary[] {
+  return items
+    .slice()
+    .sort((first, second) => second.pageviews - first.pageviews)
+    .slice(0, 10)
+    .map((item) => ({
+      key: item.name,
+      label: labelValue(item.name),
+      value: item.pageviews,
+      context: 'Native page views',
+      pageviews: item.pageviews,
+      visitors: item.visitors,
+      visits: item.visits,
+      bounces: item.bounces,
+      bounceRate: percentageRate(item.bounces, item.visits),
+      averageTimeSeconds:
+        item.visits > 0 ? Number((item.totaltime / item.visits / 1_000).toFixed(1)) : 0,
+    }));
+}
+
+function fallbackFunnel(
   points: EventSeriesPoint[],
   previousPoints: EventSeriesPoint[],
-  pageViews: number,
-): FunnelStepSummary {
-  const value = totalEvents(points, eventName);
+): FunnelStepSummary[] {
+  const steps: EventName[] = [
+    'page_viewed',
+    'lead_form_started',
+    'lead_form_submitted',
+    'book_call_clicked',
+  ];
+  const baseline = totalEvents(points, 'page_viewed');
 
+  return steps.map((eventName) => {
+    const value = totalEvents(points, eventName);
+
+    return {
+      key: eventName,
+      label: eventLabels[eventName],
+      value,
+      rate: percentageRate(value, baseline),
+      delta: compareTrend(value, totalEvents(previousPoints, eventName)).label,
+    };
+  });
+}
+
+function orderedFunnel(
+  report: FunnelReportStep[],
+  points: EventSeriesPoint[],
+  previousPoints: EventSeriesPoint[],
+): FunnelStepSummary[] {
+  if (report.length < 2) {
+    return fallbackFunnel(points, previousPoints);
+  }
+
+  const baseline = report[0]?.visitors ?? 0;
+
+  return report.map((step) => ({
+    key: step.value,
+    label:
+      step.value in eventLabels
+        ? eventLabels[step.value as EventName]
+        : labelValue(step.value),
+    value: step.visitors,
+    rate:
+      baseline > 0
+        ? percentageRate(step.visitors, baseline)
+        : Number((step.remaining * 100).toFixed(1)),
+    delta:
+      step.dropoff === null ? 'Entry' : `${Math.round(step.dropoff * 100)}% drop-off`,
+  }));
+}
+
+function weeklyActivity(matrix: number[][]): ActivityCell[] {
+  return matrix.flatMap((hours, day) =>
+    hours.map((value, hour) => ({ day, hour, value: Number(value) || 0 })),
+  );
+}
+
+function vitalRating(
+  value: number | null,
+  meta: (typeof vitalMeta)[WebVitalKey],
+): WebVitalSummary['rating'] {
+  if (value === null) {
+    return 'unavailable';
+  }
+
+  if (value <= meta.good) {
+    return 'good';
+  }
+
+  return value <= meta.poor ? 'needs-improvement' : 'poor';
+}
+
+function webVitals(report: PerformanceReport): WebVitalSummary[] {
+  return (Object.keys(vitalMeta) as WebVitalKey[]).map((key) => {
+    const meta = vitalMeta[key];
+    const values = report.summary?.[key];
+    const p75 = values?.p75 ?? null;
+
+    return {
+      key,
+      label: meta.label,
+      p50: values?.p50 ?? null,
+      p75,
+      p95: values?.p95 ?? null,
+      unit: meta.unit,
+      rating: vitalRating(p75, meta),
+    };
+  });
+}
+
+function objectSummary(
+  values: Record<string, number> | undefined,
+  context: string,
+): SourceSummary[] {
+  return toSummary(
+    Object.entries(values ?? {}).map(([name, value]) => ({ name, total: value })),
+    context,
+  );
+}
+
+function realtimeSummary(
+  realtime: RealtimeResponse,
+  activeVisitors: number,
+): RealtimeSummary {
   return {
-    key: eventName,
-    label: eventLabels[eventName],
-    value,
-    rate: pageViews > 0 ? Number(((value / pageViews) * 100).toFixed(1)) : 0,
-    delta: trend(value, totalEvents(previousPoints, eventName)).label,
+    activeVisitors,
+    views: realtime.totals?.views ?? 0,
+    visitors: realtime.totals?.visitors ?? 0,
+    events: realtime.totals?.events ?? realtime.events?.length ?? 0,
+    topPages: objectSummary(realtime.urls, 'Last 30 minutes'),
+    topCountries: objectSummary(realtime.countries, 'Last 30 minutes'),
+    updatedAt: new Date(realtime.timestamp ?? Date.now()).toISOString(),
   };
 }
 
-function settledValue<T>(result: PromiseSettledResult<T>, fallback: T): T {
-  return result.status === 'fulfilled' ? result.value : fallback;
+function signalAvailability(signals: Array<Signal<unknown>>) {
+  return {
+    available: signals
+      .filter((signal) => signal.result.status === 'fulfilled')
+      .map((signal) => signal.name),
+    unavailable: signals
+      .filter((signal) => signal.result.status === 'rejected')
+      .map((signal) => signal.name),
+    lastUpdated: new Date().toISOString(),
+  };
+}
+
+async function getEventSeries(config: UmamiConfig, startAt: number, endAt: number) {
+  const result = await requestJson<EventSeriesPoint[] | { data?: EventSeriesPoint[] }>(
+    config,
+    `/websites/${config.websiteId}/events/series?${rangeParams(startAt, endAt)}`,
+  );
+
+  return unwrapArray(result).filter(
+    (point) =>
+      typeof point.x === 'string' &&
+      typeof point.t === 'string' &&
+      Number.isFinite(point.y),
+  );
+}
+
+async function getPropertyValues(
+  config: UmamiConfig,
+  startAt: number,
+  endAt: number,
+  event: EventName,
+  propertyName: string,
+) {
+  const params = rangeParams(startAt, endAt, { event, propertyName });
+  const result = await requestJson<PropertyValue[] | { data?: PropertyValue[] }>(
+    config,
+    `/websites/${config.websiteId}/event-data/values?${params}`,
+  );
+
+  return unwrapArray(result).filter(
+    (item) =>
+      typeof item.value === 'string' &&
+      item.value.length > 0 &&
+      Number.isFinite(item.total),
+  );
+}
+
+async function getMetric(
+  config: UmamiConfig,
+  startAt: number,
+  endAt: number,
+  type: string,
+) {
+  return requestJson<MetricPoint[]>(
+    config,
+    `/websites/${config.websiteId}/metrics?${rangeParams(startAt, endAt, {
+      type,
+    })}`,
+  );
 }
 
 export async function getUmamiAnalytics(
@@ -344,157 +559,387 @@ export async function getUmamiAnalytics(
   }
 
   const { startAt, endAt, previousStartAt } = getDateRange(dateRangeKey);
-
-  try {
-    const [points, previousPoints] = await Promise.all([
-      getEventSeries(config, startAt, endAt),
-      getEventSeries(config, previousStartAt, startAt),
-    ]);
-
-    const propertyResults = await Promise.allSettled([
-      getPropertyValues(config, startAt, endAt, 'page_viewed', 'pathname'),
-      getPropertyValues(config, startAt, endAt, 'page_viewed', 'referrer'),
-      getPropertyValues(config, startAt, endAt, 'page_viewed', 'utm_campaign'),
-      getPropertyValues(config, startAt, endAt, 'page_viewed', 'device_category'),
+  const reportParameters = {
+    startDate: new Date(startAt).toISOString(),
+    endDate: new Date(endAt).toISOString(),
+    timezone: 'UTC',
+  };
+  const requests = [
+    [
+      'stats',
+      requestJson<UmamiStats>(
+        config,
+        `/websites/${config.websiteId}/stats?${rangeParams(startAt, endAt, {
+          compare: 'prev',
+        })}`,
+      ),
+    ],
+    [
+      'traffic-series',
+      requestJson<UmamiPageviews>(
+        config,
+        `/websites/${config.websiteId}/pageviews?${rangeParams(startAt, endAt, {
+          compare: 'prev',
+        })}`,
+      ),
+    ],
+    [
+      'active-visitors',
+      requestJson<{ visitors: number }>(config, `/websites/${config.websiteId}/active`),
+    ],
+    ['realtime', requestJson<RealtimeResponse>(config, `/realtime/${config.websiteId}`)],
+    ['events', getEventSeries(config, startAt, endAt)],
+    ['previous-events', getEventSeries(config, previousStartAt, startAt)],
+    [
+      'page-quality',
+      requestJson<ExpandedMetric[]>(
+        config,
+        `/websites/${config.websiteId}/metrics/expanded?${rangeParams(startAt, endAt, {
+          type: 'path',
+        })}`,
+      ),
+    ],
+    ['channels', getMetric(config, startAt, endAt, 'channel')],
+    ['entry-pages', getMetric(config, startAt, endAt, 'entry')],
+    ['exit-pages', getMetric(config, startAt, endAt, 'exit')],
+    ['referrers', getMetric(config, startAt, endAt, 'referrer')],
+    ['devices', getMetric(config, startAt, endAt, 'device')],
+    ['browsers', getMetric(config, startAt, endAt, 'browser')],
+    ['operating-systems', getMetric(config, startAt, endAt, 'os')],
+    ['countries', getMetric(config, startAt, endAt, 'country')],
+    ['regions', getMetric(config, startAt, endAt, 'region')],
+    ['cities', getMetric(config, startAt, endAt, 'city')],
+    ['languages', getMetric(config, startAt, endAt, 'language')],
+    ['screens', getMetric(config, startAt, endAt, 'screen')],
+    [
+      'weekly-activity',
+      requestJson<number[][]>(
+        config,
+        `/websites/${config.websiteId}/sessions/weekly?${rangeParams(startAt, endAt)}`,
+      ),
+    ],
+    [
+      'performance',
+      requestJson<PerformanceReport>(config, '/reports/performance', {
+        websiteId: config.websiteId,
+        type: 'performance',
+        filters: {},
+        parameters: reportParameters,
+      }),
+    ],
+    [
+      'ordered-funnel',
+      requestJson<FunnelReportStep[]>(config, '/reports/funnel', {
+        websiteId: config.websiteId,
+        type: 'funnel',
+        filters: {},
+        parameters: {
+          ...reportParameters,
+          steps: [
+            { type: 'event', value: 'lead_form_started' },
+            { type: 'event', value: 'lead_form_submitted' },
+            { type: 'event', value: 'book_call_clicked' },
+          ],
+          window: rangeDays[dateRangeKey],
+        },
+      }),
+    ],
+    [
+      'attribution',
+      requestJson<AttributionReport>(config, '/reports/attribution', {
+        websiteId: config.websiteId,
+        type: 'attribution',
+        filters: {},
+        parameters: {
+          ...reportParameters,
+          model: 'first-click',
+          type: 'event',
+          step: 'lead_form_submitted',
+        },
+      }),
+    ],
+    [
+      'utm',
+      requestJson<UtmReport>(config, '/reports/utm', {
+        websiteId: config.websiteId,
+        type: 'utm',
+        filters: {},
+        parameters: reportParameters,
+      }),
+    ],
+    [
+      'form-values',
       getPropertyValues(config, startAt, endAt, 'lead_form_submitted', 'form'),
+    ],
+    [
+      'industry-values',
       getPropertyValues(config, startAt, endAt, 'lead_form_submitted', 'industry'),
+    ],
+    [
+      'book-placements',
       getPropertyValues(config, startAt, endAt, 'book_call_clicked', 'placement'),
+    ],
+    [
+      'email-placements',
       getPropertyValues(config, startAt, endAt, 'email_clicked', 'placement'),
+    ],
+    [
+      'pricing-placements',
       getPropertyValues(config, startAt, endAt, 'pricing_cta_clicked', 'placement'),
+    ],
+    [
+      'case-study-placements',
       getPropertyValues(config, startAt, endAt, 'case_study_clicked', 'placement'),
-    ]);
-    const propertyValues = propertyResults.map((result) => settledValue(result, []));
-    const paths = propertyValues[0] ?? [];
-    const referrers = propertyValues[1] ?? [];
-    const campaigns = propertyValues[2] ?? [];
-    const devices = propertyValues[3] ?? [];
-    const forms = propertyValues[4] ?? [];
-    const industries = propertyValues[5] ?? [];
-    const bookPlacements = propertyValues[6] ?? [];
-    const emailPlacements = propertyValues[7] ?? [];
-    const pricingPlacements = propertyValues[8] ?? [];
-    const caseStudyPlacements = propertyValues[9] ?? [];
-    const pageViews = totalEvents(points, 'page_viewed');
-    const dailyPageViews = dailySeries(
-      points,
-      'page_viewed',
-      startAt,
-      endAt,
-      'Tracked page views',
+    ],
+  ] as const;
+  const settled = await Promise.allSettled(requests.map(([, request]) => request));
+  const signals = requests.map(([name], index) => ({
+    name,
+    result: settled[index],
+  })) as Array<Signal<unknown>>;
+  const byName = new Map(signals.map((signal) => [signal.name, signal]));
+  const read = <T>(name: string, fallback: T) =>
+    fulfilled(
+      (byName.get(name) ?? { name, result: { status: 'rejected' } }) as Signal<T>,
+      fallback,
     );
-    const dailySubmissions = dailySeries(
-      points,
-      'lead_form_submitted',
-      startAt,
-      endAt,
-      'Validated form submissions',
-    );
-    const dateRange: DateRange = {
-      key: dateRangeKey,
-      label: `Last ${rangeDays[dateRangeKey]} days`,
-      from: new Date(startAt).toISOString(),
-      to: new Date(endAt).toISOString(),
-    };
+  const stats = read<UmamiStats>('stats', {
+    pageviews: 0,
+    visitors: 0,
+    visits: 0,
+    bounces: 0,
+    totaltime: 0,
+  });
+  const points = read<EventSeriesPoint[]>('events', []);
 
-    return {
-      dateRange,
-      metrics: [
-        metric(
-          'page_viewed',
-          'Page views',
-          'Tracked App Router paths',
-          points,
-          previousPoints,
-        ),
-        metric(
-          'lead_form_started',
-          'Form starts',
-          'First form interaction',
-          points,
-          previousPoints,
-        ),
-        metric(
-          'lead_form_step_completed',
-          'Steps completed',
-          'Valid advances',
-          points,
-          previousPoints,
-        ),
-        metric(
-          'lead_form_submitted',
-          'Forms submitted',
-          'Frontend success states',
-          points,
-          previousPoints,
-        ),
-        metric(
-          'book_call_clicked',
-          'Book-call clicks',
-          'Scheduling intent',
-          points,
-          previousPoints,
-        ),
-        metric(
-          'email_clicked',
-          'Email clicks',
-          'Direct contact intent',
-          points,
-          previousPoints,
-        ),
-      ],
-      funnel: [
-        funnelStep('page_viewed', points, previousPoints, pageViews),
-        funnelStep('lead_form_started', points, previousPoints, pageViews),
-        funnelStep('lead_form_submitted', points, previousPoints, pageViews),
-        funnelStep('book_call_clicked', points, previousPoints, pageViews),
-      ],
-      dailyVisitors: dailyPageViews,
-      dailyFormStarts: dailySeries(
-        points,
-        'lead_form_started',
-        startAt,
-        endAt,
-        'First form interactions',
-      ),
-      dailySubmissions,
-      dailyScheduleClicks: dailySeries(
-        points,
-        'book_call_clicked',
-        startAt,
-        endAt,
-        'Book-call clicks',
-      ),
-      dailyConversionRate: conversionSeries(dailyPageViews, dailySubmissions),
-      ctaClicksBySource: toSummary(
-        mergeValues([
-          bookPlacements,
-          emailPlacements,
-          pricingPlacements,
-          caseStudyPlacements,
-        ]),
-        'Conversion interactions',
-      ),
-      eventVolume: eventNames
-        .map((eventName) => ({
-          key: eventName,
-          label: eventLabels[eventName],
-          value: totalEvents(points, eventName),
-          context: 'Tracked events',
-        }))
-        .filter((item) => item.value > 0),
-      formPerformance: toSummary(forms, 'Submitted forms'),
-      industryPerformance: toSummary(industries, 'Submitted forms'),
-      deviceCategories: toSummary(devices, 'Page views'),
-      submissionsByProjectType: [],
-      submissionsByIndustry: toSummary(industries, 'Submitted forms'),
-      submissionsByBudget: [],
-      submissionsByTimeline: [],
-      topLandingPages: toSummary(paths, 'Page views'),
-      topReferrers: toSummary(referrers, 'Page views'),
-      utmCampaignPerformance: toSummary(campaigns, 'Page views'),
-      source: 'umami',
-    };
-  } catch {
+  if (
+    stats.pageviews === 0 &&
+    points.length === 0 &&
+    byName.get('stats')?.result.status === 'rejected'
+  ) {
     return null;
   }
+
+  const previousPoints = read<EventSeriesPoint[]>('previous-events', []);
+  const traffic = read<UmamiPageviews>('traffic-series', {
+    pageviews: [],
+    sessions: [],
+  });
+  const comparison = stats.comparison ?? {
+    pageviews: 0,
+    visitors: 0,
+    visits: 0,
+    bounces: 0,
+    totaltime: 0,
+  };
+  const submissions = totalEvents(points, 'lead_form_submitted');
+  const previousSubmissions = totalEvents(previousPoints, 'lead_form_submitted');
+  const conversionRate = percentageRate(submissions, stats.visitors);
+  const previousConversionRate = percentageRate(previousSubmissions, comparison.visitors);
+  const bounceRate = percentageRate(stats.bounces, stats.visits);
+  const previousBounceRate = percentageRate(comparison.bounces, comparison.visits);
+  const averageVisitSeconds =
+    stats.visits > 0 ? Math.round(stats.totaltime / stats.visits / 1_000) : 0;
+  const previousAverageVisitSeconds =
+    comparison.visits > 0
+      ? Math.round(comparison.totaltime / comparison.visits / 1_000)
+      : 0;
+  const dailyPageViews = fillDailySeries(
+    traffic.pageviews,
+    startAt,
+    endAt,
+    'Native page views',
+  );
+  const dailyVisitors = fillDailySeries(
+    traffic.sessions,
+    startAt,
+    endAt,
+    'Unique visitors',
+  );
+  const dailyFormStarts = fillDailySeries(
+    points,
+    startAt,
+    endAt,
+    'First form interactions',
+    'lead_form_started',
+  );
+  const dailySubmissions = fillDailySeries(
+    points,
+    startAt,
+    endAt,
+    'Validated submissions',
+    'lead_form_submitted',
+  );
+  const orderedFunnelReport = read<FunnelReportStep[]>('ordered-funnel', []);
+  const attribution = read<AttributionReport>('attribution', {});
+  const utm = read<UtmReport>('utm', {});
+  const formValues = read<PropertyValue[]>('form-values', []);
+  const industryValues = read<PropertyValue[]>('industry-values', []);
+  const placements = mergeValues([
+    read<PropertyValue[]>('book-placements', []),
+    read<PropertyValue[]>('email-placements', []),
+    read<PropertyValue[]>('pricing-placements', []),
+    read<PropertyValue[]>('case-study-placements', []),
+  ]);
+  const activeVisitors = read<{ visitors: number }>('active-visitors', {
+    visitors: 0,
+  }).visitors;
+  const realtime = read<RealtimeResponse>('realtime', {});
+  const dateRange: DateRange = {
+    key: dateRangeKey,
+    label: `Last ${rangeDays[dateRangeKey]} days`,
+    from: new Date(startAt).toISOString(),
+    to: new Date(endAt).toISOString(),
+  };
+
+  return {
+    dateRange,
+    metrics: [
+      metric(
+        'pageviews',
+        'Page views',
+        stats.pageviews,
+        stats.pageviews,
+        comparison.pageviews,
+        'All native page-view events',
+      ),
+      metric(
+        'visitors',
+        'Visitors',
+        stats.visitors,
+        stats.visitors,
+        comparison.visitors,
+        'Privacy-safe unique sessions',
+      ),
+      metric(
+        'visits',
+        'Visits',
+        stats.visits,
+        stats.visits,
+        comparison.visits,
+        'Hourly return sessions',
+      ),
+      metric(
+        'conversion_rate',
+        'Visitor conversion',
+        `${conversionRate}%`,
+        conversionRate,
+        previousConversionRate,
+        'Visitor to submitted form',
+      ),
+      metric(
+        'bounce_rate',
+        'Bounce rate',
+        `${bounceRate}%`,
+        bounceRate,
+        previousBounceRate,
+        'One-event visits',
+        true,
+      ),
+      metric(
+        'average_visit_time',
+        'Average visit',
+        `${averageVisitSeconds}s`,
+        averageVisitSeconds,
+        previousAverageVisitSeconds,
+        'Engaged time per visit',
+      ),
+      metric(
+        'lead_form_submitted',
+        'Forms submitted',
+        submissions,
+        submissions,
+        previousSubmissions,
+        'Validated completion events',
+      ),
+      metric(
+        'book_call_clicked',
+        'Book-call intent',
+        totalEvents(points, 'book_call_clicked'),
+        totalEvents(points, 'book_call_clicked'),
+        totalEvents(previousPoints, 'book_call_clicked'),
+        'Scheduling clicks',
+      ),
+    ],
+    funnel: orderedFunnel(orderedFunnelReport, points, previousPoints),
+    activeVisitors,
+    dailyPageViews,
+    dailyVisitors,
+    dailyVisits: [],
+    dailyFormStarts,
+    dailySubmissions,
+    dailyScheduleClicks: fillDailySeries(
+      points,
+      startAt,
+      endAt,
+      'Book-call clicks',
+      'book_call_clicked',
+    ),
+    dailyConversionRate: conversionSeries(dailyVisitors, dailySubmissions),
+    ctaClicksBySource: toSummary(placements, 'Conversion interactions'),
+    eventVolume: eventNames
+      .map((eventName) => ({
+        key: eventName,
+        label: eventLabels[eventName],
+        value: totalEvents(points, eventName),
+        context: 'Tracked events',
+      }))
+      .filter((item) => item.value > 0),
+    formPerformance: toSummary(formValues, 'Submitted forms'),
+    industryPerformance: toSummary(industryValues, 'Submitted forms'),
+    deviceCategories: toSummary(read<MetricPoint[]>('devices', []), 'Visitors by device'),
+    submissionsByProjectType: [],
+    submissionsByIndustry: toSummary(industryValues, 'Submitted forms'),
+    submissionsByBudget: [],
+    submissionsByTimeline: [],
+    topLandingPages: toSummary(
+      read<ExpandedMetric[]>('page-quality', []).map((item) => ({
+        name: item.name,
+        total: item.pageviews,
+      })),
+      'Native page views',
+    ),
+    entryPages: toSummary(read<MetricPoint[]>('entry-pages', []), 'Visit entry pages'),
+    exitPages: toSummary(read<MetricPoint[]>('exit-pages', []), 'Visit exit pages'),
+    pageQuality: pageQuality(read<ExpandedMetric[]>('page-quality', [])),
+    topReferrers: toSummary(
+      attribution.referrer?.length
+        ? attribution.referrer
+        : read<MetricPoint[]>('referrers', []),
+      'Visits by referrer',
+    ),
+    channels: toSummary(read<MetricPoint[]>('channels', []), 'Visits by channel'),
+    countries: toSummary(read<MetricPoint[]>('countries', []), 'Visitors by country'),
+    regions: toSummary(read<MetricPoint[]>('regions', []), 'Visitors by region'),
+    cities: toSummary(read<MetricPoint[]>('cities', []), 'Visitors by city'),
+    browsers: toSummary(read<MetricPoint[]>('browsers', []), 'Visitors by browser'),
+    operatingSystems: toSummary(
+      read<MetricPoint[]>('operating-systems', []),
+      'Visitors by operating system',
+    ),
+    screens: toSummary(read<MetricPoint[]>('screens', []), 'Visitors by screen'),
+    languages: toSummary(read<MetricPoint[]>('languages', []), 'Visitors by language'),
+    utmCampaignPerformance: toSummary(
+      attribution.utm_campaign?.length
+        ? attribution.utm_campaign
+        : (utm.utm_campaign ?? []),
+      'Attributed visits',
+    ),
+    utmSources: toSummary(
+      attribution.utm_source?.length ? attribution.utm_source : (utm.utm_source ?? []),
+      'Attributed visits',
+    ),
+    utmMediums: toSummary(
+      attribution.utm_medium?.length ? attribution.utm_medium : (utm.utm_medium ?? []),
+      'Attributed visits',
+    ),
+    utmContent: toSummary(utm.utm_content ?? [], 'Attributed visits'),
+    utmTerms: toSummary(utm.utm_term ?? [], 'Attributed visits'),
+    paidAdSources: toSummary(attribution.paidAds ?? [], 'Attributed conversions'),
+    weeklyActivity: weeklyActivity(read<number[][]>('weekly-activity', [])),
+    webVitals: webVitals(read<PerformanceReport>('performance', {})),
+    realtime: realtimeSummary(realtime, activeVisitors),
+    availability: signalAvailability(signals),
+    source: 'umami',
+  };
 }

@@ -4,6 +4,7 @@ import { getAdminUser } from '@/lib/auth/admin';
 import { getWorkspaceUser } from '@/lib/auth/workspace';
 import {
   deleteSupabaseLead,
+  hasSupabaseLeadOutcomeReason,
   updateSupabaseLead,
 } from '@/lib/dashboard/supabase-repository';
 import { type LeadStatus, leadStatuses } from '@/lib/dashboard/types';
@@ -51,11 +52,21 @@ export async function PATCH(
   }
 
   try {
-    const updated = await updateSupabaseLead(
-      id,
-      { status: payload.status },
-      user.role === 'sales_exec' ? user.id : undefined,
-    );
+    const ownerUserId = user.role === 'sales_exec' ? user.id : undefined;
+
+    if (
+      ['won', 'lost', 'spam'].includes(payload.status) &&
+      !(await hasSupabaseLeadOutcomeReason(id, ownerUserId))
+    ) {
+      return Response.json(
+        {
+          error: 'Add an outcome or disqualification reason before closing this lead.',
+        },
+        { status: 422 },
+      );
+    }
+
+    const updated = await updateSupabaseLead(id, { status: payload.status }, ownerUserId);
 
     if (!updated) {
       return Response.json({ error: 'Lead not found' }, { status: 404 });

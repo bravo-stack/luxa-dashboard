@@ -31,6 +31,9 @@ secret key to the browser.
 | Invite and manage members             |  Yes  |       No        |
 | Read all sessions and security events |  Yes  |       No        |
 | Manage system settings                |  Yes  |       No        |
+| Submit workspace feedback             |  Yes  |       Yes       |
+| Read own feedback                     |  Yes  |       Yes       |
+| Read and triage all feedback          |  Yes  |       No        |
 
 Every Server Component, Server Action, and Route Handler authorizes independently.
 Sales reads and mutations include `owner_user_id = current user`; hidden navigation is
@@ -80,11 +83,13 @@ role or membership schema.
 Before enabling invitations:
 
 1. Apply `supabase/migrations/202607290001_workspace_access_management.sql`.
-2. Configure the production Site URL and `/auth/confirm` allowlist.
-3. Install the invite, recovery, and password-changed templates.
-4. Keep public sign-up disabled and use short Supabase JWT expiry.
-5. Verify an invite, activation, login, reset, session termination, freeze, restore,
-   assignment, and assigned-lead access with a non-production sales account.
+2. Apply `supabase/migrations/202607290002_sales_operations_experience.sql`.
+3. Configure `AUTH_EMAIL_CALLBACK_ORIGIN` and the `/auth/confirm` allowlist.
+4. Install the invite, recovery, and password-changed templates.
+5. Keep public sign-up disabled and use short Supabase JWT expiry.
+6. Verify an invite, activation, login, reset, session termination, freeze, restore,
+   assignment, lead editing, feedback, and assigned-lead access with a non-production
+   sales account.
 
 The application disables and server-blocks invitations when the access registry is
 missing. See `docs/supabase-auth-setup.md` for the exact Supabase configuration.

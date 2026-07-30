@@ -10,6 +10,7 @@ import {
 
 import { DashboardHeader } from '@/components/dashboard/dashboard-header';
 import { MetricRail } from '@/components/dashboard/metric-rail';
+import { LeadStatusGuide } from '@/components/leads/lead-status-guide';
 import { LeadTable } from '@/components/leads/lead-table';
 import { Button } from '@/components/ui/button';
 import { getWorkspaceUser } from '@/lib/auth/workspace';
@@ -150,6 +151,7 @@ export default async function LeadsPage({
         metrics={leadMetrics}
         icons={[UsersRound, TrendingUp, MailQuestion, FileCheck2]}
       />
+      <LeadStatusGuide />
       <LeadTable
         leads={queue.leads}
         total={queue.total}

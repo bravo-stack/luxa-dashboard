@@ -54,11 +54,13 @@ npm run crm:smoke
 - Dashboard and dashboard API routes require an active Supabase workspace user with a
   server-controlled `admin` or `sales_exec` role. Sales access is limited to assigned
   leads; global analytics, export, team administration, and settings remain admin-only.
+- Sales executives can submit and track their own in-app feedback. Administrators can
+  review and triage the complete paginated feedback queue.
 - Lead CSV exports are authenticated, non-cacheable, and neutralize spreadsheet
   formula input.
 
 Sales executives are provisioned only from the admin Team screen after the workspace
-access migration and email templates are configured. See
+access and sales-operations migrations and email templates are configured. See
 `docs/supabase-auth-setup.md`.
 
 The analytics layer fetches signal groups independently. Optional endpoint failures

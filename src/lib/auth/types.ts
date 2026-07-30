@@ -16,6 +16,10 @@ export const workspacePermissions = [
   'leads.export',
   'members.manage',
   'settings.manage',
+  'feedback.submit',
+  'feedback.read_own',
+  'feedback.read_all',
+  'feedback.manage',
 ] as const;
 
 export type WorkspacePermission = (typeof workspacePermissions)[number];

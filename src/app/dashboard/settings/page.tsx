@@ -20,6 +20,7 @@ import { SessionRegistry } from '@/components/settings/session-registry';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { getDashboardAnalytics } from '@/lib/analytics/server';
+import { getApplicationOrigin } from '@/lib/auth/origin';
 import {
   getAccountSecurityOverview,
   getTeamAccessOverview,
@@ -217,11 +218,32 @@ function getAdminMetrics(overview: TeamAccessOverview): MetricSummary[] {
   ];
 }
 
-export default async function SettingsPage() {
+export default async function SettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ password?: string }>;
+}) {
+  const params = await searchParams;
   const user = await getWorkspaceUser();
 
   if (!user) return null;
-  if (user.role !== 'admin') return <AccountSecurityPage user={user} />;
+  const passwordUpdated = params.password === 'updated';
+
+  if (user.role !== 'admin') {
+    return (
+      <>
+        {passwordUpdated ? (
+          <section
+            role="status"
+            className="rounded-lg border border-success/25 bg-success/8 px-5 py-4 text-sm font-medium text-success"
+          >
+            Your password was updated and your account remains signed in securely.
+          </section>
+        ) : null}
+        <AccountSecurityPage user={user} />
+      </>
+    );
+  }
 
   const [analyticsResult, leadsResult, teamResult] = await Promise.allSettled([
     getDashboardAnalytics({ dateRange: '7d' }),
@@ -250,11 +272,7 @@ export default async function SettingsPage() {
   const authConfigured = Boolean(
     process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   );
-  const emailLinksConfigured = Boolean(
-    process.env.NEXT_PUBLIC_APP_URL ||
-    process.env.APP_URL ||
-    process.env.VERCEL_PROJECT_PRODUCTION_URL,
-  );
+  const emailLinksConfigured = Boolean(getApplicationOrigin());
   const readiness: ReadinessItem[] = [
     {
       label: 'Workspace access boundary',
@@ -309,6 +327,14 @@ export default async function SettingsPage() {
 
   return (
     <>
+      {passwordUpdated ? (
+        <section
+          role="status"
+          className="rounded-lg border border-success/25 bg-success/8 px-5 py-4 text-sm font-medium text-success"
+        >
+          Your password was updated and your account remains signed in securely.
+        </section>
+      ) : null}
       <DashboardHeader
         eyebrow="Administration / security"
         title="Workspace security and systems"

@@ -259,7 +259,7 @@ export async function updatePassword(
     metadata: { role: workspaceUser.role },
   });
 
-  redirect('/dashboard');
+  redirect(wasInvited ? '/dashboard?welcome=1' : '/dashboard/settings?password=updated');
 }
 
 export async function logout() {

@@ -28,6 +28,7 @@ export type ManualLeadInput = {
   email: string;
   company: string;
   website?: string;
+  phone?: string;
   icpCategory?: string;
   linkedinProfileUrl?: string;
   focusName?: string;
@@ -36,7 +37,10 @@ export type ManualLeadInput = {
   connectionStatus?: ConnectionStatus;
   lastOutreachDate?: string;
   nextFollowUpAction?: string;
+  nextFollowUpDate?: string;
   painPoints?: string;
+  qualificationNotes?: string;
+  outcomeReason?: string;
   facebookUrl?: string;
   whatsapp?: string;
   projectType: string;
@@ -121,6 +125,7 @@ const leadSubmissionSelect = [
   'email',
   'company',
   'website',
+  'phone',
   'icp_category',
   'linkedin_profile_url',
   'focus_name',
@@ -129,7 +134,10 @@ const leadSubmissionSelect = [
   'connection_status',
   'last_outreach_date',
   'next_follow_up_action',
+  'next_follow_up_date',
   'pain_points',
+  'qualification_notes',
+  'outcome_reason',
   'facebook_url',
   'whatsapp',
   'project_type',
@@ -198,6 +206,7 @@ function normalizeLead(row: Record<string, unknown>): Lead {
     email: String(row.email),
     company: String(row.company),
     website: normalizeHttpUrl(row.website ? String(row.website) : undefined) ?? undefined,
+    phone: row.phone ? String(row.phone) : undefined,
     icpCategory: row.icp_category ? String(row.icp_category) : undefined,
     linkedinProfileUrl:
       normalizeHttpUrl(
@@ -216,11 +225,28 @@ function normalizeLead(row: Record<string, unknown>): Lead {
     nextFollowUpAction: row.next_follow_up_action
       ? String(row.next_follow_up_action)
       : undefined,
+    nextFollowUpDate: row.next_follow_up_date
+      ? String(row.next_follow_up_date)
+      : undefined,
     painPoints: row.pain_points ? String(row.pain_points) : undefined,
+    qualificationNotes: row.qualification_notes
+      ? String(row.qualification_notes)
+      : undefined,
+    outcomeReason: row.outcome_reason ? String(row.outcome_reason) : undefined,
     facebookUrl:
       normalizeHttpUrl(row.facebook_url ? String(row.facebook_url) : undefined) ??
       undefined,
     whatsapp: row.whatsapp ? String(row.whatsapp) : undefined,
+    projectType: String(row.project_type ?? ''),
+    industry: row.industry ? String(row.industry) : undefined,
+    systemStatus: row.system_status ? String(row.system_status) : undefined,
+    problems: row.problems ? String(row.problems) : undefined,
+    improveFirst: row.improve_first ? String(row.improve_first) : undefined,
+    budget: row.budget ? String(row.budget) : undefined,
+    timeline: row.timeline ? String(row.timeline) : undefined,
+    decisionStage: row.decision_stage ? String(row.decision_stage) : undefined,
+    context: row.context ? String(row.context) : undefined,
+    nextStep: row.next_step ? String(row.next_step) : undefined,
     status: row.status as LeadStatus,
     origin,
     marketingSource,
@@ -338,6 +364,7 @@ export async function insertSupabaseManualLead(
       email: input.email,
       company: input.company,
       website: input.website ?? null,
+      phone: input.phone ?? null,
       icp_category: input.icpCategory ?? null,
       linkedin_profile_url: input.linkedinProfileUrl ?? null,
       focus_name: input.focusName ?? null,
@@ -346,7 +373,10 @@ export async function insertSupabaseManualLead(
       connection_status: input.connectionStatus ?? null,
       last_outreach_date: input.lastOutreachDate ?? null,
       next_follow_up_action: input.nextFollowUpAction ?? null,
+      next_follow_up_date: input.nextFollowUpDate ?? null,
       pain_points: input.painPoints ?? null,
+      qualification_notes: input.qualificationNotes ?? null,
+      outcome_reason: input.outcomeReason ?? null,
       facebook_url: input.facebookUrl ?? null,
       whatsapp: input.whatsapp ?? null,
       project_type: input.projectType,
@@ -452,9 +482,12 @@ export async function getSupabaseLeadQueue(
         `email.ilike.${pattern}`,
         `company.ilike.${pattern}`,
         `website.ilike.${pattern}`,
+        `phone.ilike.${pattern}`,
         `focus_name.ilike.${pattern}`,
         `focus_title.ilike.${pattern}`,
         `pain_points.ilike.${pattern}`,
+        `qualification_notes.ilike.${pattern}`,
+        `outcome_reason.ilike.${pattern}`,
         `project_type.ilike.${pattern}`,
       ].join(','),
     );
@@ -627,6 +660,11 @@ export async function updateSupabaseLead(
   values: Partial<
     Pick<
       Lead,
+      | 'name'
+      | 'email'
+      | 'company'
+      | 'website'
+      | 'phone'
       | 'status'
       | 'icpCategory'
       | 'linkedinProfileUrl'
@@ -636,9 +674,23 @@ export async function updateSupabaseLead(
       | 'connectionStatus'
       | 'lastOutreachDate'
       | 'nextFollowUpAction'
+      | 'nextFollowUpDate'
       | 'painPoints'
+      | 'qualificationNotes'
+      | 'outcomeReason'
       | 'facebookUrl'
       | 'whatsapp'
+      | 'projectType'
+      | 'industry'
+      | 'systemStatus'
+      | 'problems'
+      | 'improveFirst'
+      | 'budget'
+      | 'timeline'
+      | 'decisionStage'
+      | 'context'
+      | 'nextStep'
+      | 'locale'
     >
   >,
   ownerUserId?: string,
@@ -646,6 +698,11 @@ export async function updateSupabaseLead(
   const supabase = await getSupabaseAdminClient();
 
   const databaseValues = {
+    ...(values.name !== undefined ? { full_name: values.name } : {}),
+    ...(values.email !== undefined ? { email: values.email } : {}),
+    ...(values.company !== undefined ? { company: values.company } : {}),
+    ...(values.website !== undefined ? { website: values.website || null } : {}),
+    ...(values.phone !== undefined ? { phone: values.phone || null } : {}),
     ...(values.status !== undefined ? { status: values.status } : {}),
     ...(values.icpCategory !== undefined
       ? { icp_category: values.icpCategory || null }
@@ -669,13 +726,39 @@ export async function updateSupabaseLead(
     ...(values.nextFollowUpAction !== undefined
       ? { next_follow_up_action: values.nextFollowUpAction || null }
       : {}),
+    ...(values.nextFollowUpDate !== undefined
+      ? { next_follow_up_date: values.nextFollowUpDate || null }
+      : {}),
     ...(values.painPoints !== undefined
       ? { pain_points: values.painPoints || null }
+      : {}),
+    ...(values.qualificationNotes !== undefined
+      ? { qualification_notes: values.qualificationNotes || null }
+      : {}),
+    ...(values.outcomeReason !== undefined
+      ? { outcome_reason: values.outcomeReason || null }
       : {}),
     ...(values.facebookUrl !== undefined
       ? { facebook_url: values.facebookUrl || null }
       : {}),
     ...(values.whatsapp !== undefined ? { whatsapp: values.whatsapp || null } : {}),
+    ...(values.projectType !== undefined ? { project_type: values.projectType } : {}),
+    ...(values.industry !== undefined ? { industry: values.industry || null } : {}),
+    ...(values.systemStatus !== undefined
+      ? { system_status: values.systemStatus || null }
+      : {}),
+    ...(values.problems !== undefined ? { problems: values.problems || null } : {}),
+    ...(values.improveFirst !== undefined
+      ? { improve_first: values.improveFirst || null }
+      : {}),
+    ...(values.budget !== undefined ? { budget: values.budget || null } : {}),
+    ...(values.timeline !== undefined ? { timeline: values.timeline || null } : {}),
+    ...(values.decisionStage !== undefined
+      ? { decision_stage: values.decisionStage || null }
+      : {}),
+    ...(values.context !== undefined ? { context: values.context || null } : {}),
+    ...(values.nextStep !== undefined ? { next_step: values.nextStep || null } : {}),
+    ...(values.locale !== undefined ? { locale: values.locale } : {}),
   };
 
   let query = supabase
@@ -709,6 +792,20 @@ export async function getSupabaseLeadOwner(leadId: string) {
 
   if (error) throw new Error(error.message);
   return data?.owner_user_id ? String(data.owner_user_id) : null;
+}
+
+export async function hasSupabaseLeadOutcomeReason(leadId: string, ownerUserId?: string) {
+  const supabase = await getSupabaseAdminClient();
+  let query = supabase.from('lead_submissions').select('outcome_reason').eq('id', leadId);
+
+  if (ownerUserId) {
+    query = query.eq('owner_user_id', ownerUserId);
+  }
+
+  const { data, error } = await query.maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return Boolean(data && String(data.outcome_reason ?? '').trim());
 }
 
 export async function assignSupabaseLead(leadId: string, ownerUserId: string | null) {

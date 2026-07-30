@@ -23,6 +23,7 @@ import { formatDate, originLabels, statusLabels } from '@/lib/dashboard/utils';
 
 import { LeadOwnerSelect } from './lead-owner-select';
 import { LeadStatusBadge } from './lead-status-badge';
+import { LeadStatusGuide } from './lead-status-guide';
 
 type LeadQuickActionsProps = {
   lead: Lead;
@@ -54,6 +55,13 @@ export function LeadQuickActions({
       return;
     }
 
+    if (['won', 'lost', 'spam'].includes(nextStatus) && !lead.outcomeReason?.trim()) {
+      setMutationError(
+        'Add an outcome or disqualification reason in the full record before closing this lead.',
+      );
+      return;
+    }
+
     setMutationError('');
     setStatus(nextStatus);
     startTransition(async () => {
@@ -62,7 +70,11 @@ export function LeadQuickActions({
         router.refresh();
       } catch (error: unknown) {
         setStatus(previousStatus);
-        setMutationError('The lead status could not be saved. Try again.');
+        setMutationError(
+          error instanceof Error
+            ? error.message
+            : 'The lead status could not be saved. Try again.',
+        );
         console.error(error);
       }
     });
@@ -179,6 +191,7 @@ export function LeadQuickActions({
                 ))}
               </SelectContent>
             </Select>
+            <LeadStatusGuide currentStatus={status} />
           </div>
           <Button
             className="w-full justify-start"

@@ -9,6 +9,7 @@ import {
   Target,
   TrendingUp,
   UsersRound,
+  WandSparkles,
 } from 'lucide-react';
 
 import { AnalyticsChartCard } from '@/components/dashboard/analytics-chart-card';
@@ -37,6 +38,7 @@ type DashboardPageProps = {
     range?: string;
     project?: string;
     funnel?: string;
+    welcome?: string;
   }>;
 };
 
@@ -50,8 +52,10 @@ function selectMetrics(metrics: MetricSummary[]) {
 
 async function SalesExecutiveDashboard({
   user,
+  showWelcome,
 }: {
   user: NonNullable<Awaited<ReturnType<typeof getWorkspaceUser>>>;
+  showWelcome: boolean;
 }) {
   const overview = await getSalesWorkspaceOverview(user.id);
   const firstName = user.displayName.split(/\s+/)[0] || 'there';
@@ -62,6 +66,33 @@ async function SalesExecutiveDashboard({
 
   return (
     <>
+      {showWelcome ? (
+        <section
+          role="status"
+          className="grid gap-5 rounded-xl border border-primary/25 bg-surface-premium px-5 py-5 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center sm:px-6"
+        >
+          <span className="grid size-10 place-items-center rounded-full bg-primary text-primary-foreground">
+            <WandSparkles className="size-4" aria-hidden="true" />
+          </span>
+          <div>
+            <p className="text-sm font-semibold text-foreground">
+              Your sales workspace is active
+            </p>
+            <p className="mt-1 text-sm leading-6 text-muted-foreground">
+              Start with your assigned queue. The Sales guide explains every status,
+              qualification field, and follow-up expectation when you need it.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button asChild size="sm">
+              <Link href="/dashboard/leads">Open my leads</Link>
+            </Button>
+            <Button asChild size="sm" variant="outline">
+              <Link href="/dashboard/guide">Read the guide</Link>
+            </Button>
+          </div>
+        </section>
+      ) : null}
       <DashboardHeader
         eyebrow="My workspace / assigned pipeline"
         title={`Good to see you, ${firstName}`}
@@ -130,13 +161,13 @@ async function SalesExecutiveDashboard({
 
 export default async function DashboardPage({ searchParams }: DashboardPageProps) {
   const user = await getWorkspaceUser();
+  const params = await searchParams;
 
   if (!user) return null;
   if (user.role === 'sales_exec') {
-    return <SalesExecutiveDashboard user={user} />;
+    return <SalesExecutiveDashboard user={user} showWelcome={params?.welcome === '1'} />;
   }
 
-  const params = await searchParams;
   const filters = normalizeAnalyticsFilters({
     dateRange: params?.range as DateRangeKey,
     project: params?.project,

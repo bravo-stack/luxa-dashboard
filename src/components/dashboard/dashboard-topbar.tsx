@@ -20,6 +20,8 @@ import { Input } from '@/components/ui/input';
 import type { DashboardIdentity } from '@/lib/auth/types';
 
 const titles = [
+  { href: '/dashboard/feedback', label: 'Feedback' },
+  { href: '/dashboard/guide', label: 'Sales guide' },
   { href: '/dashboard/team', label: 'Team' },
   { href: '/dashboard/analytics', label: 'Analytics' },
   { href: '/dashboard/leads', label: 'Leads' },

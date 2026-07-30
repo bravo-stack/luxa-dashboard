@@ -31,7 +31,7 @@ export default async function SetPasswordPage({
       title={activation ? 'Create your workspace password' : 'Choose a new password'}
       description={
         activation
-          ? `Welcome, ${user.displayName}. Set one strong password to activate your sales workspace.`
+          ? `Welcome, ${user.displayName}. Set one strong password, then continue directly to your sales dashboard.`
           : 'This reset session is verified. Choose a new password to protect your account.'
       }
       statusLabel="Verified secure link"

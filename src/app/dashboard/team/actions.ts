@@ -8,7 +8,10 @@ import {
   getPendingActivationDelivery,
   getUnexpectedInvitationFailureMessage,
 } from '@/lib/auth/invitations';
-import { getApplicationOrigin } from '@/lib/auth/origin';
+import {
+  INVITE_EMAIL_CALLBACK_URL,
+  RECOVERY_EMAIL_CALLBACK_URL,
+} from '@/lib/auth/origin-policy';
 import { recordSecurityEvent, requirePermission } from '@/lib/auth/workspace';
 import { getSupabaseAdminClient } from '@/lib/supabase/admin';
 
@@ -54,11 +57,9 @@ async function getSalesExecutive(userId: string) {
 
 async function sendPendingActivationEmail({
   actorUserId,
-  origin,
   target,
 }: {
   actorUserId: string;
-  origin: string;
   target: InvitationTarget;
 }): Promise<TeamActionState> {
   const supabaseAdmin = getSupabaseAdminClient();
@@ -79,10 +80,10 @@ async function sendPendingActivationEmail({
   const deliveryResult =
     delivery === 'activation_recovery'
       ? await supabaseAdmin.auth.resetPasswordForEmail(target.email, {
-          redirectTo: `${origin}/auth/confirm`,
+          redirectTo: RECOVERY_EMAIL_CALLBACK_URL,
         })
       : await supabaseAdmin.auth.admin.inviteUserByEmail(target.email, {
-          redirectTo: `${origin}/auth/confirm`,
+          redirectTo: INVITE_EMAIL_CALLBACK_URL,
           data: {
             full_name: authUser.user_metadata?.full_name,
             job_title: authUser.user_metadata?.job_title,
@@ -176,16 +177,6 @@ async function runInviteSalesExecutive(
     };
   }
 
-  let origin: string;
-
-  try {
-    origin = await getApplicationOrigin();
-  } catch {
-    return {
-      message: 'Authentication email links are not configured for this deployment.',
-    };
-  }
-
   const existingMember = registryCheck.data.find(
     (member) => String(member.email).trim().toLowerCase() === email,
   );
@@ -203,7 +194,6 @@ async function runInviteSalesExecutive(
     if (existingMember.status === 'invited') {
       return sendPendingActivationEmail({
         actorUserId: admin.id,
-        origin,
         target,
       });
     }
@@ -218,7 +208,7 @@ async function runInviteSalesExecutive(
 
   const now = new Date().toISOString();
   const inviteResult = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
-    redirectTo: `${origin}/auth/confirm`,
+    redirectTo: INVITE_EMAIL_CALLBACK_URL,
     data: {
       full_name: displayName,
       job_title: jobTitle || 'Sales executive',
@@ -343,19 +333,8 @@ async function runResendSalesExecutiveInvitation(
     };
   }
 
-  let origin: string;
-
-  try {
-    origin = await getApplicationOrigin();
-  } catch {
-    return {
-      message: 'Authentication email links are not configured for this deployment.',
-    };
-  }
-
   return sendPendingActivationEmail({
     actorUserId: admin.id,
-    origin,
     target: {
       userId,
       email: String(membershipResult.data.email),

@@ -19,4 +19,9 @@ if (!anonKey) {
 export const supabaseBrowser = createBrowserClient(
   normalizeSupabaseProjectUrl(supabaseUrl),
   anonKey,
+  {
+    auth: {
+      detectSessionInUrl: false,
+    },
+  },
 );

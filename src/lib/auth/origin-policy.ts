@@ -1,8 +1,14 @@
 export const DEFAULT_PRODUCTION_ORIGIN = 'https://luxa-dashboard.vercel.app';
 export const DEFAULT_DEVELOPMENT_ORIGIN = 'http://localhost:3000';
+export const INVITE_EMAIL_CALLBACK_URL =
+  'https://luxa-dashboard.vercel.app/auth/email-callback?mode=invite';
+export const RECOVERY_EMAIL_CALLBACK_URL =
+  'https://luxa-dashboard.vercel.app/auth/email-callback?mode=recovery';
 
 type ApplicationOriginEnvironment = {
   nodeEnv?: string;
+  vercel?: string;
+  vercelEnv?: string;
   authEmailCallbackOrigin?: string;
   nextPublicAppUrl?: string;
   appUrl?: string;
@@ -26,7 +32,11 @@ function normalizeDevelopmentOrigin(value: string | undefined) {
 }
 
 export function resolveApplicationOrigin(environment: ApplicationOriginEnvironment) {
-  if (environment.nodeEnv === 'production') {
+  if (
+    environment.nodeEnv === 'production' ||
+    environment.vercel === '1' ||
+    environment.vercelEnv === 'production'
+  ) {
     return DEFAULT_PRODUCTION_ORIGIN;
   }
 

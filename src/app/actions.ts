@@ -2,7 +2,7 @@
 
 import { redirect } from 'next/navigation';
 
-import { getApplicationOrigin } from '@/lib/auth/origin';
+import { RECOVERY_EMAIL_CALLBACK_URL } from '@/lib/auth/origin-policy';
 import { isWorkspaceRole, validateWorkspacePassword } from '@/lib/auth/policy';
 import { getWorkspaceUser, recordSecurityEvent } from '@/lib/auth/workspace';
 import { getSupabaseAdminClient } from '@/lib/supabase/admin';
@@ -103,19 +103,9 @@ export async function requestPasswordReset(
   }
 
   const supabase = await createSupabaseServerClient();
-  let origin: string;
-
-  try {
-    origin = await getApplicationOrigin();
-  } catch {
-    return {
-      message:
-        'Password recovery is temporarily unavailable. Contact a Luxa administrator.',
-    };
-  }
 
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${origin}/auth/confirm`,
+    redirectTo: RECOVERY_EMAIL_CALLBACK_URL,
   });
 
   await recordSecurityEvent({

@@ -8,6 +8,8 @@ import {
 export function getApplicationOrigin() {
   return resolveApplicationOrigin({
     nodeEnv: process.env.NODE_ENV,
+    vercel: process.env.VERCEL,
+    vercelEnv: process.env.VERCEL_ENV,
     authEmailCallbackOrigin: process.env.AUTH_EMAIL_CALLBACK_ORIGIN,
     nextPublicAppUrl: process.env.NEXT_PUBLIC_APP_URL,
     appUrl: process.env.APP_URL,

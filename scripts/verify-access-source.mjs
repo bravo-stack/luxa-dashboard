@@ -5,6 +5,8 @@ const serverUrl = process.env.SUPABASE_URL ?? publicUrl;
 const secretKey =
   process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
 const appUrl = 'https://luxa-dashboard.vercel.app';
+const inviteCallbackUrl = `${appUrl}/auth/email-callback?mode=invite`;
+const recoveryCallbackUrl = `${appUrl}/auth/email-callback?mode=recovery`;
 const productionRuntime =
   process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production';
 
@@ -94,6 +96,10 @@ console.log(
       ok: true,
       projectRef: new URL(serverUrl).hostname.split('.')[0],
       appOrigin: appUrl,
+      authenticationEmailCallbacks: {
+        invite: inviteCallbackUrl,
+        recovery: recoveryCallbackUrl,
+      },
       members: {
         total: members.count ?? 0,
         active: members.data?.filter((member) => member.status === 'active').length ?? 0,

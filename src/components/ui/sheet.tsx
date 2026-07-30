@@ -28,22 +28,34 @@ SheetOverlay.displayName = SheetPrimitive.Overlay.displayName;
 
 const SheetContent = React.forwardRef<
   React.ElementRef<typeof SheetPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof SheetPrimitive.Content>
->(({ className, children, ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof SheetPrimitive.Content> & {
+    side?: 'left' | 'right';
+  }
+>(({ className, children, side = 'left', ...props }, ref) => (
   <SheetPortal>
     <SheetOverlay />
     <SheetPrimitive.Content
       ref={ref}
       className={cn(
-        'fixed inset-y-0 left-0 z-50 h-full w-[min(86vw,20rem)] border-r border-sidebar-border bg-sidebar text-sidebar-foreground outline-none data-[state=closed]:animate-out data-[state=closed]:slide-out-to-left data-[state=open]:animate-in data-[state=open]:slide-in-from-left',
+        'fixed inset-y-0 z-50 h-full outline-none data-[state=closed]:animate-out data-[state=open]:animate-in',
+        side === 'left'
+          ? 'left-0 w-[min(86vw,20rem)] border-r border-sidebar-border bg-sidebar text-sidebar-foreground data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left'
+          : 'right-0 w-full max-w-md border-l border-border bg-card text-card-foreground data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right',
         className,
       )}
       {...props}
     >
       {children}
-      <SheetPrimitive.Close className="absolute top-3 right-3 inline-flex size-10 items-center justify-center rounded-md text-sidebar-foreground/72 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring focus-visible:outline-none">
+      <SheetPrimitive.Close
+        className={cn(
+          'absolute top-3 right-3 inline-flex size-10 items-center justify-center rounded-md transition-colors focus-visible:ring-2 focus-visible:outline-none',
+          side === 'left'
+            ? 'text-sidebar-foreground/72 hover:bg-sidebar-accent hover:text-sidebar-foreground focus-visible:ring-sidebar-ring'
+            : 'text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:ring-ring',
+        )}
+      >
         <X className="size-5" />
-        <span className="sr-only">Close navigation</span>
+        <span className="sr-only">Close panel</span>
       </SheetPrimitive.Close>
     </SheetPrimitive.Content>
   </SheetPortal>

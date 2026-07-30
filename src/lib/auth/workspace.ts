@@ -208,22 +208,29 @@ async function touchWorkspaceSession(user: WorkspaceUser) {
 }
 
 export async function recordSecurityEvent(input: SecurityEventInput) {
-  const supabaseAdmin = getSupabaseAdminClient();
-  const request = await getRequestMetadata();
-  const { error } = await supabaseAdmin.from('workspace_security_events').insert({
-    action: input.action,
-    actor_user_id: input.actorUserId ?? null,
-    target_user_id: input.targetUserId ?? null,
-    target_email: safeString(input.targetEmail, 320) || null,
-    session_id: input.sessionId ?? null,
-    outcome: input.outcome ?? 'success',
-    ip_address: request.ipAddress,
-    user_agent: request.userAgent,
-    metadata: input.metadata ?? {},
-  });
+  try {
+    const supabaseAdmin = getSupabaseAdminClient();
+    const request = await getRequestMetadata();
+    const { error } = await supabaseAdmin.from('workspace_security_events').insert({
+      action: input.action,
+      actor_user_id: input.actorUserId ?? null,
+      target_user_id: input.targetUserId ?? null,
+      target_email: safeString(input.targetEmail, 320) || null,
+      session_id: input.sessionId ?? null,
+      outcome: input.outcome ?? 'success',
+      ip_address: request.ipAddress,
+      user_agent: request.userAgent,
+      metadata: input.metadata ?? {},
+    });
 
-  if (error && !isMissingWorkspaceTable(error)) {
-    console.error('Unable to write workspace security event', error.message);
+    if (error && !isMissingWorkspaceTable(error)) {
+      console.error('Unable to write workspace security event', error.message);
+    }
+  } catch (error) {
+    console.error(
+      'Unable to write workspace security event',
+      error instanceof Error ? error.name : 'unknown_audit_failure',
+    );
   }
 }
 

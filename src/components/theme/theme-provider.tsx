@@ -54,6 +54,19 @@ function applyTheme(mode: ThemeMode, resolvedTheme: ResolvedTheme) {
   root.style.colorScheme = resolvedTheme;
 }
 
+function setThemeMode(nextMode: ThemeMode) {
+  memoryMode = nextMode;
+  applyTheme(nextMode, nextMode === 'system' ? getSystemTheme() : nextMode);
+
+  try {
+    window.localStorage.setItem(THEME_STORAGE_KEY, nextMode);
+  } catch {
+    // The in-memory preference still works when storage is unavailable.
+  }
+
+  window.dispatchEvent(new Event(themeChangeEvent));
+}
+
 function subscribeToSystemTheme(onStoreChange: () => void) {
   const media = window.matchMedia('(prefers-color-scheme: dark)');
   media.addEventListener('change', onStoreChange);
@@ -101,16 +114,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, [mode, resolvedTheme]);
 
   const setMode = React.useCallback((nextMode: ThemeMode) => {
-    memoryMode = nextMode;
-    applyTheme(nextMode, nextMode === 'system' ? getSystemTheme() : nextMode);
-
-    try {
-      window.localStorage.setItem(THEME_STORAGE_KEY, nextMode);
-    } catch {
-      // The in-memory preference still works when storage is unavailable.
-    }
-
-    window.dispatchEvent(new Event(themeChangeEvent));
+    setThemeMode(nextMode);
   }, []);
 
   return (
@@ -123,9 +127,14 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 export function useTheme() {
   const context = React.useContext(ThemeContext);
 
-  if (!context) {
-    throw new Error('useTheme must be used within ThemeProvider');
-  }
+  if (context) return context;
 
-  return context;
+  // Keep the control usable during a transient RSC recovery or development refresh.
+  const mode = getStoredMode();
+
+  return {
+    mode,
+    resolvedTheme: mode === 'system' ? getSystemTheme() : mode,
+    setMode: setThemeMode,
+  };
 }

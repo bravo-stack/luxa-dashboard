@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  getInvitationExceptionCode,
   getInvitationFailureMessage,
   getPendingActivationDelivery,
+  getUnexpectedInvitationFailureMessage,
   isDuplicateAuthAccount,
 } from './invitations';
 
@@ -33,5 +35,24 @@ describe('invitation errors', () => {
     expect(getInvitationFailureMessage({ code: 'request_timeout' })).toContain(
       'temporarily unavailable',
     );
+  });
+
+  it('turns thrown action failures into safe recovery guidance', () => {
+    expect(getUnexpectedInvitationFailureMessage(new Error('Unauthorized'))).toContain(
+      'session',
+    );
+    expect(
+      getUnexpectedInvitationFailureMessage(new TypeError('fetch failed')),
+    ).toContain('could not be reached');
+    expect(getUnexpectedInvitationFailureMessage(new Error('unknown'))).toContain(
+      'Refresh',
+    );
+  });
+
+  it('extracts a non-sensitive error code for server logs', () => {
+    expect(getInvitationExceptionCode({ code: 'request_timeout' })).toBe(
+      'request_timeout',
+    );
+    expect(getInvitationExceptionCode(new TypeError('fetch failed'))).toBe('TypeError');
   });
 });

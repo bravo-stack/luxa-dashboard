@@ -7,8 +7,20 @@ import { useFormStatus } from 'react-dom';
 import { inviteSalesExecutive, type TeamActionState } from '@/app/dashboard/team/actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { getUnexpectedInvitationFailureMessage } from '@/lib/auth/invitations';
 
 const initialState: TeamActionState = { message: '' };
+
+async function submitInvitation(
+  state: TeamActionState,
+  formData: FormData,
+): Promise<TeamActionState> {
+  try {
+    return await inviteSalesExecutive(state, formData);
+  } catch (error) {
+    return { message: getUnexpectedInvitationFailureMessage(error) };
+  }
+}
 
 function SubmitButton({ disabled }: { disabled: boolean }) {
   const { pending } = useFormStatus();
@@ -35,7 +47,7 @@ function SubmitButton({ disabled }: { disabled: boolean }) {
 }
 
 export function InviteSalesExecutiveForm({ disabled = false }: { disabled?: boolean }) {
-  const [state, formAction] = useActionState(inviteSalesExecutive, initialState);
+  const [state, formAction] = useActionState(submitInvitation, initialState);
 
   return (
     <form action={formAction} className="grid gap-4">

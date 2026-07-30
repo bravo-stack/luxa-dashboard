@@ -3,8 +3,10 @@
 import { revalidatePath } from 'next/cache';
 
 import {
+  getInvitationExceptionCode,
   getInvitationFailureMessage,
   getPendingActivationDelivery,
+  getUnexpectedInvitationFailureMessage,
 } from '@/lib/auth/invitations';
 import { getApplicationOrigin } from '@/lib/auth/origin';
 import { recordSecurityEvent, requirePermission } from '@/lib/auth/workspace';
@@ -135,7 +137,7 @@ async function sendPendingActivationEmail({
   };
 }
 
-export async function inviteSalesExecutive(
+async function runInviteSalesExecutive(
   _state: TeamActionState,
   formData: FormData,
 ): Promise<TeamActionState> {
@@ -298,7 +300,23 @@ export async function inviteSalesExecutive(
   };
 }
 
-export async function resendSalesExecutiveInvitation(
+export async function inviteSalesExecutive(
+  state: TeamActionState,
+  formData: FormData,
+): Promise<TeamActionState> {
+  try {
+    return await runInviteSalesExecutive(state, formData);
+  } catch (error) {
+    console.error(
+      'Unexpected sales invitation failure',
+      getInvitationExceptionCode(error),
+    );
+
+    return { message: getUnexpectedInvitationFailureMessage(error) };
+  }
+}
+
+async function runResendSalesExecutiveInvitation(
   _state: TeamActionState,
   formData: FormData,
 ): Promise<TeamActionState> {
@@ -343,6 +361,22 @@ export async function resendSalesExecutiveInvitation(
       email: String(membershipResult.data.email),
     },
   });
+}
+
+export async function resendSalesExecutiveInvitation(
+  state: TeamActionState,
+  formData: FormData,
+): Promise<TeamActionState> {
+  try {
+    return await runResendSalesExecutiveInvitation(state, formData);
+  } catch (error) {
+    console.error(
+      'Unexpected invitation renewal failure',
+      getInvitationExceptionCode(error),
+    );
+
+    return { message: getUnexpectedInvitationFailureMessage(error) };
+  }
 }
 
 export async function revokeMemberSessions(

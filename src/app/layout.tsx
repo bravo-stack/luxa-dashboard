@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Geist_Mono, IBM_Plex_Sans } from 'next/font/google';
 
+import { ThemeBootstrapScript } from '@/components/theme/theme-bootstrap-script';
 import { ThemeProvider } from '@/components/theme/theme-provider';
 import { TelemetryProvider } from '@/lib/analytics/provider';
 import { THEME_BOOTSTRAP_SCRIPT } from '@/lib/theme';
@@ -38,7 +39,7 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <head>
-        <script dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP_SCRIPT }} />
+        <ThemeBootstrapScript html={THEME_BOOTSTRAP_SCRIPT} />
       </head>
       <body className="flex min-h-full flex-col">
         <ThemeProvider>

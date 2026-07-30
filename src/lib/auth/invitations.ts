@@ -51,3 +51,37 @@ export function getInvitationFailureMessage(error: AuthEmailError | null | undef
 
   return 'The invitation could not be sent. Check the Supabase Auth email delivery settings and retry.';
 }
+
+function getErrorProperty(error: unknown, property: 'code' | 'message' | 'name') {
+  if (!error || typeof error !== 'object' || !(property in error)) return null;
+
+  const value = (error as Record<string, unknown>)[property];
+  return typeof value === 'string' ? value : null;
+}
+
+export function getInvitationExceptionCode(error: unknown) {
+  return (
+    getErrorProperty(error, 'code') ??
+    getErrorProperty(error, 'name') ??
+    'unknown_invitation_failure'
+  );
+}
+
+export function getUnexpectedInvitationFailureMessage(error: unknown) {
+  const code = getErrorProperty(error, 'code');
+  const message = getErrorProperty(error, 'message') ?? '';
+
+  if (code) {
+    return getInvitationFailureMessage({ code });
+  }
+
+  if (/unauthorized|forbidden|session/i.test(message)) {
+    return 'Your administrator session is no longer valid. Refresh the page and sign in again.';
+  }
+
+  if (/fetch|network|timeout|connection/i.test(message)) {
+    return 'The invitation service could not be reached. Check your connection and retry.';
+  }
+
+  return 'The invitation request was interrupted. Refresh the page and try again.';
+}

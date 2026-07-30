@@ -6,7 +6,7 @@ import { ArrowLeft, CircleAlert, Loader2, ShieldCheck } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { parseAuthEmailCallback } from '@/lib/auth/email-callback';
-import { supabaseBrowser } from '@/lib/supabase/client';
+import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 
 export function EmailCallbackProcessor() {
   const started = useRef(false);
@@ -33,6 +33,7 @@ export function EmailCallbackProcessor() {
         `${window.location.pathname}?mode=${payload.mode}`,
       );
 
+      const supabaseBrowser = getSupabaseBrowserClient();
       let authenticationError: Error | null = null;
 
       if (payload.kind === 'session') {

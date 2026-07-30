@@ -144,7 +144,7 @@ export default async function TeamPage() {
         </div>
       </section>
 
-      <section className="overflow-hidden rounded-xl border border-border bg-card shadow-[0_18px_55px_rgba(18,24,40,0.045)]">
+      <section className="min-w-0 overflow-hidden rounded-xl border border-border bg-card shadow-[0_18px_55px_rgba(18,24,40,0.045)]">
         <div className="grid gap-4 border-b border-border px-5 py-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
           <div>
             <p className="text-[0.6875rem] font-semibold tracking-[0.12em] text-primary uppercase">
@@ -174,7 +174,7 @@ export default async function TeamPage() {
         </div>
       </section>
 
-      <section className="overflow-hidden rounded-xl border border-border bg-card shadow-[0_18px_55px_rgba(18,24,40,0.045)]">
+      <section className="min-w-0 overflow-hidden rounded-xl border border-border bg-card shadow-[0_18px_55px_rgba(18,24,40,0.045)]">
         <div className="border-b border-border px-5 py-5">
           <div className="flex items-center gap-2">
             <UsersRound className="size-4 text-primary" aria-hidden="true" />
@@ -190,9 +190,9 @@ export default async function TeamPage() {
           {overview.members.map((member) => (
             <article
               key={member.id}
-              className="grid gap-5 px-5 py-5 lg:grid-cols-[minmax(15rem,1.2fr)_repeat(3,minmax(7rem,0.55fr))_minmax(10rem,0.8fr)] lg:items-center"
+              className="grid min-w-0 gap-x-6 gap-y-5 px-5 py-5 sm:grid-cols-2 xl:grid-cols-[minmax(15rem,1.2fr)_repeat(3,minmax(7rem,0.55fr))_minmax(10rem,0.8fr)] xl:items-center"
             >
-              <div className="min-w-0">
+              <div className="min-w-0 sm:col-span-2 xl:col-span-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <h3 className="truncate text-sm font-semibold text-foreground">
                     {member.displayName}
@@ -209,7 +209,7 @@ export default async function TeamPage() {
                   {member.jobTitle || 'No title set'}
                 </p>
               </div>
-              <div>
+              <div className="min-w-0">
                 <p className="text-[0.625rem] font-semibold tracking-[0.1em] text-muted-foreground uppercase">
                   Pipeline
                 </p>
@@ -220,7 +220,7 @@ export default async function TeamPage() {
                   {member.performance.overdue} overdue
                 </p>
               </div>
-              <div>
+              <div className="min-w-0">
                 <p className="text-[0.625rem] font-semibold tracking-[0.1em] text-muted-foreground uppercase">
                   Follow-up health
                 </p>
@@ -231,7 +231,7 @@ export default async function TeamPage() {
                   {member.performance.notesLast7Days} notes / 7d
                 </p>
               </div>
-              <div>
+              <div className="min-w-0">
                 <p className="text-[0.625rem] font-semibold tracking-[0.1em] text-muted-foreground uppercase">
                   Security
                 </p>
@@ -253,7 +253,12 @@ export default async function TeamPage() {
                 </p>
                 {member.role === 'sales_exec' ? (
                   <div className="mt-3">
-                    <MemberSecurityControls userId={member.id} status={member.status} />
+                    <MemberSecurityControls
+                      displayName={member.displayName}
+                      email={member.email}
+                      userId={member.id}
+                      status={member.status}
+                    />
                   </div>
                 ) : (
                   <p className="mt-3 text-xs text-muted-foreground">

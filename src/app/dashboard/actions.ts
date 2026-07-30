@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
 import { recordSecurityEvent, requirePermission } from '@/lib/auth/workspace';
+import { normalizeLeadOwner } from '@/lib/dashboard/ownership';
 import {
   assignSupabaseLead,
   deleteSupabaseLeadNote,
@@ -457,19 +458,15 @@ export async function assignLead(
 ): Promise<AssignmentState> {
   const admin = await requirePermission('leads.assign');
   const leadId = String(formData.get('leadId') ?? '').trim();
-  const requestedOwner = String(formData.get('ownerUserId') ?? '').trim();
-  const ownerUserId = requestedOwner === 'unassigned' ? null : requestedOwner;
+  const requestedOwner = normalizeLeadOwner(formData.get('ownerUserId'));
 
   requireLeadId(leadId);
 
-  if (
-    ownerUserId &&
-    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-      ownerUserId,
-    )
-  ) {
+  if (!requestedOwner.valid) {
     return { message: 'Choose a valid sales executive.' };
   }
+
+  const { ownerUserId } = requestedOwner;
 
   if (ownerUserId) {
     const supabaseAdmin = getSupabaseAdminClient();
@@ -494,7 +491,7 @@ export async function assignLead(
     action: 'lead_assigned',
     actorUserId: admin.id,
     targetUserId: ownerUserId,
-    metadata: { lead_id: leadId, assignment: ownerUserId ? 'assigned' : 'unassigned' },
+    metadata: { lead_id: leadId, assignment: ownerUserId ? 'assigned' : 'workspace' },
   });
 
   refreshDashboardLeadViews(leadId);
@@ -503,7 +500,7 @@ export async function assignLead(
   return {
     message: ownerUserId
       ? 'Lead owner updated.'
-      : 'Lead returned to the unassigned queue.',
+      : 'Lead ownership moved to the workspace.',
     success: true,
   };
 }

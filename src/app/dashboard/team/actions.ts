@@ -2,6 +2,10 @@
 
 import { revalidatePath } from 'next/cache';
 
+import {
+  getInvitationFailureMessage,
+  getPendingActivationDelivery,
+} from '@/lib/auth/invitations';
 import { getApplicationOrigin } from '@/lib/auth/origin';
 import { recordSecurityEvent, requirePermission } from '@/lib/auth/workspace';
 import { getSupabaseAdminClient } from '@/lib/supabase/admin';
@@ -14,6 +18,11 @@ export type TeamActionState = {
 
 const initialFailure: TeamActionState = {
   message: 'The request could not be completed.',
+};
+
+type InvitationTarget = {
+  userId: string;
+  email: string;
 };
 
 function normalizeEmail(value: FormDataEntryValue | null) {
@@ -39,6 +48,91 @@ async function getSalesExecutive(userId: string) {
   }
 
   return data.user;
+}
+
+async function sendPendingActivationEmail({
+  actorUserId,
+  origin,
+  target,
+}: {
+  actorUserId: string;
+  origin: string;
+  target: InvitationTarget;
+}): Promise<TeamActionState> {
+  const supabaseAdmin = getSupabaseAdminClient();
+  const authUserResult = await supabaseAdmin.auth.admin.getUserById(target.userId);
+
+  if (
+    authUserResult.error ||
+    !authUserResult.data.user ||
+    authUserResult.data.user.app_metadata?.role !== 'sales_exec'
+  ) {
+    return {
+      message: 'The pending workspace identity could not be verified safely.',
+    };
+  }
+
+  const authUser = authUserResult.data.user;
+  const delivery = getPendingActivationDelivery(authUser.email_confirmed_at);
+  const deliveryResult =
+    delivery === 'activation_recovery'
+      ? await supabaseAdmin.auth.resetPasswordForEmail(target.email, {
+          redirectTo: `${origin}/auth/confirm`,
+        })
+      : await supabaseAdmin.auth.admin.inviteUserByEmail(target.email, {
+          redirectTo: `${origin}/auth/confirm`,
+          data: {
+            full_name: authUser.user_metadata?.full_name,
+            job_title: authUser.user_metadata?.job_title,
+          },
+        });
+
+  if (deliveryResult.error) {
+    await recordSecurityEvent({
+      action: 'invite_sent',
+      actorUserId,
+      targetUserId: target.userId,
+      targetEmail: target.email,
+      outcome: 'failed',
+      metadata: {
+        delivery,
+        reason: deliveryResult.error.code ?? 'provider_error',
+      },
+    });
+
+    return { message: getInvitationFailureMessage(deliveryResult.error) };
+  }
+
+  const now = new Date().toISOString();
+  const timestampResult = await supabaseAdmin
+    .from('workspace_members')
+    .update({ invited_at: now })
+    .eq('user_id', target.userId)
+    .eq('role', 'sales_exec')
+    .eq('status', 'invited');
+
+  if (timestampResult.error) {
+    console.error(
+      'Activation email sent but invitation timestamp could not be updated',
+      timestampResult.error.message,
+    );
+  }
+
+  await recordSecurityEvent({
+    action: 'invite_sent',
+    actorUserId,
+    targetUserId: target.userId,
+    targetEmail: target.email,
+    metadata: { delivery, role: 'sales_exec' },
+  });
+
+  revalidatePath('/dashboard/team');
+  revalidatePath('/dashboard/settings');
+
+  return {
+    message: `Fresh activation email sent to ${target.email}.`,
+    success: true,
+  };
 }
 
 export async function inviteSalesExecutive(
@@ -70,7 +164,8 @@ export async function inviteSalesExecutive(
 
   const registryCheck = await supabaseAdmin
     .from('workspace_members')
-    .select('user_id', { head: true, count: 'exact' });
+    .select('user_id,email,role,status')
+    .limit(500);
 
   if (registryCheck.error) {
     return {
@@ -86,6 +181,36 @@ export async function inviteSalesExecutive(
   } catch {
     return {
       message: 'Authentication email links are not configured for this deployment.',
+    };
+  }
+
+  const existingMember = registryCheck.data.find(
+    (member) => String(member.email).trim().toLowerCase() === email,
+  );
+
+  if (existingMember) {
+    const target: InvitationTarget = {
+      userId: String(existingMember.user_id),
+      email: String(existingMember.email),
+    };
+
+    if (existingMember.role !== 'sales_exec') {
+      return { message: 'This email already belongs to a workspace administrator.' };
+    }
+
+    if (existingMember.status === 'invited') {
+      return sendPendingActivationEmail({
+        actorUserId: admin.id,
+        origin,
+        target,
+      });
+    }
+
+    return {
+      message:
+        existingMember.status === 'frozen'
+          ? 'This sales executive is frozen. Restore access from the roster instead of sending another invitation.'
+          : 'This sales executive already has active workspace access.',
     };
   }
 
@@ -109,11 +234,7 @@ export async function inviteSalesExecutive(
     });
 
     return {
-      message:
-        inviteResult.error?.code === 'email_exists' ||
-        inviteResult.error?.code === 'user_already_exists'
-          ? 'A Luxa account already exists for this email.'
-          : 'The invitation could not be sent. Check email delivery settings and retry.',
+      message: getInvitationFailureMessage(inviteResult.error),
     };
   }
 
@@ -175,6 +296,53 @@ export async function inviteSalesExecutive(
     message: `Invitation sent to ${email}.`,
     success: true,
   };
+}
+
+export async function resendSalesExecutiveInvitation(
+  _state: TeamActionState,
+  formData: FormData,
+): Promise<TeamActionState> {
+  const admin = await requirePermission('members.manage');
+  const supabaseAdmin = getSupabaseAdminClient();
+  const userId = String(formData.get('userId') ?? '');
+
+  if (!isUuid(userId)) return initialFailure;
+
+  const membershipResult = await supabaseAdmin
+    .from('workspace_members')
+    .select('user_id,email,status')
+    .eq('user_id', userId)
+    .eq('role', 'sales_exec')
+    .maybeSingle();
+
+  if (
+    membershipResult.error ||
+    !membershipResult.data ||
+    membershipResult.data.status !== 'invited'
+  ) {
+    return {
+      message: 'Only pending sales invitations can be sent again.',
+    };
+  }
+
+  let origin: string;
+
+  try {
+    origin = await getApplicationOrigin();
+  } catch {
+    return {
+      message: 'Authentication email links are not configured for this deployment.',
+    };
+  }
+
+  return sendPendingActivationEmail({
+    actorUserId: admin.id,
+    origin,
+    target: {
+      userId,
+      email: String(membershipResult.data.email),
+    },
+  });
 }
 
 export async function revokeMemberSessions(

@@ -1,11 +1,12 @@
 'use client';
 
 import { type ReactNode, useActionState } from 'react';
-import { Loader2, LockKeyhole, RotateCcw, ShieldOff } from 'lucide-react';
+import { Loader2, LockKeyhole, MailPlus, RotateCcw, ShieldOff } from 'lucide-react';
 import { useFormStatus } from 'react-dom';
 
 import {
   freezeMemberAccess,
+  resendSalesExecutiveInvitation,
   restoreMemberAccess,
   revokeMemberSessions,
   type TeamActionState,
@@ -43,8 +44,20 @@ export function MemberSecurityControls({
   const [revokeState, revokeAction] = useActionState(revokeMemberSessions, initialState);
   const [freezeState, freezeAction] = useActionState(freezeMemberAccess, initialState);
   const [restoreState, restoreAction] = useActionState(restoreMemberAccess, initialState);
-  const message = restoreState.message || freezeState.message || revokeState.message;
-  const success = restoreState.success || freezeState.success || revokeState.success;
+  const [resendState, resendAction] = useActionState(
+    resendSalesExecutiveInvitation,
+    initialState,
+  );
+  const message =
+    resendState.message ||
+    restoreState.message ||
+    freezeState.message ||
+    revokeState.message;
+  const success =
+    resendState.success ||
+    restoreState.success ||
+    freezeState.success ||
+    revokeState.success;
 
   return (
     <details className="group">
@@ -52,7 +65,19 @@ export function MemberSecurityControls({
         Manage access
       </summary>
       <div className="mt-3 w-full min-w-0 space-y-4 rounded-md border border-border bg-muted/20 p-3 sm:w-96">
-        {status === 'frozen' ? (
+        {status === 'invited' ? (
+          <form action={resendAction} className="space-y-2">
+            <input type="hidden" name="userId" value={userId} />
+            <p className="text-xs leading-5 text-muted-foreground">
+              Send a fresh, single-use activation link if the original expired or was
+              already opened.
+            </p>
+            <ActionButton variant="secondary">
+              <MailPlus className="size-3.5" aria-hidden="true" />
+              Send activation again
+            </ActionButton>
+          </form>
+        ) : status === 'frozen' ? (
           <form action={restoreAction} className="space-y-2">
             <input type="hidden" name="userId" value={userId} />
             <p className="text-xs leading-5 text-muted-foreground">

@@ -98,7 +98,7 @@ export function InviteSalesExecutiveForm({ disabled = false }: { disabled?: bool
       <div className="flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
         <p className="max-w-md text-xs leading-5 text-muted-foreground">
           They will receive a single-use link to set a password. Public registration
-          remains disabled.
+          remains disabled. Submitting a pending email sends a fresh activation link.
         </p>
         <SubmitButton disabled={disabled} />
       </div>

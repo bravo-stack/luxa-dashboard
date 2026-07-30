@@ -1,7 +1,7 @@
 'use client';
 
 import { useActionState, useState } from 'react';
-import { CheckCircle2, Loader2, UserRoundCheck } from 'lucide-react';
+import { Building2, CheckCircle2, Loader2, UserRoundCheck } from 'lucide-react';
 import { useFormStatus } from 'react-dom';
 
 import { assignLead, type AssignmentState } from '@/app/dashboard/actions';
@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { WORKSPACE_OWNER_VALUE } from '@/lib/dashboard/ownership';
 
 type AssignableMember = {
   id: string;
@@ -22,11 +23,11 @@ type AssignableMember = {
 
 const initialState: AssignmentState = { message: '' };
 
-function SubmitButton() {
+function SubmitButton({ disabled }: { disabled: boolean }) {
   const { pending } = useFormStatus();
 
   return (
-    <Button type="submit" size="sm" className="w-full" disabled={pending}>
+    <Button type="submit" size="sm" className="w-full" disabled={disabled || pending}>
       {pending ? (
         <Loader2 className="animate-spin" aria-hidden="true" />
       ) : (
@@ -46,8 +47,14 @@ export function LeadOwnerSelect({
   currentOwnerId?: string;
   members: AssignableMember[];
 }) {
-  const [ownerUserId, setOwnerUserId] = useState(currentOwnerId ?? 'unassigned');
+  const effectiveOwnerId =
+    currentOwnerId && members.some((member) => member.id === currentOwnerId)
+      ? currentOwnerId
+      : WORKSPACE_OWNER_VALUE;
+  const persistedOwnerId = currentOwnerId ?? WORKSPACE_OWNER_VALUE;
+  const [ownerUserId, setOwnerUserId] = useState(effectiveOwnerId);
   const [state, formAction] = useActionState(assignLead, initialState);
+  const hasAssignableMembers = members.length > 0;
 
   return (
     <form action={formAction} className="space-y-3">
@@ -60,11 +67,16 @@ export function LeadOwnerSelect({
         Lead owner
       </label>
       <Select value={ownerUserId} onValueChange={setOwnerUserId}>
-        <SelectTrigger id="lead-owner">
-          <SelectValue placeholder="Choose an owner" />
+        <SelectTrigger id="lead-owner" aria-describedby="lead-owner-help">
+          <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="unassigned">Unassigned queue</SelectItem>
+          <SelectItem value={WORKSPACE_OWNER_VALUE}>
+            <span className="flex items-center gap-2">
+              <Building2 className="size-3.5 text-muted-foreground" aria-hidden="true" />
+              Workspace · Shared queue
+            </span>
+          </SelectItem>
           {members.map((member) => (
             <SelectItem key={member.id} value={member.id}>
               {member.displayName} · {member.email}
@@ -72,7 +84,12 @@ export function LeadOwnerSelect({
           ))}
         </SelectContent>
       </Select>
-      <SubmitButton />
+      <p id="lead-owner-help" className="text-xs leading-5 text-muted-foreground">
+        {hasAssignableMembers
+          ? 'Workspace keeps the lead in the shared admin queue until an active executive is assigned.'
+          : 'No active sales executives are available. This lead remains in the shared workspace queue.'}
+      </p>
+      <SubmitButton disabled={ownerUserId === persistedOwnerId} />
       {state.message ? (
         <p
           className={

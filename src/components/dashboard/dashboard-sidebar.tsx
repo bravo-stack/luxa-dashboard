@@ -65,7 +65,7 @@ const primaryNav = [
   },
 ];
 
-const publicSiteUrl = 'https://luxa-funnel.vercel.app';
+const publicSiteUrl = 'https://www.luxasolution.com';
 
 const secondaryNav = [
   { label: 'Funnel', href: `${publicSiteUrl}/audit`, icon: Workflow },

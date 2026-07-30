@@ -4,12 +4,9 @@ const publicUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serverUrl = process.env.SUPABASE_URL ?? publicUrl;
 const secretKey =
   process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
-const appUrl =
-  process.env.AUTH_EMAIL_CALLBACK_ORIGIN ??
-  process.env.NEXT_PUBLIC_APP_URL ??
-  process.env.APP_URL ??
-  process.env.VERCEL_PROJECT_PRODUCTION_URL ??
-  'https://luxa-dashboard.vercel.app';
+const appUrl = 'https://luxa-dashboard.vercel.app';
+const productionRuntime =
+  process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production';
 
 if (!publicUrl || !serverUrl || !secretKey) {
   throw new Error(
@@ -21,8 +18,28 @@ if (new URL(publicUrl).origin !== new URL(serverUrl).origin) {
   throw new Error('Public Auth and server credentials reference different projects');
 }
 
-if (!appUrl) {
-  throw new Error('Configure AUTH_EMAIL_CALLBACK_ORIGIN for authentication email links');
+if (productionRuntime) {
+  const conflictingOrigin = [
+    process.env.AUTH_EMAIL_CALLBACK_ORIGIN,
+    process.env.NEXT_PUBLIC_APP_URL,
+    process.env.APP_URL,
+  ].find((value) => {
+    if (!value) return false;
+
+    try {
+      const origin = new URL(value.startsWith('http') ? value : `https://${value}`)
+        .origin;
+      return origin !== appUrl;
+    } catch {
+      return true;
+    }
+  });
+
+  if (conflictingOrigin) {
+    throw new Error(
+      `Production authentication origin conflicts with the canonical Luxa URL: ${appUrl}`,
+    );
+  }
 }
 
 const supabase = createClient(new URL(serverUrl).origin, secretKey, {
@@ -76,7 +93,7 @@ console.log(
     {
       ok: true,
       projectRef: new URL(serverUrl).hostname.split('.')[0],
-      appOrigin: new URL(appUrl.startsWith('http') ? appUrl : `https://${appUrl}`).origin,
+      appOrigin: appUrl,
       members: {
         total: members.count ?? 0,
         active: members.data?.filter((member) => member.status === 'active').length ?? 0,

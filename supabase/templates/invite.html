@@ -200,7 +200,7 @@
                   <tr>
                     <td align="center" style="border-radius: 7px; background: #176b57">
                       <a
-                        href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=invite"
+                        href="https://luxa-dashboard.vercel.app/auth/confirm?token_hash={{ .TokenHash }}&type=invite"
                         style="
                           display: inline-block;
                           padding: 15px 22px;
@@ -313,7 +313,8 @@
                   "
                 >
                   Button not working? Copy this secure link:<br />
-                  {{ .RedirectTo }}?token_hash={{ .TokenHash }}&amp;type=invite
+                  https://luxa-dashboard.vercel.app/auth/confirm?token_hash={{ .TokenHash
+                  }}&amp;type=invite
                 </p>
               </td>
             </tr>

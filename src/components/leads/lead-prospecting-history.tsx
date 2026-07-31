@@ -9,7 +9,12 @@ import {
 
 import { Button } from '@/components/ui/button';
 import type { LeadProspectingHistory } from '@/lib/dashboard/types';
-import { formatDate, formatDateTime, getIcpCategoryLabel } from '@/lib/dashboard/utils';
+import {
+  formatDate,
+  formatDateTime,
+  getBuyerFunctionLabel,
+  getIcpCategoryLabel,
+} from '@/lib/dashboard/utils';
 
 type LeadProspectingHistoryProps = {
   leadId: string;
@@ -123,6 +128,9 @@ export function LeadProspectingHistory({
                     <div className="flex flex-wrap gap-2">
                       <span className="rounded-full border border-border bg-muted/45 px-2.5 py-1 text-xs font-medium text-foreground">
                         {getIcpCategoryLabel(entry.icpCategory)}
+                      </span>
+                      <span className="rounded-full border border-border bg-muted/45 px-2.5 py-1 text-xs font-medium text-foreground">
+                        {getBuyerFunctionLabel(entry.buyerFunction)}
                       </span>
                       <span className="rounded-full border border-border bg-muted/45 px-2.5 py-1 text-xs font-medium text-foreground capitalize">
                         {entry.connectionStatus?.replace(/_/g, ' ') ||

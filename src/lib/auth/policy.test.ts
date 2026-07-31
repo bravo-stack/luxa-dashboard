@@ -14,10 +14,19 @@ describe('workspace authorization policy', () => {
     expect(hasWorkspacePermission('sales_exec', 'leads.export')).toBe(false);
   });
 
-  it('limits sales executives to assigned leads', () => {
+  it('allows assigned leads and unclaimed website leads without exposing other owners', () => {
     expect(canAccessLead('sales_exec', 'user-1', 'user-1')).toBe(true);
     expect(canAccessLead('sales_exec', 'user-1', 'user-2')).toBe(false);
+    expect(canAccessLead('sales_exec', 'user-1', null, 'website')).toBe(true);
+    expect(canAccessLead('sales_exec', 'user-1', null, 'manual')).toBe(false);
     expect(canAccessLead('admin', 'admin-1', 'user-2')).toBe(true);
+  });
+
+  it('separates claiming, deletion requests, and deletion approval', () => {
+    expect(hasWorkspacePermission('sales_exec', 'leads.claim')).toBe(true);
+    expect(hasWorkspacePermission('sales_exec', 'leads.request_delete')).toBe(true);
+    expect(hasWorkspacePermission('sales_exec', 'leads.approve_delete')).toBe(false);
+    expect(hasWorkspacePermission('admin', 'leads.approve_delete')).toBe(true);
   });
 
   it('allows sales feedback while keeping workspace triage admin-only', () => {

@@ -9,6 +9,7 @@ import {
   assignSupabaseLead,
   deleteSupabaseLeadNote,
   getSupabaseLeadOwner,
+  hasSupabaseLeadOutcomeReason,
   insertSupabaseLeadNote,
   insertSupabaseManualLead,
   updateSupabaseLead,
@@ -146,6 +147,7 @@ export async function createLead(
         projectType,
         website: website || undefined,
         icpCategory: normalizeOptionalValue(formData, 'icpCategory'),
+        buyerFunction: normalizeOptionalValue(formData, 'buyerFunction'),
         linkedinProfileUrl: linkedinProfileUrl || undefined,
         focusName: normalizeOptionalValue(formData, 'focusName'),
         focusTitle: normalizeOptionalValue(formData, 'focusTitle'),
@@ -260,6 +262,7 @@ export async function updateLeadRecord(
         context: normalizeOptionalValue(formData, 'context', 5000) ?? '',
         nextStep: normalizeOptionalValue(formData, 'nextStep', 1000) ?? '',
         icpCategory: normalizeOptionalValue(formData, 'icpCategory', 100) ?? '',
+        buyerFunction: normalizeOptionalValue(formData, 'buyerFunction', 100) ?? '',
         linkedinProfileUrl: linkedinProfileUrl || '',
         focusName: normalizeOptionalValue(formData, 'focusName', 120) ?? '',
         focusTitle: normalizeOptionalValue(formData, 'focusTitle', 160) ?? '',
@@ -328,6 +331,17 @@ export async function updateLeadStatus(
   requireLeadId(leadId);
   const { ownerUserId } = await requireLeadMutationAccess(leadId);
   const nextStatus = parseStatus(status);
+
+  if (
+    ['won', 'lost', 'spam'].includes(nextStatus) &&
+    !(await hasSupabaseLeadOutcomeReason(leadId, ownerUserId))
+  ) {
+    return {
+      ok: false,
+      message: 'Add an outcome or disqualification reason before closing this lead.',
+    };
+  }
+
   const persisted = await updateSupabaseLead(leadId, { status: nextStatus }, ownerUserId);
 
   refreshDashboardLeadViews(leadId);
@@ -439,10 +453,26 @@ export async function markLeadContacted(leadId: string): Promise<DashboardAction
   };
 }
 
-export async function markLeadSpam(leadId: string): Promise<DashboardActionResult> {
+export async function markLeadSpam(
+  leadId: string,
+  reason: string,
+): Promise<DashboardActionResult> {
   requireLeadId(leadId);
   const { ownerUserId } = await requireLeadMutationAccess(leadId);
-  const persisted = await updateSupabaseLead(leadId, { status: 'spam' }, ownerUserId);
+  const outcomeReason = reason.trim().slice(0, 1_000);
+
+  if (outcomeReason.length < 10) {
+    return {
+      ok: false,
+      message: 'Explain why this lead is spam in at least 10 characters.',
+    };
+  }
+
+  const persisted = await updateSupabaseLead(
+    leadId,
+    { status: 'spam', outcomeReason },
+    ownerUserId,
+  );
 
   refreshDashboardLeadViews(leadId);
 

@@ -4,6 +4,7 @@ import {
   FileCheck2,
   MailQuestion,
   Plus,
+  ShieldCheck,
   TrendingUp,
   UsersRound,
 } from 'lucide-react';
@@ -14,10 +15,12 @@ import { LeadStatusGuide } from '@/components/leads/lead-status-guide';
 import { LeadTable } from '@/components/leads/lead-table';
 import { Button } from '@/components/ui/button';
 import { getWorkspaceUser } from '@/lib/auth/workspace';
+import { getLeadDeletionRequestOverview } from '@/lib/dashboard/lead-deletion';
 import { getLeadQueue } from '@/lib/dashboard/queries';
 import {
   type LeadOrigin,
   leadOrigins,
+  type LeadOwnershipScope,
   type LeadStatus,
   leadStatuses,
   type MetricSummary,
@@ -37,6 +40,7 @@ export default async function LeadsPage({
     date?: string;
     sort?: string;
     page?: string;
+    scope?: string;
   }>;
 }) {
   const [params, user] = await Promise.all([searchParams, getWorkspaceUser()]);
@@ -57,6 +61,10 @@ export default async function LeadsPage({
     : 'all';
   const date = ['today', '7d', 'older'].includes(requestedDate) ? requestedDate : 'all';
   const sort = params.sort === 'oldest' ? 'oldest' : 'newest';
+  const ownershipScope: LeadOwnershipScope =
+    user.role === 'sales_exec' && (params.scope === 'mine' || params.scope === 'shared')
+      ? params.scope
+      : 'all';
   const queueOptions = {
     search: params.q,
     status,
@@ -66,7 +74,8 @@ export default async function LeadsPage({
     date,
     sort,
     page: Number.isFinite(page) ? page : 1,
-    ownerUserId: user.role === 'sales_exec' ? user.id : undefined,
+    viewerUserId: user.role === 'sales_exec' ? user.id : undefined,
+    ownershipScope,
   } as const;
   let queue = await getLeadQueue(queueOptions);
   const hasInvalidBudget = budget !== 'all' && !queue.budgets.includes(budget);
@@ -79,11 +88,15 @@ export default async function LeadsPage({
   } else if (queue.page > queue.totalPages) {
     queue = await getLeadQueue({ ...queueOptions, page: queue.totalPages });
   }
+  const deletionOverview =
+    user.role === 'admin'
+      ? await getLeadDeletionRequestOverview('pending')
+      : { pendingCount: 0 };
   const activeLeadCount = Object.entries(queue.statusCounts).reduce(
     (total, [status, count]) => total + (status === 'spam' ? 0 : count),
     0,
   );
-  const leadMetrics: MetricSummary[] = [
+  const adminMetrics: MetricSummary[] = [
     {
       key: 'active',
       label: 'Active leads',
@@ -117,26 +130,59 @@ export default async function LeadsPage({
       note: 'Deep context',
     },
   ];
+  const salesMetrics: MetricSummary[] = [
+    {
+      key: 'shared',
+      label: 'Shared funnel',
+      value: queue.sharedCount,
+      trend: 'Claimable',
+      trendDirection: queue.sharedCount ? 'up' : 'flat',
+      note: 'Unowned inbound leads',
+    },
+    {
+      key: 'owned',
+      label: 'My leads',
+      value: queue.ownedCount,
+      trend: 'Owned',
+      trendDirection: 'flat',
+      note: 'Assigned to you',
+    },
+    ...adminMetrics.slice(0, 2),
+  ];
+  const leadMetrics = user.role === 'admin' ? adminMetrics : salesMetrics;
 
   return (
     <>
       <DashboardHeader
         eyebrow="Lead operations"
-        title={user.role === 'admin' ? 'Lead command center' : 'My lead workspace'}
+        title={user.role === 'admin' ? 'Lead command center' : 'Sales lead workspace'}
         description={
           user.role === 'admin'
             ? 'A fast operating queue for qualification, outreach, status movement, and the context behind every opportunity.'
-            : 'Your assigned opportunities, follow-up risk, and the context needed to move each conversation forward.'
+            : 'Work your owned opportunities or claim new inbound leads from the shared funnel pool.'
         }
         actions={
           <>
             {user.role === 'admin' ? (
-              <Button asChild variant="outline">
-                <Link href="/api/dashboard/leads/export">
-                  <Download className="size-4" />
-                  Export leads
-                </Link>
-              </Button>
+              <>
+                <Button asChild variant="outline">
+                  <Link href="/dashboard/leads/deletion-requests">
+                    <ShieldCheck className="size-4" />
+                    Deletion review
+                    {deletionOverview.pendingCount ? (
+                      <span className="rounded-full bg-destructive px-1.5 py-0.5 text-[0.625rem] font-bold text-destructive-foreground">
+                        {deletionOverview.pendingCount}
+                      </span>
+                    ) : null}
+                  </Link>
+                </Button>
+                <Button asChild variant="outline">
+                  <Link href="/api/dashboard/leads/export">
+                    <Download className="size-4" />
+                    Export leads
+                  </Link>
+                </Button>
+              </>
             ) : null}
             <Button asChild>
               <Link href="/dashboard/leads/new">
@@ -149,7 +195,11 @@ export default async function LeadsPage({
       />
       <MetricRail
         metrics={leadMetrics}
-        icons={[UsersRound, TrendingUp, MailQuestion, FileCheck2]}
+        icons={
+          user.role === 'admin'
+            ? [UsersRound, TrendingUp, MailQuestion, FileCheck2]
+            : [UsersRound, ShieldCheck, TrendingUp, MailQuestion]
+        }
       />
       <LeadStatusGuide />
       <LeadTable
@@ -169,6 +219,9 @@ export default async function LeadsPage({
           date,
         }}
         initialSort={sort}
+        viewerRole={user.role}
+        currentUserId={user.id}
+        ownershipScope={ownershipScope}
       />
     </>
   );

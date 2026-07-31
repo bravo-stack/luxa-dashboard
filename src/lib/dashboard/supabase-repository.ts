@@ -10,6 +10,7 @@ import type {
   LeadEvent,
   LeadNote,
   LeadOrigin,
+  LeadOwnershipScope,
   LeadProspectingHistory,
   LeadStatus,
 } from './types';
@@ -30,6 +31,7 @@ export type ManualLeadInput = {
   website?: string;
   phone?: string;
   icpCategory?: string;
+  buyerFunction?: string;
   linkedinProfileUrl?: string;
   focusName?: string;
   focusTitle?: string;
@@ -63,6 +65,8 @@ export type LeadQueueQuery = {
   page?: number;
   pageSize?: number;
   ownerUserId?: string;
+  viewerUserId?: string;
+  ownershipScope?: LeadOwnershipScope;
 };
 
 export type SupabaseLeadQueue = {
@@ -73,6 +77,8 @@ export type SupabaseLeadQueue = {
   pageSize: number;
   statusCounts: Record<LeadStatus, number>;
   platformAuditCount: number;
+  ownedCount: number;
+  sharedCount: number;
   budgets: string[];
   timelines: string[];
 };
@@ -127,6 +133,7 @@ const leadSubmissionSelect = [
   'website',
   'phone',
   'icp_category',
+  'buyer_function',
   'linkedin_profile_url',
   'focus_name',
   'focus_title',
@@ -159,6 +166,7 @@ const leadProspectingHistorySelect = [
   'created_at',
   'capture_type',
   'icp_category',
+  'buyer_function',
   'linkedin_profile_url',
   'focus_name',
   'focus_title',
@@ -208,6 +216,7 @@ function normalizeLead(row: Record<string, unknown>): Lead {
     website: normalizeHttpUrl(row.website ? String(row.website) : undefined) ?? undefined,
     phone: row.phone ? String(row.phone) : undefined,
     icpCategory: row.icp_category ? String(row.icp_category) : undefined,
+    buyerFunction: row.buyer_function ? String(row.buyer_function) : undefined,
     linkedinProfileUrl:
       normalizeHttpUrl(
         row.linkedin_profile_url ? String(row.linkedin_profile_url) : undefined,
@@ -269,6 +278,7 @@ function normalizeProspectingHistory(
         ? row.capture_type
         : 'updated',
     icpCategory: row.icp_category ? String(row.icp_category) : undefined,
+    buyerFunction: row.buyer_function ? String(row.buyer_function) : undefined,
     linkedinProfileUrl:
       normalizeHttpUrl(
         row.linkedin_profile_url ? String(row.linkedin_profile_url) : undefined,
@@ -366,6 +376,7 @@ export async function insertSupabaseManualLead(
       website: input.website ?? null,
       phone: input.phone ?? null,
       icp_category: input.icpCategory ?? null,
+      buyer_function: input.buyerFunction ?? null,
       linkedin_profile_url: input.linkedinProfileUrl ?? null,
       focus_name: input.focusName ?? null,
       focus_title: input.focusTitle ?? null,
@@ -440,6 +451,27 @@ export const getSupabaseDashboardDataset = cache(async (ownerUserId?: string) =>
   } satisfies DashboardDataset;
 });
 
+export const getSupabaseLeadRecord = cache(async (leadId: string) => {
+  const supabase = await getSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from('lead_submissions')
+    .select(leadSubmissionSelect)
+    .eq('id', leadId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Supabase lead query failed: ${error.message}`);
+  }
+
+  if (!data) return null;
+  const row = data as unknown as Record<string, unknown>;
+
+  return {
+    lead: normalizeLead(row),
+    submission: normalizeAuditSubmission(row),
+  };
+});
+
 function sanitizeSearchTerm(value: string) {
   return value
     .replace(/[,%_()]/g, ' ')
@@ -472,6 +504,16 @@ export async function getSupabaseLeadQueue(
 
   if (options.ownerUserId) {
     query = query.eq('owner_user_id', options.ownerUserId);
+  } else if (options.viewerUserId) {
+    if (options.ownershipScope === 'mine') {
+      query = query.eq('owner_user_id', options.viewerUserId);
+    } else if (options.ownershipScope === 'shared') {
+      query = query.is('owner_user_id', null).eq('origin', 'website');
+    } else {
+      query = query.or(
+        `owner_user_id.eq.${options.viewerUserId},and(owner_user_id.is.null,origin.eq.website)`,
+      );
+    }
   }
 
   if (search) {
@@ -544,26 +586,70 @@ export async function getSupabaseLeadQueue(
   if (options.ownerUserId) {
     facetQuery = facetQuery.eq('owner_user_id', options.ownerUserId);
     platformAuditQuery = platformAuditQuery.eq('owner_user_id', options.ownerUserId);
+  } else if (options.viewerUserId) {
+    if (options.ownershipScope === 'mine') {
+      facetQuery = facetQuery.eq('owner_user_id', options.viewerUserId);
+      platformAuditQuery = platformAuditQuery.eq('owner_user_id', options.viewerUserId);
+    } else if (options.ownershipScope === 'shared') {
+      facetQuery = facetQuery.is('owner_user_id', null).eq('origin', 'website');
+      platformAuditQuery = platformAuditQuery
+        .is('owner_user_id', null)
+        .eq('origin', 'website');
+    } else {
+      const visibilityFilter = `owner_user_id.eq.${options.viewerUserId},and(owner_user_id.is.null,origin.eq.website)`;
+      facetQuery = facetQuery.or(visibilityFilter);
+      platformAuditQuery = platformAuditQuery.or(visibilityFilter);
+    }
   }
 
-  const [pageResult, facetResult, platformAuditResult, ...statusResults] =
-    await Promise.all([
-      query.order('created_at', { ascending: options.sort === 'oldest' }).range(from, to),
-      resolveOptionalQuery(facetQuery),
-      resolveOptionalQuery(platformAuditQuery),
-      ...leadStatuses.map((status) => {
-        let statusQuery = supabase
-          .from('lead_submissions')
-          .select('id', { count: 'exact', head: true })
-          .eq('status', status);
+  const ownedCountQuery = options.viewerUserId
+    ? supabase
+        .from('lead_submissions')
+        .select('id', { count: 'exact', head: true })
+        .eq('owner_user_id', options.viewerUserId)
+    : null;
+  const sharedCountQuery = supabase
+    .from('lead_submissions')
+    .select('id', { count: 'exact', head: true })
+    .is('owner_user_id', null)
+    .eq('origin', 'website');
 
-        if (options.ownerUserId) {
-          statusQuery = statusQuery.eq('owner_user_id', options.ownerUserId);
+  const [
+    pageResult,
+    facetResult,
+    platformAuditResult,
+    ownedCountResult,
+    sharedCountResult,
+    ...statusResults
+  ] = await Promise.all([
+    query.order('created_at', { ascending: options.sort === 'oldest' }).range(from, to),
+    resolveOptionalQuery(facetQuery),
+    resolveOptionalQuery(platformAuditQuery),
+    ownedCountQuery ? resolveOptionalQuery(ownedCountQuery) : Promise.resolve(null),
+    resolveOptionalQuery(sharedCountQuery),
+    ...leadStatuses.map((status) => {
+      let statusQuery = supabase
+        .from('lead_submissions')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', status);
+
+      if (options.ownerUserId) {
+        statusQuery = statusQuery.eq('owner_user_id', options.ownerUserId);
+      } else if (options.viewerUserId) {
+        if (options.ownershipScope === 'mine') {
+          statusQuery = statusQuery.eq('owner_user_id', options.viewerUserId);
+        } else if (options.ownershipScope === 'shared') {
+          statusQuery = statusQuery.is('owner_user_id', null).eq('origin', 'website');
+        } else {
+          statusQuery = statusQuery.or(
+            `owner_user_id.eq.${options.viewerUserId},and(owner_user_id.is.null,origin.eq.website)`,
+          );
         }
+      }
 
-        return resolveOptionalQuery(statusQuery);
-      }),
-    ]);
+      return resolveOptionalQuery(statusQuery);
+    }),
+  ]);
 
   if (pageResult.error) {
     throw new Error(`Supabase lead queue query failed: ${pageResult.error.message}`);
@@ -604,6 +690,10 @@ export async function getSupabaseLeadQueue(
       platformAuditResult && !platformAuditResult.error
         ? (platformAuditResult.count ?? 0)
         : rows.filter((row) => row.form_type === 'platform_audit').length,
+    ownedCount:
+      ownedCountResult && !ownedCountResult.error ? (ownedCountResult.count ?? 0) : 0,
+    sharedCount:
+      sharedCountResult && !sharedCountResult.error ? (sharedCountResult.count ?? 0) : 0,
     budgets: Array.from(
       new Set(facets.map((item) => item.budget).filter(Boolean) as string[]),
     ).sort(),
@@ -667,6 +757,7 @@ export async function updateSupabaseLead(
       | 'phone'
       | 'status'
       | 'icpCategory'
+      | 'buyerFunction'
       | 'linkedinProfileUrl'
       | 'focusName'
       | 'focusTitle'
@@ -706,6 +797,9 @@ export async function updateSupabaseLead(
     ...(values.status !== undefined ? { status: values.status } : {}),
     ...(values.icpCategory !== undefined
       ? { icp_category: values.icpCategory || null }
+      : {}),
+    ...(values.buyerFunction !== undefined
+      ? { buyer_function: values.buyerFunction || null }
       : {}),
     ...(values.linkedinProfileUrl !== undefined
       ? { linkedin_profile_url: values.linkedinProfileUrl || null }
@@ -824,19 +918,22 @@ export async function assignSupabaseLead(leadId: string, ownerUserId: string | n
   return Boolean(data);
 }
 
-export async function deleteSupabaseLead(leadId: string) {
+export async function claimSupabaseLead(leadId: string, ownerUserId: string) {
   const supabase = await getSupabaseAdminClient();
   const { data, error } = await supabase
     .from('lead_submissions')
-    .delete()
+    .update({
+      owner_user_id: ownerUserId,
+      updated_at: new Date().toISOString(),
+    })
     .eq('id', leadId)
+    .eq('origin', 'website')
+    .is('owner_user_id', null)
+    .neq('status', 'spam')
     .select('id')
     .maybeSingle();
 
-  if (error) {
-    throw new Error(error.message);
-  }
-
+  if (error) throw new Error(error.message);
   return Boolean(data);
 }
 

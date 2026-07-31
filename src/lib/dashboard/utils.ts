@@ -1,4 +1,5 @@
 import {
+  buyerFunctions,
   icpCategories,
   type Lead,
   type LeadOrigin,
@@ -24,7 +25,7 @@ export const originLabels: Record<LeadOrigin, string> = {
 
 export function getLeadOwnershipLabel(lead: Lead) {
   if (!lead.owner_user_id) {
-    return 'Unassigned';
+    return lead.origin === 'website' ? 'Shared funnel pool' : 'Unassigned';
   }
 
   return lead.owner_user_id === lead.created_by ? 'Assigned to creator' : 'Assigned';
@@ -41,6 +42,12 @@ export function getIcpCategoryLabel(value?: string) {
   if (!value) return 'Not classified';
 
   return icpCategories.find((category) => category.value === value)?.label ?? value;
+}
+
+export function getBuyerFunctionLabel(value?: string) {
+  if (!value) return 'Not identified';
+
+  return buyerFunctions.find((item) => item.value === value)?.label ?? value;
 }
 
 export function isAwaitingReply(lead: Lead) {

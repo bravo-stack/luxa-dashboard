@@ -18,6 +18,7 @@ export async function GET() {
     'company',
     'website',
     'icp_category',
+    'buyer_function',
     'linkedin_profile_url',
     'focus_name',
     'focus_title',

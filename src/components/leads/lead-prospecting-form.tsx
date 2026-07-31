@@ -22,9 +22,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import type { Lead } from '@/lib/dashboard/types';
-import { getIcpCategoryLabel } from '@/lib/dashboard/utils';
+import { getBuyerFunctionLabel, getIcpCategoryLabel } from '@/lib/dashboard/utils';
 import { cn } from '@/lib/utils';
 
+import { BuyerFunctionSelect } from './buyer-function-select';
 import { IcpCategorySelect } from './icp-category-select';
 
 const initialState: LeadRecordState = { message: '' };
@@ -141,7 +142,13 @@ function SectionHeading({ title, description }: { title: string; description: st
   );
 }
 
-export function LeadProspectingForm({ lead }: { lead: Lead }) {
+export function LeadProspectingForm({
+  lead,
+  canEdit = true,
+}: {
+  lead: Lead;
+  canEdit?: boolean;
+}) {
   const [state, formAction] = useActionState(updateLeadRecord, initialState);
   const [isEditing, setIsEditing] = useState(false);
   const inputClassName = (field?: ErrorField) =>
@@ -167,24 +174,30 @@ export function LeadProspectingForm({ lead }: { lead: Lead }) {
             in one maintained record.
           </p>
         </div>
-        <Button
-          type="button"
-          variant="secondary"
-          className="shrink-0"
-          aria-expanded={isEditing}
-          aria-controls="lead-record-editor"
-          onClick={() => setIsEditing((current) => !current)}
-        >
-          <Edit3 aria-hidden="true" />
-          {isEditing ? 'Close editor' : 'Edit full record'}
-          <ChevronDown
-            className={cn(
-              'transition-transform duration-200 motion-reduce:transition-none',
-              isEditing && 'rotate-180',
-            )}
-            aria-hidden="true"
-          />
-        </Button>
+        {canEdit ? (
+          <Button
+            type="button"
+            variant="secondary"
+            className="shrink-0"
+            aria-expanded={isEditing}
+            aria-controls="lead-record-editor"
+            onClick={() => setIsEditing((current) => !current)}
+          >
+            <Edit3 aria-hidden="true" />
+            {isEditing ? 'Close editor' : 'Edit full record'}
+            <ChevronDown
+              className={cn(
+                'transition-transform duration-200 motion-reduce:transition-none',
+                isEditing && 'rotate-180',
+              )}
+              aria-hidden="true"
+            />
+          </Button>
+        ) : (
+          <span className="rounded-full border border-border bg-muted/40 px-3 py-1.5 text-xs font-semibold text-muted-foreground">
+            Claim to edit
+          </span>
+        )}
       </div>
 
       <div className="grid lg:grid-cols-[minmax(0,1.2fr)_minmax(18rem,0.8fr)]">
@@ -210,6 +223,9 @@ export function LeadProspectingForm({ lead }: { lead: Lead }) {
           <div className="mt-8 grid gap-x-8 border-t border-border pt-5 sm:grid-cols-2">
             <IntelligenceLine icon={Target} label="ICP and fit">
               {getIcpCategoryLabel(lead.icpCategory)}
+            </IntelligenceLine>
+            <IntelligenceLine icon={UserRound} label="Buyer function">
+              {getBuyerFunctionLabel(lead.buyerFunction)}
             </IntelligenceLine>
             <IntelligenceLine icon={UserRound} label="Focus contact">
               {lead.focusName ? (
@@ -296,447 +312,456 @@ export function LeadProspectingForm({ lead }: { lead: Lead }) {
         </div>
       </div>
 
-      <div
-        id="lead-record-editor"
-        className={cn(
-          'grid border-t border-border bg-muted/15 transition-[grid-template-rows] duration-300 ease-out motion-reduce:transition-none',
-          isEditing ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]',
-        )}
-      >
-        <div className="overflow-hidden">
-          <form action={formAction} className="px-5 py-7 sm:px-6 sm:py-8">
-            <input type="hidden" name="leadId" value={lead.id} />
+      {canEdit ? (
+        <div
+          id="lead-record-editor"
+          className={cn(
+            'grid border-t border-border bg-muted/15 transition-[grid-template-rows] duration-300 ease-out motion-reduce:transition-none',
+            isEditing ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]',
+          )}
+        >
+          <div className="overflow-hidden">
+            <form action={formAction} className="px-5 py-7 sm:px-6 sm:py-8">
+              <input type="hidden" name="leadId" value={lead.id} />
 
-            <SectionHeading
-              title="Contact and account"
-              description="Keep the reachable person and organization current. Provenance and ownership remain system-controlled."
-            />
-            <div className="mt-5 grid gap-5 sm:grid-cols-2">
-              <Field
-                label="Contact name"
-                name="fullName"
-                error={state.errors?.fullName}
-                optional={false}
-              >
-                <Input
-                  id="fullName"
-                  name="fullName"
-                  autoComplete="name"
-                  maxLength={120}
-                  defaultValue={lead.name}
-                  className={inputClassName('fullName')}
-                  aria-invalid={Boolean(state.errors?.fullName)}
-                  required
-                />
-              </Field>
-              <Field
-                label="Work email"
-                name="email"
-                error={state.errors?.email}
-                optional={false}
-              >
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  maxLength={320}
-                  defaultValue={lead.email}
-                  className={inputClassName('email')}
-                  aria-invalid={Boolean(state.errors?.email)}
-                  required
-                />
-              </Field>
-              <Field
-                label="Company"
-                name="company"
-                error={state.errors?.company}
-                optional={false}
-              >
-                <Input
-                  id="company"
-                  name="company"
-                  autoComplete="organization"
-                  maxLength={160}
-                  defaultValue={lead.company}
-                  className={inputClassName('company')}
-                  aria-invalid={Boolean(state.errors?.company)}
-                  required
-                />
-              </Field>
-              <Field label="Industry" name="industry">
-                <Input
-                  id="industry"
-                  name="industry"
-                  maxLength={160}
-                  defaultValue={lead.industry}
-                  className="h-11"
-                />
-              </Field>
-              <Field label="Phone" name="phone">
-                <Input
-                  id="phone"
-                  name="phone"
-                  type="tel"
-                  inputMode="tel"
-                  autoComplete="tel"
-                  maxLength={50}
-                  defaultValue={lead.phone}
-                  placeholder="+234 800 000 0000"
-                  className="h-11"
-                />
-              </Field>
-              <Field label="WhatsApp" name="whatsapp">
-                <Input
-                  id="whatsapp"
-                  name="whatsapp"
-                  type="tel"
-                  inputMode="tel"
-                  maxLength={50}
-                  defaultValue={lead.whatsapp}
-                  className="h-11"
-                />
-              </Field>
-              <Field label="Website" name="website" error={state.errors?.website}>
-                <Input
-                  id="website"
-                  name="website"
-                  inputMode="url"
-                  maxLength={2048}
-                  defaultValue={lead.website}
-                  className={inputClassName('website')}
-                  aria-invalid={Boolean(state.errors?.website)}
-                />
-              </Field>
-              <Field label="Contact locale" name="locale">
-                <select
-                  id="locale"
-                  name="locale"
-                  defaultValue={lead.locale}
-                  className="h-11 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                >
-                  <option value="en">English</option>
-                  <option value="ar">Arabic</option>
-                </select>
-              </Field>
-            </div>
-
-            <div className="mt-9">
               <SectionHeading
-                title="Problem and opportunity"
-                description="Capture what is changing in the prospect’s business, the cost of the current state, and the work they may buy."
+                title="Contact and account"
+                description="Keep the reachable person and organization current. Provenance and ownership remain system-controlled."
               />
-            </div>
-            <div className="mt-5 grid gap-5 sm:grid-cols-2">
-              <div className="sm:col-span-2">
+              <div className="mt-5 grid gap-5 sm:grid-cols-2">
                 <Field
-                  label="Opportunity or project"
-                  name="projectType"
-                  error={state.errors?.projectType}
+                  label="Contact name"
+                  name="fullName"
+                  error={state.errors?.fullName}
                   optional={false}
                 >
                   <Input
-                    id="projectType"
-                    name="projectType"
-                    maxLength={240}
-                    defaultValue={lead.projectType}
-                    className={inputClassName('projectType')}
+                    id="fullName"
+                    name="fullName"
+                    autoComplete="name"
+                    maxLength={120}
+                    defaultValue={lead.name}
+                    className={inputClassName('fullName')}
+                    aria-invalid={Boolean(state.errors?.fullName)}
                     required
                   />
                 </Field>
-              </div>
-              <div className="sm:col-span-2">
-                <Field label="Current systems or process" name="systemStatus">
-                  <Textarea
-                    id="systemStatus"
-                    name="systemStatus"
-                    rows={3}
-                    maxLength={3000}
-                    defaultValue={lead.systemStatus}
-                    placeholder="How the work is handled today"
-                  />
-                </Field>
-              </div>
-              <div className="sm:col-span-2">
-                <Field label="Prospect-stated problems" name="problems">
-                  <Textarea
-                    id="problems"
-                    name="problems"
-                    rows={4}
-                    maxLength={5000}
-                    defaultValue={lead.problems}
-                    placeholder="Use the prospect’s language where possible"
-                  />
-                </Field>
-              </div>
-              <div className="sm:col-span-2">
-                <Field label="Priority improvement" name="improveFirst">
-                  <Textarea
-                    id="improveFirst"
-                    name="improveFirst"
-                    rows={3}
-                    maxLength={3000}
-                    defaultValue={lead.improveFirst}
-                    placeholder="What outcome matters first?"
-                  />
-                </Field>
-              </div>
-              <div className="sm:col-span-2">
-                <Field label="Additional account context" name="context">
-                  <Textarea
-                    id="context"
-                    name="context"
-                    rows={4}
-                    maxLength={5000}
-                    defaultValue={lead.context}
-                  />
-                </Field>
-              </div>
-            </div>
-
-            <div className="mt-9">
-              <SectionHeading
-                title="Qualification"
-                description="Use need, authority, budget confidence, and timing as evidence—not a box-ticking score."
-              />
-            </div>
-            <div className="mt-5 grid gap-5 sm:grid-cols-2">
-              <Field label="ICP category" name="icpCategory">
-                <IcpCategorySelect defaultValue={lead.icpCategory} />
-              </Field>
-              <Field label="Decision stage" name="decisionStage">
-                <Input
-                  id="decisionStage"
-                  name="decisionStage"
-                  maxLength={500}
-                  defaultValue={lead.decisionStage}
-                  placeholder="Exploring, evaluating, approved"
-                  className="h-11"
-                />
-              </Field>
-              <Field label="Budget signal" name="budget">
-                <Input
-                  id="budget"
-                  name="budget"
-                  maxLength={200}
-                  defaultValue={lead.budget}
-                  placeholder="$25k–$45k or not established"
-                  className="h-11"
-                />
-              </Field>
-              <Field label="Buying timeline" name="timeline">
-                <Input
-                  id="timeline"
-                  name="timeline"
-                  maxLength={200}
-                  defaultValue={lead.timeline}
-                  placeholder="30–60 days"
-                  className="h-11"
-                />
-              </Field>
-              <div className="sm:col-span-2">
                 <Field
-                  label="Qualification summary"
-                  name="qualificationNotes"
-                  hint="Summarize need, authority, budget confidence, timing, fit, and the evidence behind the assessment."
+                  label="Work email"
+                  name="email"
+                  error={state.errors?.email}
+                  optional={false}
                 >
-                  <Textarea
-                    id="qualificationNotes"
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    autoComplete="email"
+                    maxLength={320}
+                    defaultValue={lead.email}
+                    className={inputClassName('email')}
+                    aria-invalid={Boolean(state.errors?.email)}
+                    required
+                  />
+                </Field>
+                <Field
+                  label="Company"
+                  name="company"
+                  error={state.errors?.company}
+                  optional={false}
+                >
+                  <Input
+                    id="company"
+                    name="company"
+                    autoComplete="organization"
+                    maxLength={160}
+                    defaultValue={lead.company}
+                    className={inputClassName('company')}
+                    aria-invalid={Boolean(state.errors?.company)}
+                    required
+                  />
+                </Field>
+                <Field label="Industry" name="industry">
+                  <Input
+                    id="industry"
+                    name="industry"
+                    maxLength={160}
+                    defaultValue={lead.industry}
+                    className="h-11"
+                  />
+                </Field>
+                <Field label="Phone" name="phone">
+                  <Input
+                    id="phone"
+                    name="phone"
+                    type="tel"
+                    inputMode="tel"
+                    autoComplete="tel"
+                    maxLength={50}
+                    defaultValue={lead.phone}
+                    placeholder="+234 800 000 0000"
+                    className="h-11"
+                  />
+                </Field>
+                <Field label="WhatsApp" name="whatsapp">
+                  <Input
+                    id="whatsapp"
+                    name="whatsapp"
+                    type="tel"
+                    inputMode="tel"
+                    maxLength={50}
+                    defaultValue={lead.whatsapp}
+                    className="h-11"
+                  />
+                </Field>
+                <Field label="Website" name="website" error={state.errors?.website}>
+                  <Input
+                    id="website"
+                    name="website"
+                    inputMode="url"
+                    maxLength={2048}
+                    defaultValue={lead.website}
+                    className={inputClassName('website')}
+                    aria-invalid={Boolean(state.errors?.website)}
+                  />
+                </Field>
+                <Field label="Contact locale" name="locale">
+                  <select
+                    id="locale"
+                    name="locale"
+                    defaultValue={lead.locale}
+                    className="h-11 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                  >
+                    <option value="en">English</option>
+                    <option value="ar">Arabic</option>
+                  </select>
+                </Field>
+              </div>
+
+              <div className="mt-9">
+                <SectionHeading
+                  title="Problem and opportunity"
+                  description="Capture what is changing in the prospect’s business, the cost of the current state, and the work they may buy."
+                />
+              </div>
+              <div className="mt-5 grid gap-5 sm:grid-cols-2">
+                <div className="sm:col-span-2">
+                  <Field
+                    label="Opportunity or project"
+                    name="projectType"
+                    error={state.errors?.projectType}
+                    optional={false}
+                  >
+                    <Input
+                      id="projectType"
+                      name="projectType"
+                      maxLength={240}
+                      defaultValue={lead.projectType}
+                      className={inputClassName('projectType')}
+                      required
+                    />
+                  </Field>
+                </div>
+                <div className="sm:col-span-2">
+                  <Field label="Current systems or process" name="systemStatus">
+                    <Textarea
+                      id="systemStatus"
+                      name="systemStatus"
+                      rows={3}
+                      maxLength={3000}
+                      defaultValue={lead.systemStatus}
+                      placeholder="How the work is handled today"
+                    />
+                  </Field>
+                </div>
+                <div className="sm:col-span-2">
+                  <Field label="Prospect-stated problems" name="problems">
+                    <Textarea
+                      id="problems"
+                      name="problems"
+                      rows={4}
+                      maxLength={5000}
+                      defaultValue={lead.problems}
+                      placeholder="Use the prospect’s language where possible"
+                    />
+                  </Field>
+                </div>
+                <div className="sm:col-span-2">
+                  <Field label="Priority improvement" name="improveFirst">
+                    <Textarea
+                      id="improveFirst"
+                      name="improveFirst"
+                      rows={3}
+                      maxLength={3000}
+                      defaultValue={lead.improveFirst}
+                      placeholder="What outcome matters first?"
+                    />
+                  </Field>
+                </div>
+                <div className="sm:col-span-2">
+                  <Field label="Additional account context" name="context">
+                    <Textarea
+                      id="context"
+                      name="context"
+                      rows={4}
+                      maxLength={5000}
+                      defaultValue={lead.context}
+                    />
+                  </Field>
+                </div>
+              </div>
+
+              <div className="mt-9">
+                <SectionHeading
+                  title="Qualification"
+                  description="Use need, authority, budget confidence, and timing as evidence—not a box-ticking score."
+                />
+              </div>
+              <div className="mt-5 grid gap-5 sm:grid-cols-2">
+                <Field label="ICP segment" name="icpCategory">
+                  <IcpCategorySelect defaultValue={lead.icpCategory} />
+                </Field>
+                <Field
+                  label="Buyer function"
+                  name="buyerFunction"
+                  hint="The team most likely to own the problem, evaluation, or purchase."
+                >
+                  <BuyerFunctionSelect defaultValue={lead.buyerFunction} />
+                </Field>
+                <Field label="Decision stage" name="decisionStage">
+                  <Input
+                    id="decisionStage"
+                    name="decisionStage"
+                    maxLength={500}
+                    defaultValue={lead.decisionStage}
+                    placeholder="Exploring, evaluating, approved"
+                    className="h-11"
+                  />
+                </Field>
+                <Field label="Budget signal" name="budget">
+                  <Input
+                    id="budget"
+                    name="budget"
+                    maxLength={200}
+                    defaultValue={lead.budget}
+                    placeholder="$25k–$45k or not established"
+                    className="h-11"
+                  />
+                </Field>
+                <Field label="Buying timeline" name="timeline">
+                  <Input
+                    id="timeline"
+                    name="timeline"
+                    maxLength={200}
+                    defaultValue={lead.timeline}
+                    placeholder="30–60 days"
+                    className="h-11"
+                  />
+                </Field>
+                <div className="sm:col-span-2">
+                  <Field
+                    label="Qualification summary"
                     name="qualificationNotes"
-                    rows={5}
-                    maxLength={5000}
-                    defaultValue={lead.qualificationNotes}
+                    hint="Summarize need, authority, budget confidence, timing, fit, and the evidence behind the assessment."
+                  >
+                    <Textarea
+                      id="qualificationNotes"
+                      name="qualificationNotes"
+                      rows={5}
+                      maxLength={5000}
+                      defaultValue={lead.qualificationNotes}
+                    />
+                  </Field>
+                </div>
+              </div>
+
+              <div className="mt-9">
+                <SectionHeading
+                  title="Buying committee and research"
+                  description="Identify who can evaluate, champion, approve, or block the work before the opportunity stalls."
+                />
+              </div>
+              <div className="mt-5 grid gap-5 sm:grid-cols-2">
+                <Field label="Focus contact" name="focusName">
+                  <Input
+                    id="focusName"
+                    name="focusName"
+                    maxLength={120}
+                    defaultValue={lead.focusName}
+                    className="h-11"
                   />
                 </Field>
-              </div>
-            </div>
-
-            <div className="mt-9">
-              <SectionHeading
-                title="Buying committee and research"
-                description="Identify who can evaluate, champion, approve, or block the work before the opportunity stalls."
-              />
-            </div>
-            <div className="mt-5 grid gap-5 sm:grid-cols-2">
-              <Field label="Focus contact" name="focusName">
-                <Input
-                  id="focusName"
-                  name="focusName"
-                  maxLength={120}
-                  defaultValue={lead.focusName}
-                  className="h-11"
-                />
-              </Field>
-              <Field label="Role or title" name="focusTitle">
-                <Input
-                  id="focusTitle"
-                  name="focusTitle"
-                  maxLength={160}
-                  defaultValue={lead.focusTitle}
-                  className="h-11"
-                />
-              </Field>
-              <Field
-                label="Company LinkedIn"
-                name="linkedinProfileUrl"
-                error={state.errors?.linkedinProfileUrl}
-              >
-                <Input
-                  id="linkedinProfileUrl"
+                <Field label="Role or title" name="focusTitle">
+                  <Input
+                    id="focusTitle"
+                    name="focusTitle"
+                    maxLength={160}
+                    defaultValue={lead.focusTitle}
+                    className="h-11"
+                  />
+                </Field>
+                <Field
+                  label="Company LinkedIn"
                   name="linkedinProfileUrl"
-                  inputMode="url"
-                  maxLength={2048}
-                  defaultValue={lead.linkedinProfileUrl}
-                  className={inputClassName('linkedinProfileUrl')}
-                />
-              </Field>
-              <Field
-                label="Contact LinkedIn"
-                name="focusLinkedinUrl"
-                error={state.errors?.focusLinkedinUrl}
-              >
-                <Input
-                  id="focusLinkedinUrl"
+                  error={state.errors?.linkedinProfileUrl}
+                >
+                  <Input
+                    id="linkedinProfileUrl"
+                    name="linkedinProfileUrl"
+                    inputMode="url"
+                    maxLength={2048}
+                    defaultValue={lead.linkedinProfileUrl}
+                    className={inputClassName('linkedinProfileUrl')}
+                  />
+                </Field>
+                <Field
+                  label="Contact LinkedIn"
                   name="focusLinkedinUrl"
-                  inputMode="url"
-                  maxLength={2048}
-                  defaultValue={lead.focusLinkedinUrl}
-                  className={inputClassName('focusLinkedinUrl')}
-                />
-              </Field>
-              <Field label="Connection status" name="connectionStatus">
-                <select
-                  id="connectionStatus"
-                  name="connectionStatus"
-                  defaultValue={lead.connectionStatus ?? 'not_researched'}
-                  className="h-11 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                  error={state.errors?.focusLinkedinUrl}
                 >
-                  <option value="not_researched">Not researched</option>
-                  <option value="identified">Identified</option>
-                  <option value="not_connected">Not connected</option>
-                  <option value="connection_sent">Connection sent</option>
-                  <option value="connected">Connected</option>
-                  <option value="contacted">Contacted</option>
-                  <option value="replied">Replied</option>
-                </select>
-              </Field>
-              <Field
-                label="Facebook"
-                name="facebookUrl"
-                error={state.errors?.facebookUrl}
-              >
-                <Input
-                  id="facebookUrl"
+                  <Input
+                    id="focusLinkedinUrl"
+                    name="focusLinkedinUrl"
+                    inputMode="url"
+                    maxLength={2048}
+                    defaultValue={lead.focusLinkedinUrl}
+                    className={inputClassName('focusLinkedinUrl')}
+                  />
+                </Field>
+                <Field label="Connection status" name="connectionStatus">
+                  <select
+                    id="connectionStatus"
+                    name="connectionStatus"
+                    defaultValue={lead.connectionStatus ?? 'not_researched'}
+                    className="h-11 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                  >
+                    <option value="not_researched">Not researched</option>
+                    <option value="identified">Identified</option>
+                    <option value="not_connected">Not connected</option>
+                    <option value="connection_sent">Connection sent</option>
+                    <option value="connected">Connected</option>
+                    <option value="contacted">Contacted</option>
+                    <option value="replied">Replied</option>
+                  </select>
+                </Field>
+                <Field
+                  label="Facebook"
                   name="facebookUrl"
-                  inputMode="url"
-                  maxLength={2048}
-                  defaultValue={lead.facebookUrl}
-                  className={inputClassName('facebookUrl')}
-                />
-              </Field>
-            </div>
+                  error={state.errors?.facebookUrl}
+                >
+                  <Input
+                    id="facebookUrl"
+                    name="facebookUrl"
+                    inputMode="url"
+                    maxLength={2048}
+                    defaultValue={lead.facebookUrl}
+                    className={inputClassName('facebookUrl')}
+                  />
+                </Field>
+              </div>
 
-            <div className="mt-9">
-              <SectionHeading
-                title="Engagement and next commitment"
-                description="Every active conversation should finish with a clear owner, action, and date. Record outcome reasons for pipeline learning."
-              />
-            </div>
-            <div className="mt-5 grid gap-5 sm:grid-cols-2">
-              <Field label="Last outreach date" name="lastOutreachDate">
-                <Input
-                  id="lastOutreachDate"
-                  name="lastOutreachDate"
-                  type="date"
-                  defaultValue={lead.lastOutreachDate?.slice(0, 10)}
-                  className="h-11"
+              <div className="mt-9">
+                <SectionHeading
+                  title="Engagement and next commitment"
+                  description="Every active conversation should finish with a clear owner, action, and date. Record outcome reasons for pipeline learning."
                 />
-              </Field>
-              <Field
-                label="Next follow-up date"
-                name="nextFollowUpDate"
-                error={state.errors?.nextFollowUpDate}
-              >
-                <Input
-                  id="nextFollowUpDate"
+              </div>
+              <div className="mt-5 grid gap-5 sm:grid-cols-2">
+                <Field label="Last outreach date" name="lastOutreachDate">
+                  <Input
+                    id="lastOutreachDate"
+                    name="lastOutreachDate"
+                    type="date"
+                    defaultValue={lead.lastOutreachDate?.slice(0, 10)}
+                    className="h-11"
+                  />
+                </Field>
+                <Field
+                  label="Next follow-up date"
                   name="nextFollowUpDate"
-                  type="date"
-                  defaultValue={lead.nextFollowUpDate?.slice(0, 10)}
-                  className={inputClassName('nextFollowUpDate')}
-                />
-              </Field>
-              <div className="sm:col-span-2">
-                <Field label="Internal next action" name="nextFollowUpAction">
-                  <Input
-                    id="nextFollowUpAction"
-                    name="nextFollowUpAction"
-                    maxLength={1000}
-                    defaultValue={lead.nextFollowUpAction}
-                    placeholder="Send tailored case study, then call Thursday"
-                    className="h-11"
-                  />
-                </Field>
-              </div>
-              <div className="sm:col-span-2">
-                <Field
-                  label="Prospect-agreed next step"
-                  name="nextStep"
-                  hint="Use the commitment agreed with the prospect, not an internal reminder."
+                  error={state.errors?.nextFollowUpDate}
                 >
                   <Input
-                    id="nextStep"
+                    id="nextFollowUpDate"
+                    name="nextFollowUpDate"
+                    type="date"
+                    defaultValue={lead.nextFollowUpDate?.slice(0, 10)}
+                    className={inputClassName('nextFollowUpDate')}
+                  />
+                </Field>
+                <div className="sm:col-span-2">
+                  <Field label="Internal next action" name="nextFollowUpAction">
+                    <Input
+                      id="nextFollowUpAction"
+                      name="nextFollowUpAction"
+                      maxLength={1000}
+                      defaultValue={lead.nextFollowUpAction}
+                      placeholder="Send tailored case study, then call Thursday"
+                      className="h-11"
+                    />
+                  </Field>
+                </div>
+                <div className="sm:col-span-2">
+                  <Field
+                    label="Prospect-agreed next step"
                     name="nextStep"
-                    maxLength={1000}
-                    defaultValue={lead.nextStep}
-                    placeholder="Discovery call with COO on 14 August"
-                    className="h-11"
-                  />
-                </Field>
-              </div>
-              <div className="sm:col-span-2">
-                <Field label="Rep pain-point assessment" name="painPoints">
-                  <Textarea
-                    id="painPoints"
-                    name="painPoints"
-                    rows={4}
-                    maxLength={5000}
-                    defaultValue={lead.painPoints}
-                  />
-                </Field>
-              </div>
-              <div className="sm:col-span-2">
-                <Field
-                  label="Outcome or disqualification reason"
-                  name="outcomeReason"
-                  hint="Required operationally when moving a lead to Won, Lost, or Spam."
-                >
-                  <Textarea
-                    id="outcomeReason"
+                    hint="Use the commitment agreed with the prospect, not an internal reminder."
+                  >
+                    <Input
+                      id="nextStep"
+                      name="nextStep"
+                      maxLength={1000}
+                      defaultValue={lead.nextStep}
+                      placeholder="Discovery call with COO on 14 August"
+                      className="h-11"
+                    />
+                  </Field>
+                </div>
+                <div className="sm:col-span-2">
+                  <Field label="Rep pain-point assessment" name="painPoints">
+                    <Textarea
+                      id="painPoints"
+                      name="painPoints"
+                      rows={4}
+                      maxLength={5000}
+                      defaultValue={lead.painPoints}
+                    />
+                  </Field>
+                </div>
+                <div className="sm:col-span-2">
+                  <Field
+                    label="Outcome or disqualification reason"
                     name="outcomeReason"
-                    rows={3}
-                    maxLength={1000}
-                    defaultValue={lead.outcomeReason}
-                    placeholder="Why the opportunity closed, stalled, or was disqualified"
-                  />
-                </Field>
+                    hint="Required operationally when moving a lead to Won, Lost, or Spam."
+                  >
+                    <Textarea
+                      id="outcomeReason"
+                      name="outcomeReason"
+                      rows={3}
+                      maxLength={1000}
+                      defaultValue={lead.outcomeReason}
+                      placeholder="Why the opportunity closed, stalled, or was disqualified"
+                    />
+                  </Field>
+                </div>
               </div>
-            </div>
 
-            <div className="mt-8 flex flex-col gap-3 border-t border-border pt-5 sm:flex-row sm:items-center sm:justify-between">
-              <p
-                className={cn(
-                  'text-sm font-medium',
-                  state.success ? 'text-success' : 'text-destructive',
-                )}
-                aria-live="polite"
-              >
-                {state.message}
-              </p>
-              <SaveButton />
-            </div>
-          </form>
+              <div className="mt-8 flex flex-col gap-3 border-t border-border pt-5 sm:flex-row sm:items-center sm:justify-between">
+                <p
+                  className={cn(
+                    'text-sm font-medium',
+                    state.success ? 'text-success' : 'text-destructive',
+                  )}
+                  aria-live="polite"
+                >
+                  {state.message}
+                </p>
+                <SaveButton />
+              </div>
+            </form>
+          </div>
         </div>
-      </div>
+      ) : null}
     </section>
   );
 }

@@ -13,12 +13,14 @@ import {
 import { DashboardHeader } from '@/components/dashboard/dashboard-header';
 import { LeadStatusBadge } from '@/components/leads/lead-status-badge';
 import { Button } from '@/components/ui/button';
+import { buyerFunctions, icpCategories } from '@/lib/dashboard/types';
 import { leadStatusDefinitions } from '@/lib/sales/playbook';
 
 const sections = [
   ['daily-rhythm', 'Daily rhythm'],
   ['lead-statuses', 'Lead statuses'],
   ['qualification', 'Qualification'],
+  ['target-market', 'ICP and buyers'],
   ['record-quality', 'Record quality'],
   ['follow-up', 'Follow-up'],
   ['outcomes', 'Outcomes'],
@@ -51,6 +53,7 @@ const qualificationSignals = [
 const dailySteps = [
   'Start with overdue and due-today follow-ups before opening new work.',
   'Review new leads for fit, ownership, contact accuracy, and the best first action.',
+  'Claim a shared funnel lead before contacting it so two reps do not work the same opportunity.',
   'Complete outreach in focused blocks and log what happened while context is fresh.',
   'End every active conversation with a named owner, concrete action, and date.',
   'Close stale motions honestly as Lost or Spam, with a useful outcome reason.',
@@ -201,6 +204,58 @@ export default function SalesGuidePage() {
                 is validating a $30k range; technical discovery with Ops and IT is booked
                 for 14 August.”
               </p>
+            </div>
+          </section>
+
+          <section id="target-market" className="scroll-mt-24">
+            <div className="flex items-center gap-3">
+              <UsersRound className="size-5 text-primary" aria-hidden="true" />
+              <h2 className="text-2xl font-semibold tracking-[-0.025em] text-foreground">
+                ICP segment and buyer function
+              </h2>
+            </div>
+            <p className="mt-3 max-w-3xl text-sm leading-7 text-muted-foreground">
+              Keep these two fields separate. The ICP segment describes the kind of
+              organization Luxa can serve; buyer function identifies the team inside that
+              organization that owns the problem, evaluation, or purchase.
+            </p>
+            <div className="mt-6 grid gap-5 lg:grid-cols-2">
+              <div className="surface-elevated rounded-lg p-5">
+                <p className="text-xs font-semibold tracking-[0.08em] text-primary uppercase">
+                  Target organization segments
+                </p>
+                <ul className="mt-4 grid gap-2 text-sm text-foreground sm:grid-cols-2">
+                  {icpCategories.slice(0, 10).map((category) => (
+                    <li key={category.value} className="flex items-start gap-2">
+                      <CheckCircle2
+                        className="mt-0.5 size-3.5 shrink-0 text-success"
+                        aria-hidden="true"
+                      />
+                      {category.label}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="surface-elevated rounded-lg p-5">
+                <p className="text-xs font-semibold tracking-[0.08em] text-primary uppercase">
+                  Buyer functions
+                </p>
+                <ul className="mt-4 grid gap-2 text-sm text-foreground sm:grid-cols-2">
+                  {buyerFunctions.slice(0, -1).map((buyerFunction) => (
+                    <li key={buyerFunction.value} className="flex items-start gap-2">
+                      <CheckCircle2
+                        className="mt-0.5 size-3.5 shrink-0 text-success"
+                        aria-hidden="true"
+                      />
+                      {buyerFunction.label}
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-4 border-t border-border pt-4 text-xs leading-5 text-muted-foreground">
+                  Example: a logistics company is the ICP segment; its operations team is
+                  the buyer function.
+                </p>
+              </div>
             </div>
           </section>
 

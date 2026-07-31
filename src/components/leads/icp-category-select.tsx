@@ -28,23 +28,23 @@ export function IcpCategorySelect({
         className,
       )}
     >
-      <option value="">Select an ICP tier</option>
-      <optgroup label="Account tiers">
-        {icpCategories.slice(0, 4).map((category) => (
+      <option value="">Select an ICP segment</option>
+      <optgroup label="Target organization segments">
+        {icpCategories.slice(0, 10).map((category) => (
           <option key={category.value} value={category.value}>
             {category.label}
           </option>
         ))}
       </optgroup>
       <optgroup label="Other classifications">
-        {icpCategories.slice(4).map((category) => (
+        {icpCategories.slice(10).map((category) => (
           <option key={category.value} value={category.value}>
             {category.label}
           </option>
         ))}
       </optgroup>
       {isLegacyValue ? (
-        <option value={defaultValue}>Legacy — {defaultValue}</option>
+        <option value={defaultValue}>Previous classification — {defaultValue}</option>
       ) : null}
     </select>
   );

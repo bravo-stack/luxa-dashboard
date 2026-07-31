@@ -14,6 +14,7 @@ import { formatDateTime } from '@/lib/dashboard/utils';
 type LeadNotesProps = {
   leadId: string;
   notes: LeadNote[];
+  canEdit?: boolean;
 };
 
 type PendingAction =
@@ -22,7 +23,7 @@ type PendingAction =
   | { type: 'delete'; noteId: string }
   | null;
 
-export function LeadNotes({ leadId, notes }: LeadNotesProps) {
+export function LeadNotes({ leadId, notes, canEdit = true }: LeadNotesProps) {
   const router = useRouter();
   const [newBody, setNewBody] = React.useState('');
   const [editingNoteId, setEditingNoteId] = React.useState<string | null>(null);
@@ -133,34 +134,40 @@ export function LeadNotes({ leadId, notes }: LeadNotesProps) {
         </p>
       </div>
 
-      <form onSubmit={handleAddNote} className="mt-5 space-y-3">
-        <label htmlFor="new-lead-note" className="sr-only">
-          Add an internal note
-        </label>
-        <Textarea
-          id="new-lead-note"
-          name="body"
-          value={newBody}
-          maxLength={5000}
-          disabled={isPending}
-          placeholder="Add internal note for this lead"
-          onChange={(event) => setNewBody(event.target.value)}
-          required
-        />
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <span className="text-xs text-muted-foreground">
-            {newBody.length.toLocaleString()} / 5,000
-          </span>
-          <Button type="submit" disabled={isPending || !newBody.trim()}>
-            {isAdding ? (
-              <Loader2 className="animate-spin" aria-hidden="true" />
-            ) : (
-              <MessageSquareText aria-hidden="true" />
-            )}
-            {isAdding ? 'Adding note' : 'Add note'}
-          </Button>
-        </div>
-      </form>
+      {canEdit ? (
+        <form onSubmit={handleAddNote} className="mt-5 space-y-3">
+          <label htmlFor="new-lead-note" className="sr-only">
+            Add an internal note
+          </label>
+          <Textarea
+            id="new-lead-note"
+            name="body"
+            value={newBody}
+            maxLength={5000}
+            disabled={isPending}
+            placeholder="Add internal note for this lead"
+            onChange={(event) => setNewBody(event.target.value)}
+            required
+          />
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <span className="text-xs text-muted-foreground">
+              {newBody.length.toLocaleString()} / 5,000
+            </span>
+            <Button type="submit" disabled={isPending || !newBody.trim()}>
+              {isAdding ? (
+                <Loader2 className="animate-spin" aria-hidden="true" />
+              ) : (
+                <MessageSquareText aria-hidden="true" />
+              )}
+              {isAdding ? 'Adding note' : 'Add note'}
+            </Button>
+          </div>
+        </form>
+      ) : (
+        <p className="mt-5 rounded-md border border-border bg-muted/30 px-4 py-3 text-sm leading-6 text-muted-foreground">
+          This shared funnel lead is read-only. Claim it before adding internal notes.
+        </p>
+      )}
 
       {feedback ? (
         <p
@@ -196,7 +203,7 @@ export function LeadNotes({ leadId, notes }: LeadNotesProps) {
                       {wasEdited ? ' · Edited' : ''}
                     </p>
                   </div>
-                  {!isEditing && !isDeleting ? (
+                  {canEdit && !isEditing && !isDeleting ? (
                     <div className="flex items-center gap-1">
                       <Button
                         type="button"

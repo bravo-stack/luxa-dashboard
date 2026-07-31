@@ -16,6 +16,9 @@ const rolePermissions: Record<WorkspaceRole, ReadonlySet<WorkspacePermission>> =
     'leads.update_all',
     'leads.update_assigned',
     'leads.assign',
+    'leads.claim',
+    'leads.request_delete',
+    'leads.approve_delete',
     'leads.export',
     'members.manage',
     'settings.manage',
@@ -29,6 +32,8 @@ const rolePermissions: Record<WorkspaceRole, ReadonlySet<WorkspacePermission>> =
     'leads.read_assigned',
     'leads.create',
     'leads.update_assigned',
+    'leads.claim',
+    'leads.request_delete',
     'feedback.submit',
     'feedback.read_own',
   ]),
@@ -57,8 +62,13 @@ export function canAccessLead(
   role: WorkspaceRole,
   userId: string,
   ownerUserId: string | null | undefined,
+  origin?: string,
 ) {
-  return role === 'admin' || ownerUserId === userId;
+  return (
+    role === 'admin' ||
+    ownerUserId === userId ||
+    (role === 'sales_exec' && !ownerUserId && origin === 'website')
+  );
 }
 
 export type PasswordPolicyResult = {

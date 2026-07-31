@@ -24,6 +24,10 @@ const eventPresentation: Record<string, { label: string; icon: typeof ShieldChec
   account_frozen: { label: 'Account frozen', icon: ShieldAlert },
   account_unfrozen: { label: 'Access restored', icon: ShieldCheck },
   lead_assigned: { label: 'Lead assigned', icon: UserRoundCheck },
+  lead_claimed: { label: 'Lead claimed', icon: UserRoundCheck },
+  lead_deletion_requested: { label: 'Lead deletion requested', icon: ShieldAlert },
+  lead_deletion_approved: { label: 'Lead deletion approved', icon: ShieldAlert },
+  lead_deletion_rejected: { label: 'Lead deletion rejected', icon: ShieldCheck },
 };
 
 const dateFormatter = new Intl.DateTimeFormat('en', {

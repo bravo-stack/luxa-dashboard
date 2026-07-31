@@ -1,6 +1,7 @@
 'use server';
 
-import { redirect } from 'next/navigation';
+import { redirect, RedirectType } from 'next/navigation';
+import type { User } from '@supabase/supabase-js';
 
 import { getAuthEmailDeliveryReadiness } from '@/lib/auth/email-delivery';
 import { RECOVERY_EMAIL_CALLBACK_URL } from '@/lib/auth/origin-policy';
@@ -14,6 +15,17 @@ export type LoginState = {
   success?: boolean;
   errors?: string[];
 };
+
+function hasActiveWorkspaceClaims(
+  user: User | null,
+  expected: { id: string; role: string },
+) {
+  return (
+    user?.id === expected.id &&
+    user.app_metadata?.role === expected.role &&
+    user.app_metadata?.account_status === 'active'
+  );
+}
 
 export async function login(_state: LoginState, formData: FormData): Promise<LoginState> {
   const email = String(formData.get('email') ?? '')
@@ -255,16 +267,50 @@ export async function updatePassword(
     }
   }
 
+  const refreshedSession = await supabase.auth.refreshSession();
+  let sessionUser = refreshedSession.data.user;
+  let sessionReady =
+    Boolean(refreshedSession.data.session) &&
+    hasActiveWorkspaceClaims(sessionUser, workspaceUser);
+  let sessionStrategy = 'refresh';
+
+  // A password change may invalidate the recovery session. Establishing a new
+  // password session also guarantees that the JWT contains the active claims
+  // written above before Proxy evaluates the dashboard request.
+  if (!sessionReady) {
+    const passwordSession = await supabase.auth.signInWithPassword({
+      email: workspaceUser.email,
+      password,
+    });
+
+    sessionUser = passwordSession.data.user;
+    sessionReady =
+      Boolean(passwordSession.data.session) &&
+      hasActiveWorkspaceClaims(sessionUser, workspaceUser);
+    sessionStrategy = sessionReady ? 'password' : 'manual_sign_in_required';
+  }
+
   await recordSecurityEvent({
     action: wasInvited ? 'account_activated' : 'password_changed',
     actorUserId: workspaceUser.id,
     targetUserId: workspaceUser.id,
     targetEmail: workspaceUser.email,
     sessionId: workspaceUser.session.id,
-    metadata: { role: workspaceUser.role },
+    metadata: {
+      role: workspaceUser.role,
+      session_strategy: sessionStrategy,
+    },
   });
 
-  redirect(wasInvited ? '/dashboard?welcome=1' : '/dashboard/settings?password=updated');
+  if (!sessionReady) {
+    await supabase.auth.signOut({ scope: 'local' });
+    redirect('/?auth=password-updated', RedirectType.replace);
+  }
+
+  redirect(
+    wasInvited ? '/dashboard?welcome=1' : '/dashboard/settings?password=updated',
+    RedirectType.replace,
+  );
 }
 
 export async function logout() {

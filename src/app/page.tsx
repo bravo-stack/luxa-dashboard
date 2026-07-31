@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
-import { CircleAlert } from 'lucide-react';
+import { CircleAlert, CircleCheck } from 'lucide-react';
 
 import { AuthShell } from '@/components/auth/auth-shell';
 import { LoginForm } from '@/components/auth/login-form';
@@ -39,6 +39,18 @@ export default async function Home({
           <p>
             This secure link has expired or was already used. Request a fresh password
             reset, or ask your administrator for a new invitation.
+          </p>
+        </div>
+      ) : null}
+      {params.auth === 'password-updated' ? (
+        <div className="mb-5 flex items-start gap-2 rounded-md border border-success/30 bg-success/8 px-3 py-2.5 text-xs leading-5 text-foreground">
+          <CircleCheck
+            className="mt-0.5 size-4 shrink-0 text-success"
+            aria-hidden="true"
+          />
+          <p>
+            Your password and workspace access were updated. Sign in with your new
+            password to continue.
           </p>
         </div>
       ) : null}

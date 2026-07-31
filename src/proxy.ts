@@ -28,16 +28,16 @@ export async function proxy(request: NextRequest) {
   });
   const { data } = await supabase.auth.getClaims();
   const role = data?.claims.app_metadata?.role;
-  const accountStatus =
-    data?.claims.app_metadata?.account_status ?? (role === 'admin' ? 'active' : null);
-  const hasWorkspaceAccess =
-    (role === 'admin' || role === 'sales_exec') && accountStatus === 'active';
+  // JWT metadata can lag behind an admin activation or freeze operation. Proxy
+  // performs only the optimistic role check; every dashboard page, action, and
+  // route handler enforces the authoritative membership and session state.
+  const hasWorkspaceIdentity = role === 'admin' || role === 'sales_exec';
   const { pathname } = request.nextUrl;
 
   const isProtectedDashboardPath =
     pathname.startsWith('/dashboard') || pathname.startsWith('/api/dashboard');
 
-  if (isProtectedDashboardPath && !hasWorkspaceAccess) {
+  if (isProtectedDashboardPath && !hasWorkspaceIdentity) {
     // Server Actions authorize themselves. Redirecting their POST requests returns
     // HTML where React expects an action response and produces a transport error.
     if (request.headers.has('next-action')) {
@@ -56,12 +56,6 @@ export async function proxy(request: NextRequest) {
     }
 
     const redirectResponse = NextResponse.redirect(new URL('/', request.url));
-    response.cookies.getAll().forEach((cookie) => redirectResponse.cookies.set(cookie));
-    return redirectResponse;
-  }
-
-  if (pathname === '/' && hasWorkspaceAccess) {
-    const redirectResponse = NextResponse.redirect(new URL('/dashboard', request.url));
     response.cookies.getAll().forEach((cookie) => redirectResponse.cookies.set(cookie));
     return redirectResponse;
   }

@@ -129,7 +129,7 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
       <DashboardSection
         eyebrow="Conversion mechanics"
         title="How attention turns into intent"
-        description="An ordered visitor funnel beside the hours when sessions concentrate."
+        description="The primary audit journey—page reach, start, and successful submission—beside the hours when sessions concentrate."
         contentClassName="grid gap-6 xl:grid-cols-[minmax(340px,0.72fr)_minmax(0,1.28fr)]"
       >
         <FunnelCard steps={analytics.funnel} />
@@ -141,7 +141,7 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
       <DashboardSection
         eyebrow="Acquisition"
         title="Where qualified attention forms"
-        description="Native route and referrer data combined with first-click attribution and controlled conversion placements."
+        description="Native route and referrer data combined with first-click attribution and controlled conversion sources."
       >
         <SourcePerformance
           routes={analytics.topLandingPages}
@@ -190,6 +190,32 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
           title="Book-call intent"
           description="Daily clicks into scheduling paths."
           data={analytics.dailyScheduleClicks}
+          variant="bar"
+        />
+      </DashboardSection>
+
+      <DashboardSection
+        eyebrow="Commercial qualification"
+        title="What submitted demand is asking for"
+        description="The project, budget, and timeline mix attached to validated quick-start and platform-audit submissions."
+        contentClassName="grid gap-6 xl:grid-cols-3"
+      >
+        <AnalyticsChartCard
+          title="Project demand"
+          description="Submitted project types across both conversion forms."
+          data={analytics.submissionsByProjectType}
+          variant="bar"
+        />
+        <AnalyticsChartCard
+          title="Budget mix"
+          description="Declared investment ranges across validated submissions."
+          data={analytics.submissionsByBudget}
+          variant="bar"
+        />
+        <AnalyticsChartCard
+          title="Timeline mix"
+          description="Declared delivery horizons across validated submissions."
+          data={analytics.submissionsByTimeline}
           variant="bar"
         />
       </DashboardSection>

@@ -42,12 +42,18 @@ export function fillDailySeries(
   startAt: number,
   endAt: number,
   context: string,
-  seriesName?: string,
+  seriesNames?: string | readonly string[],
 ): SourceSummary[] {
   const totals = new Map<string, number>();
+  const includedSeries =
+    typeof seriesNames === 'string'
+      ? new Set([seriesNames])
+      : seriesNames
+        ? new Set(seriesNames)
+        : null;
 
   for (const point of points) {
-    if (!seriesName || point.x === seriesName) {
+    if (!includedSeries || (point.x && includedSeries.has(point.x))) {
       const timestamp = point.t ?? point.x;
 
       if (timestamp) {

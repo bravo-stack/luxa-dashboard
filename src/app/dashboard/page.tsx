@@ -43,7 +43,7 @@ type DashboardPageProps = {
 };
 
 function selectMetrics(metrics: MetricSummary[]) {
-  const priority = ['pageviews', 'visitors', 'conversion_rate', 'lead_form_submitted'];
+  const priority = ['pageviews', 'visitors', 'conversion_rate', 'lead_submitted'];
 
   return priority
     .map((key) => metrics.find((metric) => metric.key === key))
@@ -179,7 +179,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   ]);
   const priorityMetrics = selectMetrics(analytics.metrics);
   const submissions =
-    analytics.metrics.find((metric) => metric.key === 'lead_form_submitted')?.value ?? 0;
+    analytics.metrics.find((metric) => metric.key === 'lead_submitted')?.value ?? 0;
   const visitorCount =
     analytics.metrics.find((metric) => metric.key === 'visitors')?.value ?? 0;
 
@@ -253,7 +253,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
       <DashboardSection
         eyebrow="Acquisition quality"
         title="Where demand is concentrating"
-        description="A compact matrix of high-attention pages, sources, campaigns, placements, and devices."
+        description="A compact matrix of high-attention pages, referrers, campaigns, conversion sources, and devices."
       >
         <SourcePerformance
           routes={analytics.topLandingPages}

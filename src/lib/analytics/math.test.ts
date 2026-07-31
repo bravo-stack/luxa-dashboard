@@ -42,6 +42,24 @@ describe('analytics math', () => {
     ]);
   });
 
+  it('combines related event names into one daily series', () => {
+    const startAt = Date.parse('2026-07-01T00:00:00.000Z');
+    const endAt = Date.parse('2026-07-01T23:59:59.000Z');
+    const result = fillDailySeries(
+      [
+        { x: 'quick_start', t: '2026-07-01T02:00:00.000Z', y: 2 },
+        { x: 'audit', t: '2026-07-01T04:00:00.000Z', y: 3 },
+        { x: 'unrelated', t: '2026-07-01T06:00:00.000Z', y: 10 },
+      ],
+      startAt,
+      endAt,
+      'Submissions',
+      ['quick_start', 'audit'],
+    );
+
+    expect(result.map((point) => point.value)).toEqual([5]);
+  });
+
   it('aligns conversions by date key instead of array position', () => {
     const audience = [
       { key: 'a', label: 'A', value: 20, context: 'Visitors' },

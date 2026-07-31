@@ -6,6 +6,14 @@ import {
   fillDailySeries,
   percentageRate,
 } from '@/lib/analytics/math';
+import {
+  isCurrentPublicPath,
+  leadStartEventNames,
+  leadSubmissionEventNames,
+  legacyAuditFunnelSteps,
+  primaryAuditFunnelSteps,
+  publicSiteEventNames,
+} from '@/lib/analytics/public-site';
 import type {
   ActivityCell,
   AnalyticsSummary,
@@ -20,13 +28,11 @@ import type {
   WebVitalSummary,
 } from '@/lib/dashboard/types';
 
-const eventNames = [
-  'page_viewed',
+const legacyEventNames = [
   'lead_form_started',
   'lead_form_step_completed',
   'lead_form_submitted',
   'book_call_clicked',
-  'email_clicked',
   'pricing_cta_clicked',
   'case_study_clicked',
   'lead_form_validation_failed',
@@ -36,7 +42,15 @@ const eventNames = [
   'theme_changed',
 ] as const;
 
-type EventName = (typeof eventNames)[number];
+const umamiEventNames = [...publicSiteEventNames, ...legacyEventNames] as const;
+const allLeadStartEventNames = [...leadStartEventNames, 'lead_form_started'] as const;
+const allLeadSubmissionEventNames = [
+  ...leadSubmissionEventNames,
+  'lead_form_submitted',
+] as const;
+const allScheduleEventNames = ['schedule_clicked', 'book_call_clicked'] as const;
+
+type EventName = (typeof umamiEventNames)[number];
 
 type EventSeriesPoint = {
   x: string;
@@ -145,18 +159,35 @@ const rangeDays: Record<DateRangeKey, number> = {
 
 const eventLabels: Record<EventName, string> = {
   page_viewed: 'Tracked page views',
-  lead_form_started: 'Form starts',
-  lead_form_step_completed: 'Steps completed',
-  lead_form_submitted: 'Forms submitted',
-  book_call_clicked: 'Book-call clicks',
+  cta_clicked: 'CTA clicks',
+  lead_quick_start_started: 'Quick-start starts',
+  lead_quick_start_submitted: 'Quick-start submissions',
+  lead_audit_started: 'Audit starts',
+  lead_audit_step_completed: 'Audit steps completed',
+  lead_audit_submitted: 'Audit submissions',
+  schedule_clicked: 'Scheduling clicks',
   email_clicked: 'Email clicks',
-  pricing_cta_clicked: 'Pricing CTA clicks',
-  case_study_clicked: 'Case study clicks',
+  selected_work_clicked: 'Selected-work clicks',
+  pricing_clicked: 'Pricing clicks',
+  lead_form_started: 'Previous form starts',
+  lead_form_step_completed: 'Previous form steps',
+  lead_form_submitted: 'Previous form submissions',
+  book_call_clicked: 'Previous scheduling clicks',
+  pricing_cta_clicked: 'Previous pricing clicks',
+  case_study_clicked: 'Previous selected-work clicks',
   lead_form_validation_failed: 'Validation blocks',
-  lead_form_step_back: 'Step backs',
+  lead_form_step_back: 'Form step backs',
   lead_form_abandoned: 'Form abandons',
   language_changed: 'Language changes',
   theme_changed: 'Theme changes',
+};
+
+const funnelLabels: Record<string, string> = {
+  '/audit': 'Audit page reached',
+  lead_audit_started: 'Audit started',
+  lead_audit_submitted: 'Audit submitted',
+  lead_form_started: 'Audit started',
+  lead_form_submitted: 'Audit submitted',
 };
 
 const vitalMeta: Record<
@@ -280,6 +311,14 @@ function totalEvents(points: EventSeriesPoint[], eventName: EventName) {
     .reduce((total, point) => total + point.y, 0);
 }
 
+function totalEventGroup(points: EventSeriesPoint[], eventNames: readonly string[]) {
+  const includedEvents = new Set<string>(eventNames);
+
+  return points
+    .filter((point) => includedEvents.has(point.x))
+    .reduce((total, point) => total + point.y, 0);
+}
+
 function labelValue(value: string) {
   if (value === '') {
     return 'Direct';
@@ -352,8 +391,26 @@ function mergeValues(groups: PropertyValue[][]) {
   return Array.from(totals, ([value, total]) => ({ value, total }));
 }
 
+function mergeFormValues(groups: PropertyValue[][]) {
+  return mergeValues(
+    groups.map((group) =>
+      group.map((item) => {
+        const normalized = item.value.toLowerCase().replaceAll('-', '_');
+        const value = normalized.includes('quick')
+          ? 'quick_start'
+          : normalized.includes('audit')
+            ? 'platform_audit'
+            : normalized;
+
+        return { value, total: item.total };
+      }),
+    ),
+  );
+}
+
 function pageQuality(items: ExpandedMetric[]): PageQualitySummary[] {
   return items
+    .filter((item) => isCurrentPublicPath(item.name))
     .slice()
     .sort((first, second) => second.pageviews - first.pageviews)
     .slice(0, 10)
@@ -376,20 +433,18 @@ function fallbackFunnel(
   points: EventSeriesPoint[],
   previousPoints: EventSeriesPoint[],
 ): FunnelStepSummary[] {
-  const steps: EventName[] = [
-    'page_viewed',
-    'lead_form_started',
-    'lead_form_submitted',
-    'book_call_clicked',
-  ];
-  const baseline = totalEvents(points, 'page_viewed');
+  const steps: EventName[] =
+    totalEventGroup(points, ['lead_audit_started', 'lead_audit_submitted']) > 0
+      ? ['lead_audit_started', 'lead_audit_submitted']
+      : ['lead_form_started', 'lead_form_submitted'];
+  const baseline = totalEvents(points, steps[0] ?? 'lead_audit_started');
 
-  return steps.map((eventName) => {
+  return steps.map((eventName, index) => {
     const value = totalEvents(points, eventName);
 
     return {
       key: eventName,
-      label: eventLabels[eventName],
+      label: index === 0 ? 'Audit started' : 'Audit submitted',
       value,
       rate: percentageRate(value, baseline),
       delta: compareTrend(value, totalEvents(previousPoints, eventName)).label,
@@ -402,7 +457,7 @@ function orderedFunnel(
   points: EventSeriesPoint[],
   previousPoints: EventSeriesPoint[],
 ): FunnelStepSummary[] {
-  if (report.length < 2) {
+  if (report.length < 2 || !report.some((step) => step.visitors > 0)) {
     return fallbackFunnel(points, previousPoints);
   }
 
@@ -410,10 +465,7 @@ function orderedFunnel(
 
   return report.map((step) => ({
     key: step.value,
-    label:
-      step.value in eventLabels
-        ? eventLabels[step.value as EventName]
-        : labelValue(step.value),
+    label: funnelLabels[step.value] ?? labelValue(step.value),
     value: step.visitors,
     rate:
       baseline > 0
@@ -477,12 +529,16 @@ function realtimeSummary(
   realtime: RealtimeResponse,
   activeVisitors: number,
 ): RealtimeSummary {
+  const currentUrls = Object.fromEntries(
+    Object.entries(realtime.urls ?? {}).filter(([path]) => isCurrentPublicPath(path)),
+  );
+
   return {
     activeVisitors,
     views: realtime.totals?.views ?? 0,
     visitors: realtime.totals?.visitors ?? 0,
     events: realtime.totals?.events ?? realtime.events?.length ?? 0,
-    topPages: objectSummary(realtime.urls, 'Last 30 minutes'),
+    topPages: objectSummary(currentUrls, 'Last 30 minutes'),
     topCountries: objectSummary(realtime.countries, 'Last 30 minutes'),
     updatedAt: new Date(realtime.timestamp ?? Date.now()).toISOString(),
   };
@@ -533,6 +589,20 @@ async function getPropertyValues(
       item.value.length > 0 &&
       Number.isFinite(item.total),
   );
+}
+
+async function getPropertyValuesForEvents(
+  config: UmamiConfig,
+  startAt: number,
+  endAt: number,
+  events: readonly EventName[],
+  propertyName: string,
+) {
+  const groups = await Promise.all(
+    events.map((event) => getPropertyValues(config, startAt, endAt, event, propertyName)),
+  );
+
+  return mergeValues(groups);
 }
 
 async function getMetric(
@@ -635,17 +705,40 @@ export async function getUmamiAnalytics(
         filters: {},
         parameters: {
           ...reportParameters,
-          steps: [
-            { type: 'event', value: 'lead_form_started' },
-            { type: 'event', value: 'lead_form_submitted' },
-            { type: 'event', value: 'book_call_clicked' },
-          ],
+          steps: primaryAuditFunnelSteps,
+          window: rangeDays[dateRangeKey],
+        },
+      }),
+    ],
+    [
+      'legacy-ordered-funnel',
+      requestJson<FunnelReportStep[]>(config, '/reports/funnel', {
+        websiteId: config.websiteId,
+        type: 'funnel',
+        filters: {},
+        parameters: {
+          ...reportParameters,
+          steps: legacyAuditFunnelSteps,
           window: rangeDays[dateRangeKey],
         },
       }),
     ],
     [
       'attribution',
+      requestJson<AttributionReport>(config, '/reports/attribution', {
+        websiteId: config.websiteId,
+        type: 'attribution',
+        filters: {},
+        parameters: {
+          ...reportParameters,
+          model: 'first-click',
+          type: 'event',
+          step: 'lead_audit_submitted',
+        },
+      }),
+    ],
+    [
+      'legacy-attribution',
       requestJson<AttributionReport>(config, '/reports/attribution', {
         websiteId: config.websiteId,
         type: 'attribution',
@@ -668,28 +761,83 @@ export async function getUmamiAnalytics(
       }),
     ],
     [
-      'form-values',
+      'industry-values',
+      getPropertyValuesForEvents(
+        config,
+        startAt,
+        endAt,
+        leadSubmissionEventNames,
+        'industry_segment',
+      ),
+    ],
+    [
+      'legacy-form-values',
       getPropertyValues(config, startAt, endAt, 'lead_form_submitted', 'form'),
     ],
     [
-      'industry-values',
+      'legacy-industry-values',
       getPropertyValues(config, startAt, endAt, 'lead_form_submitted', 'industry'),
     ],
     [
-      'book-placements',
-      getPropertyValues(config, startAt, endAt, 'book_call_clicked', 'placement'),
+      'project-type-values',
+      getPropertyValuesForEvents(
+        config,
+        startAt,
+        endAt,
+        leadSubmissionEventNames,
+        'project_type',
+      ),
     ],
     [
-      'email-placements',
-      getPropertyValues(config, startAt, endAt, 'email_clicked', 'placement'),
+      'budget-values',
+      getPropertyValuesForEvents(
+        config,
+        startAt,
+        endAt,
+        leadSubmissionEventNames,
+        'budget_range',
+      ),
     ],
     [
-      'pricing-placements',
-      getPropertyValues(config, startAt, endAt, 'pricing_cta_clicked', 'placement'),
+      'timeline-values',
+      getPropertyValuesForEvents(
+        config,
+        startAt,
+        endAt,
+        leadSubmissionEventNames,
+        'timeline',
+      ),
     ],
     [
-      'case-study-placements',
-      getPropertyValues(config, startAt, endAt, 'case_study_clicked', 'placement'),
+      'conversion-sources',
+      getPropertyValuesForEvents(
+        config,
+        startAt,
+        endAt,
+        [
+          'cta_clicked',
+          'schedule_clicked',
+          'email_clicked',
+          'selected_work_clicked',
+          'pricing_clicked',
+        ],
+        'source',
+      ),
+    ],
+    [
+      'legacy-conversion-sources',
+      getPropertyValuesForEvents(
+        config,
+        startAt,
+        endAt,
+        [
+          'book_call_clicked',
+          'email_clicked',
+          'pricing_cta_clicked',
+          'case_study_clicked',
+        ],
+        'placement',
+      ),
     ],
   ] as const;
   const settled = await Promise.allSettled(requests.map(([, request]) => request));
@@ -732,8 +880,11 @@ export async function getUmamiAnalytics(
     bounces: 0,
     totaltime: 0,
   };
-  const submissions = totalEvents(points, 'lead_form_submitted');
-  const previousSubmissions = totalEvents(previousPoints, 'lead_form_submitted');
+  const submissions = totalEventGroup(points, allLeadSubmissionEventNames);
+  const previousSubmissions = totalEventGroup(
+    previousPoints,
+    allLeadSubmissionEventNames,
+  );
   const conversionRate = percentageRate(submissions, stats.visitors);
   const previousConversionRate = percentageRate(previousSubmissions, comparison.visitors);
   const bounceRate = percentageRate(stats.bounces, stats.visits);
@@ -761,26 +912,59 @@ export async function getUmamiAnalytics(
     startAt,
     endAt,
     'First form interactions',
-    'lead_form_started',
+    allLeadStartEventNames,
   );
   const dailySubmissions = fillDailySeries(
     points,
     startAt,
     endAt,
     'Validated submissions',
-    'lead_form_submitted',
+    allLeadSubmissionEventNames,
   );
-  const orderedFunnelReport = read<FunnelReportStep[]>('ordered-funnel', []);
-  const attribution = read<AttributionReport>('attribution', {});
+  const hasCurrentAuditEvents =
+    totalEventGroup(points, ['lead_audit_started', 'lead_audit_submitted']) > 0;
+  const orderedFunnelReport = read<FunnelReportStep[]>(
+    hasCurrentAuditEvents ? 'ordered-funnel' : 'legacy-ordered-funnel',
+    [],
+  );
+  const attribution = read<AttributionReport>(
+    hasCurrentAuditEvents ? 'attribution' : 'legacy-attribution',
+    {},
+  );
   const utm = read<UtmReport>('utm', {});
-  const formValues = read<PropertyValue[]>('form-values', []);
-  const industryValues = read<PropertyValue[]>('industry-values', []);
-  const placements = mergeValues([
-    read<PropertyValue[]>('book-placements', []),
-    read<PropertyValue[]>('email-placements', []),
-    read<PropertyValue[]>('pricing-placements', []),
-    read<PropertyValue[]>('case-study-placements', []),
+  const formValues = mergeFormValues([
+    [
+      {
+        value: 'quick_start',
+        total: totalEvents(points, 'lead_quick_start_submitted'),
+      },
+      {
+        value: 'platform_audit',
+        total: totalEvents(points, 'lead_audit_submitted'),
+      },
+    ].filter((item) => item.total > 0),
+    read<PropertyValue[]>('legacy-form-values', []),
   ]);
+  const industryValues = mergeValues([
+    read<PropertyValue[]>('industry-values', []),
+    read<PropertyValue[]>('legacy-industry-values', []),
+  ]);
+  const projectTypeValues = read<PropertyValue[]>('project-type-values', []);
+  const budgetValues = read<PropertyValue[]>('budget-values', []);
+  const timelineValues = read<PropertyValue[]>('timeline-values', []);
+  const conversionSources = mergeValues([
+    read<PropertyValue[]>('conversion-sources', []),
+    read<PropertyValue[]>('legacy-conversion-sources', []),
+  ]);
+  const currentPageQuality = read<ExpandedMetric[]>('page-quality', []).filter((item) =>
+    isCurrentPublicPath(item.name),
+  );
+  const currentEntryPages = read<MetricPoint[]>('entry-pages', []).filter((item) =>
+    isCurrentPublicPath(item.x),
+  );
+  const currentExitPages = read<MetricPoint[]>('exit-pages', []).filter((item) =>
+    isCurrentPublicPath(item.x),
+  );
   const activeVisitors = read<{ visitors: number }>('active-visitors', {
     visitors: 0,
   }).visitors;
@@ -845,7 +1029,7 @@ export async function getUmamiAnalytics(
         'Engaged time per visit',
       ),
       metric(
-        'lead_form_submitted',
+        'lead_submitted',
         'Forms submitted',
         submissions,
         submissions,
@@ -853,11 +1037,11 @@ export async function getUmamiAnalytics(
         'Validated completion events',
       ),
       metric(
-        'book_call_clicked',
+        'schedule_clicked',
         'Book-call intent',
-        totalEvents(points, 'book_call_clicked'),
-        totalEvents(points, 'book_call_clicked'),
-        totalEvents(previousPoints, 'book_call_clicked'),
+        totalEventGroup(points, allScheduleEventNames),
+        totalEventGroup(points, allScheduleEventNames),
+        totalEventGroup(previousPoints, allScheduleEventNames),
         'Scheduling clicks',
       ),
     ],
@@ -873,11 +1057,11 @@ export async function getUmamiAnalytics(
       startAt,
       endAt,
       'Book-call clicks',
-      'book_call_clicked',
+      allScheduleEventNames,
     ),
     dailyConversionRate: conversionSeries(dailyVisitors, dailySubmissions),
-    ctaClicksBySource: toSummary(placements, 'Conversion interactions'),
-    eventVolume: eventNames
+    ctaClicksBySource: toSummary(conversionSources, 'Conversion interactions'),
+    eventVolume: umamiEventNames
       .map((eventName) => ({
         key: eventName,
         label: eventLabels[eventName],
@@ -888,20 +1072,20 @@ export async function getUmamiAnalytics(
     formPerformance: toSummary(formValues, 'Submitted forms'),
     industryPerformance: toSummary(industryValues, 'Submitted forms'),
     deviceCategories: toSummary(read<MetricPoint[]>('devices', []), 'Visitors by device'),
-    submissionsByProjectType: [],
+    submissionsByProjectType: toSummary(projectTypeValues, 'Submitted forms'),
     submissionsByIndustry: toSummary(industryValues, 'Submitted forms'),
-    submissionsByBudget: [],
-    submissionsByTimeline: [],
+    submissionsByBudget: toSummary(budgetValues, 'Submitted forms'),
+    submissionsByTimeline: toSummary(timelineValues, 'Submitted forms'),
     topLandingPages: toSummary(
-      read<ExpandedMetric[]>('page-quality', []).map((item) => ({
+      currentPageQuality.map((item) => ({
         name: item.name,
         total: item.pageviews,
       })),
       'Native page views',
     ),
-    entryPages: toSummary(read<MetricPoint[]>('entry-pages', []), 'Visit entry pages'),
-    exitPages: toSummary(read<MetricPoint[]>('exit-pages', []), 'Visit exit pages'),
-    pageQuality: pageQuality(read<ExpandedMetric[]>('page-quality', [])),
+    entryPages: toSummary(currentEntryPages, 'Visit entry pages'),
+    exitPages: toSummary(currentExitPages, 'Visit exit pages'),
+    pageQuality: pageQuality(currentPageQuality),
     topReferrers: toSummary(
       attribution.referrer?.length
         ? attribution.referrer

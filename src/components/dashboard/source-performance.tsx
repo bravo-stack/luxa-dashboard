@@ -87,7 +87,7 @@ export function SourcePerformance({
   devices,
   title = 'Acquisition signal matrix',
   description = 'The pages, sources, campaigns, placements, and devices concentrating attention.',
-  labels = ['Pages', 'Referrers', 'Campaigns', 'Conversion placement', 'Devices'],
+  labels = ['Pages', 'Referrers', 'Campaigns', 'Conversion source', 'Devices'],
 }: SourcePerformanceProps) {
   const groups = [
     { title: labels[0], items: routes },

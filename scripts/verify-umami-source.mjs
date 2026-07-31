@@ -128,10 +128,18 @@ const checks = await Promise.all([
   request('event-properties', `/websites/${websiteId}/event-data/fields?${range}`),
   request(
     'form-values',
+    `/websites/${websiteId}/event-data/values?${range}&event=lead_audit_submitted&propertyName=submission_type`,
+  ),
+  request(
+    'conversion-source-values',
+    `/websites/${websiteId}/event-data/values?${range}&event=schedule_clicked&propertyName=source`,
+  ),
+  request(
+    'legacy-form-values',
     `/websites/${websiteId}/event-data/values?${range}&event=lead_form_submitted&propertyName=form`,
   ),
   request(
-    'placement-values',
+    'legacy-conversion-source-values',
     `/websites/${websiteId}/event-data/values?${range}&event=book_call_clicked&propertyName=placement`,
   ),
   request('performance-report', '/reports/performance', {
@@ -145,14 +153,37 @@ const checks = await Promise.all([
     parameters: {
       ...reportParameters,
       steps: [
+        { type: 'path', value: '/audit' },
+        { type: 'event', value: 'lead_audit_started' },
+        { type: 'event', value: 'lead_audit_submitted' },
+      ],
+      window: 30,
+    },
+  }),
+  request('legacy-funnel-report', '/reports/funnel', {
+    ...reportBase,
+    type: 'funnel',
+    parameters: {
+      ...reportParameters,
+      steps: [
+        { type: 'path', value: '/audit' },
         { type: 'event', value: 'lead_form_started' },
         { type: 'event', value: 'lead_form_submitted' },
-        { type: 'event', value: 'book_call_clicked' },
       ],
       window: 30,
     },
   }),
   request('attribution-report', '/reports/attribution', {
+    ...reportBase,
+    type: 'attribution',
+    parameters: {
+      ...reportParameters,
+      model: 'first-click',
+      type: 'event',
+      step: 'lead_audit_submitted',
+    },
+  }),
+  request('legacy-attribution-report', '/reports/attribution', {
     ...reportBase,
     type: 'attribution',
     parameters: {

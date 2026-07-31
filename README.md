@@ -50,6 +50,11 @@ npm run crm:smoke
 - Supabase is the source of truth for leads, notes, and prospecting history.
 - Umami supplies native traffic, realtime, page quality, acquisition,
   ordered-funnel, session timing, and Core Web Vitals signals.
+- The primary ordered funnel is `/audit` reach -> audit start -> audit submission.
+  Homepage quick-start submissions and `/book-call` scheduling clicks remain separate
+  conversion signals. Current-page reports include the consolidated public routes,
+  case-study details, and valid industry pages while excluding redirect-only
+  `/solutions/*` legacy paths.
 - Analytics property collection is allowlisted and excludes lead identity fields.
 - Dashboard and dashboard API routes require an active Supabase workspace user with a
   server-controlled `admin` or `sales_exec` role. Sales access is limited to assigned

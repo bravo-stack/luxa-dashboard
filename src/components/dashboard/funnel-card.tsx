@@ -88,7 +88,7 @@ export function FunnelCard({ steps }: FunnelCardProps) {
           </ol>
         ) : (
           <div className="rounded-lg border border-dashed border-border bg-muted/20 p-6 text-sm leading-6 text-muted-foreground">
-            The ordered funnel will populate after visitors begin the form.
+            The ordered funnel will populate after visitors begin the platform audit.
           </div>
         )}
       </div>

@@ -2,16 +2,18 @@
 
 import { revalidatePath } from 'next/cache';
 
+import { sendPendingActivationEmail } from '@/lib/auth/activation-email';
+import {
+  getAuthEmailDeliveryReadiness,
+  unsafeAuthEmailConfigurationMessage,
+} from '@/lib/auth/email-delivery';
 import {
   getInvitationExceptionCode,
   getInvitationFailureMessage,
-  getPendingActivationDelivery,
+  getRestoredAccountStatus,
   getUnexpectedInvitationFailureMessage,
 } from '@/lib/auth/invitations';
-import {
-  INVITE_EMAIL_CALLBACK_URL,
-  RECOVERY_EMAIL_CALLBACK_URL,
-} from '@/lib/auth/origin-policy';
+import { INVITE_EMAIL_CALLBACK_URL } from '@/lib/auth/origin-policy';
 import { recordSecurityEvent, requirePermission } from '@/lib/auth/workspace';
 import { getSupabaseAdminClient } from '@/lib/supabase/admin';
 
@@ -23,11 +25,6 @@ export type TeamActionState = {
 
 const initialFailure: TeamActionState = {
   message: 'The request could not be completed.',
-};
-
-type InvitationTarget = {
-  userId: string;
-  email: string;
 };
 
 function normalizeEmail(value: FormDataEntryValue | null) {
@@ -53,89 +50,6 @@ async function getSalesExecutive(userId: string) {
   }
 
   return data.user;
-}
-
-async function sendPendingActivationEmail({
-  actorUserId,
-  target,
-}: {
-  actorUserId: string;
-  target: InvitationTarget;
-}): Promise<TeamActionState> {
-  const supabaseAdmin = getSupabaseAdminClient();
-  const authUserResult = await supabaseAdmin.auth.admin.getUserById(target.userId);
-
-  if (
-    authUserResult.error ||
-    !authUserResult.data.user ||
-    authUserResult.data.user.app_metadata?.role !== 'sales_exec'
-  ) {
-    return {
-      message: 'The pending workspace identity could not be verified safely.',
-    };
-  }
-
-  const authUser = authUserResult.data.user;
-  const delivery = getPendingActivationDelivery(authUser.email_confirmed_at);
-  const deliveryResult =
-    delivery === 'activation_recovery'
-      ? await supabaseAdmin.auth.resetPasswordForEmail(target.email, {
-          redirectTo: RECOVERY_EMAIL_CALLBACK_URL,
-        })
-      : await supabaseAdmin.auth.admin.inviteUserByEmail(target.email, {
-          redirectTo: INVITE_EMAIL_CALLBACK_URL,
-          data: {
-            full_name: authUser.user_metadata?.full_name,
-            job_title: authUser.user_metadata?.job_title,
-          },
-        });
-
-  if (deliveryResult.error) {
-    await recordSecurityEvent({
-      action: 'invite_sent',
-      actorUserId,
-      targetUserId: target.userId,
-      targetEmail: target.email,
-      outcome: 'failed',
-      metadata: {
-        delivery,
-        reason: deliveryResult.error.code ?? 'provider_error',
-      },
-    });
-
-    return { message: getInvitationFailureMessage(deliveryResult.error) };
-  }
-
-  const now = new Date().toISOString();
-  const timestampResult = await supabaseAdmin
-    .from('workspace_members')
-    .update({ invited_at: now })
-    .eq('user_id', target.userId)
-    .eq('role', 'sales_exec')
-    .eq('status', 'invited');
-
-  if (timestampResult.error) {
-    console.error(
-      'Activation email sent but invitation timestamp could not be updated',
-      timestampResult.error.message,
-    );
-  }
-
-  await recordSecurityEvent({
-    action: 'invite_sent',
-    actorUserId,
-    targetUserId: target.userId,
-    targetEmail: target.email,
-    metadata: { delivery, role: 'sales_exec' },
-  });
-
-  revalidatePath('/dashboard/team');
-  revalidatePath('/dashboard/settings');
-
-  return {
-    message: `Fresh activation email sent to ${target.email}.`,
-    success: true,
-  };
 }
 
 async function runInviteSalesExecutive(
@@ -182,7 +96,7 @@ async function runInviteSalesExecutive(
   );
 
   if (existingMember) {
-    const target: InvitationTarget = {
+    const target = {
       userId: String(existingMember.user_id),
       email: String(existingMember.email),
     };
@@ -204,6 +118,18 @@ async function runInviteSalesExecutive(
           ? 'This sales executive is frozen. Restore access from the roster instead of sending another invitation.'
           : 'This sales executive already has active workspace access.',
     };
+  }
+
+  if (!getAuthEmailDeliveryReadiness().ready) {
+    await recordSecurityEvent({
+      action: 'invite_sent',
+      actorUserId: admin.id,
+      targetEmail: email,
+      outcome: 'failed',
+      metadata: { reason: 'auth_email_configuration_unverified' },
+    });
+
+    return { message: unsafeAuthEmailConfigurationMessage };
   }
 
   const now = new Date().toISOString();
@@ -306,58 +232,6 @@ export async function inviteSalesExecutive(
   }
 }
 
-async function runResendSalesExecutiveInvitation(
-  _state: TeamActionState,
-  formData: FormData,
-): Promise<TeamActionState> {
-  const admin = await requirePermission('members.manage');
-  const supabaseAdmin = getSupabaseAdminClient();
-  const userId = String(formData.get('userId') ?? '');
-
-  if (!isUuid(userId)) return initialFailure;
-
-  const membershipResult = await supabaseAdmin
-    .from('workspace_members')
-    .select('user_id,email,status')
-    .eq('user_id', userId)
-    .eq('role', 'sales_exec')
-    .maybeSingle();
-
-  if (
-    membershipResult.error ||
-    !membershipResult.data ||
-    membershipResult.data.status !== 'invited'
-  ) {
-    return {
-      message: 'Only pending sales invitations can be sent again.',
-    };
-  }
-
-  return sendPendingActivationEmail({
-    actorUserId: admin.id,
-    target: {
-      userId,
-      email: String(membershipResult.data.email),
-    },
-  });
-}
-
-export async function resendSalesExecutiveInvitation(
-  state: TeamActionState,
-  formData: FormData,
-): Promise<TeamActionState> {
-  try {
-    return await runResendSalesExecutiveInvitation(state, formData);
-  } catch (error) {
-    console.error(
-      'Unexpected invitation renewal failure',
-      getInvitationExceptionCode(error),
-    );
-
-    return { message: getUnexpectedInvitationFailureMessage(error) };
-  }
-}
-
 export async function revokeMemberSessions(
   _state: TeamActionState,
   formData: FormData,
@@ -438,11 +312,28 @@ export async function freezeMemberAccess(
   }
 
   const now = new Date().toISOString();
+  const membershipBeforeFreeze = await supabaseAdmin
+    .from('workspace_members')
+    .select('status')
+    .eq('user_id', userId)
+    .eq('role', 'sales_exec')
+    .maybeSingle();
+
+  if (
+    membershipBeforeFreeze.error ||
+    !membershipBeforeFreeze.data ||
+    !['active', 'invited'].includes(membershipBeforeFreeze.data.status)
+  ) {
+    return initialFailure;
+  }
+
+  const previousStatus = getRestoredAccountStatus(membershipBeforeFreeze.data.status);
   const authResult = await supabaseAdmin.auth.admin.updateUserById(userId, {
     ban_duration: '876000h',
     app_metadata: {
       ...target.app_metadata,
       account_status: 'frozen',
+      frozen_from_status: previousStatus,
       sessions_valid_after: now,
     },
   });
@@ -481,7 +372,7 @@ export async function freezeMemberAccess(
     actorUserId: admin.id,
     targetUserId: userId,
     targetEmail: target.email,
-    metadata: { reason },
+    metadata: { reason, previous_status: previousStatus },
   });
 
   revalidatePath('/dashboard/team');
@@ -505,11 +396,15 @@ export async function restoreMemberAccess(
   if (!target) return initialFailure;
 
   const now = new Date().toISOString();
+  const restoredStatus = getRestoredAccountStatus(
+    target.app_metadata?.frozen_from_status,
+  );
   const authResult = await supabaseAdmin.auth.admin.updateUserById(userId, {
     ban_duration: 'none',
     app_metadata: {
       ...target.app_metadata,
-      account_status: 'active',
+      account_status: restoredStatus,
+      frozen_from_status: null,
       sessions_valid_after: now,
     },
   });
@@ -519,7 +414,7 @@ export async function restoreMemberAccess(
   const membershipResult = await supabaseAdmin
     .from('workspace_members')
     .update({
-      status: 'active',
+      status: restoredStatus,
       frozen_at: null,
       freeze_reason: null,
       sessions_valid_after: now,
@@ -542,7 +437,10 @@ export async function restoreMemberAccess(
   revalidatePath('/dashboard/settings');
 
   return {
-    message: `${target.email ?? 'The member'} can sign in again with a fresh session.`,
+    message:
+      restoredStatus === 'invited'
+        ? `${target.email ?? 'The member'} is restored to pending activation. Send a fresh activation link when ready.`
+        : `${target.email ?? 'The member'} can sign in again with a fresh session.`,
     success: true,
   };
 }

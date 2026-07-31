@@ -1,6 +1,13 @@
 'use client';
 
-import { type ReactNode, useActionState } from 'react';
+import {
+  type ComponentProps,
+  type FormEvent,
+  type ReactNode,
+  useActionState,
+  useState,
+} from 'react';
+import { useRouter } from 'next/navigation';
 import {
   ChevronRight,
   Loader2,
@@ -13,7 +20,6 @@ import { useFormStatus } from 'react-dom';
 
 import {
   freezeMemberAccess,
-  resendSalesExecutiveInvitation,
   restoreMemberAccess,
   revokeMemberSessions,
   type TeamActionState,
@@ -33,18 +39,64 @@ const initialState: TeamActionState = { message: '' };
 
 function ActionButton({
   children,
+  pending: controlledPending,
   variant = 'outline',
 }: {
   children: ReactNode;
+  pending?: boolean;
   variant?: 'destructive' | 'outline' | 'secondary';
 }) {
   const { pending } = useFormStatus();
+  const isPending = controlledPending ?? pending;
 
   return (
-    <Button type="submit" size="sm" variant={variant} disabled={pending}>
-      {pending ? <Loader2 className="animate-spin" aria-hidden="true" /> : null}
+    <Button type="submit" size="sm" variant={variant} disabled={isPending}>
+      {isPending ? <Loader2 className="animate-spin" aria-hidden="true" /> : null}
       {children}
     </Button>
+  );
+}
+
+function FreezeAccessForm({
+  action,
+  hasReasonError,
+  userId,
+}: {
+  action: ComponentProps<'form'>['action'];
+  hasReasonError: boolean;
+  userId: string;
+}) {
+  return (
+    <form action={action} className="space-y-4 py-6">
+      <input type="hidden" name="userId" value={userId} />
+      <div>
+        <h3 className="text-sm font-semibold text-foreground">Freeze account access</h3>
+        <p className="mt-2 text-sm leading-6 text-muted-foreground">
+          Block new sign-ins and revoke active sessions until an administrator restores
+          the account.
+        </p>
+      </div>
+      <div className="grid gap-2">
+        <label
+          htmlFor={`freeze-reason-${userId}`}
+          className="text-xs font-semibold text-foreground"
+        >
+          Incident reason
+        </label>
+        <Input
+          id={`freeze-reason-${userId}`}
+          name="reason"
+          maxLength={240}
+          placeholder="e.g. Recovery link exposed"
+          required
+          aria-invalid={hasReasonError}
+        />
+      </div>
+      <ActionButton variant="destructive">
+        <LockKeyhole className="size-3.5" aria-hidden="true" />
+        Freeze account
+      </ActionButton>
+    </form>
   );
 }
 
@@ -59,13 +111,12 @@ export function MemberSecurityControls({
   userId: string;
   status: WorkspaceStatus;
 }) {
+  const router = useRouter();
   const [revokeState, revokeAction] = useActionState(revokeMemberSessions, initialState);
   const [freezeState, freezeAction] = useActionState(freezeMemberAccess, initialState);
   const [restoreState, restoreAction] = useActionState(restoreMemberAccess, initialState);
-  const [resendState, resendAction] = useActionState(
-    resendSalesExecutiveInvitation,
-    initialState,
-  );
+  const [resendState, setResendState] = useState<TeamActionState>(initialState);
+  const [resendPending, setResendPending] = useState(false);
   const message =
     resendState.message ||
     restoreState.message ||
@@ -76,6 +127,47 @@ export function MemberSecurityControls({
     restoreState.success ||
     freezeState.success ||
     revokeState.success;
+
+  async function resendActivationEmail(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (resendPending) return;
+
+    setResendPending(true);
+    setResendState(initialState);
+
+    try {
+      const response = await fetch(
+        `/api/dashboard/team/${encodeURIComponent(userId)}/activation`,
+        {
+          method: 'POST',
+          headers: { Accept: 'application/json' },
+        },
+      );
+      const payload = (await response.json().catch(() => null)) as {
+        message?: unknown;
+        success?: unknown;
+      } | null;
+      const fallbackMessage =
+        response.status === 401
+          ? 'Your administrator session has expired. Refresh and sign in again.'
+          : 'The activation request could not be completed. Refresh and try again.';
+
+      setResendState({
+        message: typeof payload?.message === 'string' ? payload.message : fallbackMessage,
+        success: response.ok && payload?.success === true,
+      });
+
+      if (response.ok) router.refresh();
+    } catch {
+      setResendState({
+        message:
+          'The activation service could not be reached. Check your connection and retry.',
+      });
+    } finally {
+      setResendPending(false);
+    }
+  }
 
   return (
     <Sheet>
@@ -105,22 +197,28 @@ export function MemberSecurityControls({
 
         <div className="flex-1 overflow-y-auto px-5 py-2 sm:px-6">
           {status === 'invited' ? (
-            <form action={resendAction} className="space-y-4 py-6">
-              <input type="hidden" name="userId" value={userId} />
-              <div>
-                <h3 className="text-sm font-semibold text-foreground">
-                  Send a new activation link
-                </h3>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                  Replace an expired or already-opened invitation with a fresh, single-use
-                  link.
-                </p>
-              </div>
-              <ActionButton variant="secondary">
-                <MailPlus className="size-3.5" aria-hidden="true" />
-                Send activation again
-              </ActionButton>
-            </form>
+            <div className="divide-y divide-border">
+              <form onSubmit={resendActivationEmail} className="space-y-4 py-6">
+                <div>
+                  <h3 className="text-sm font-semibold text-foreground">
+                    Send a new activation link
+                  </h3>
+                  <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                    Replace an expired or already-opened invitation with a fresh,
+                    single-use link.
+                  </p>
+                </div>
+                <ActionButton variant="secondary" pending={resendPending}>
+                  <MailPlus className="size-3.5" aria-hidden="true" />
+                  Send activation again
+                </ActionButton>
+              </form>
+              <FreezeAccessForm
+                action={freezeAction}
+                hasReasonError={Boolean(freezeState.errors?.reason)}
+                userId={userId}
+              />
+            </div>
           ) : status === 'frozen' ? (
             <form action={restoreAction} className="space-y-4 py-6">
               <input type="hidden" name="userId" value={userId} />
@@ -129,8 +227,8 @@ export function MemberSecurityControls({
                   Restore workspace access
                 </h3>
                 <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                  Allow sign-in again. Existing sessions stay revoked, so the member must
-                  start a fresh session.
+                  Return the account to its state before the freeze. Existing sessions
+                  stay revoked.
                 </p>
               </div>
               <ActionButton variant="secondary">
@@ -156,38 +254,11 @@ export function MemberSecurityControls({
                   End all sessions
                 </ActionButton>
               </form>
-              <form action={freezeAction} className="space-y-4 py-6">
-                <input type="hidden" name="userId" value={userId} />
-                <div>
-                  <h3 className="text-sm font-semibold text-foreground">
-                    Freeze account access
-                  </h3>
-                  <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                    Block new sign-ins and revoke active sessions until an administrator
-                    restores the account.
-                  </p>
-                </div>
-                <div className="grid gap-2">
-                  <label
-                    htmlFor={`freeze-reason-${userId}`}
-                    className="text-xs font-semibold text-foreground"
-                  >
-                    Incident reason
-                  </label>
-                  <Input
-                    id={`freeze-reason-${userId}`}
-                    name="reason"
-                    maxLength={240}
-                    placeholder="e.g. Device reported stolen"
-                    required
-                    aria-invalid={Boolean(freezeState.errors?.reason)}
-                  />
-                </div>
-                <ActionButton variant="destructive">
-                  <LockKeyhole className="size-3.5" aria-hidden="true" />
-                  Freeze account
-                </ActionButton>
-              </form>
+              <FreezeAccessForm
+                action={freezeAction}
+                hasReasonError={Boolean(freezeState.errors?.reason)}
+                userId={userId}
+              />
             </div>
           )}
         </div>

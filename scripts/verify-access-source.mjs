@@ -9,6 +9,8 @@ const inviteCallbackUrl = `${appUrl}/auth/email-callback?mode=invite`;
 const recoveryCallbackUrl = `${appUrl}/auth/email-callback?mode=recovery`;
 const productionRuntime =
   process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production';
+const authenticationEmailsVerified =
+  process.env.SUPABASE_AUTH_EMAILS_VERIFIED?.trim().toLowerCase() === 'true';
 
 if (!publicUrl || !serverUrl || !secretKey) {
   throw new Error(
@@ -40,6 +42,12 @@ if (productionRuntime) {
   if (conflictingOrigin) {
     throw new Error(
       `Production authentication origin conflicts with the canonical Luxa URL: ${appUrl}`,
+    );
+  }
+
+  if (!authenticationEmailsVerified) {
+    throw new Error(
+      'Production authentication email delivery is not attested. Verify Supabase Auth URL Configuration and hosted templates, then set SUPABASE_AUTH_EMAILS_VERIFIED=true.',
     );
   }
 }
@@ -99,6 +107,7 @@ console.log(
       authenticationEmailCallbacks: {
         invite: inviteCallbackUrl,
         recovery: recoveryCallbackUrl,
+        providerConfigurationVerified: authenticationEmailsVerified,
       },
       members: {
         total: members.count ?? 0,

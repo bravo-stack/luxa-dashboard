@@ -2,6 +2,7 @@
 
 import { redirect } from 'next/navigation';
 
+import { getAuthEmailDeliveryReadiness } from '@/lib/auth/email-delivery';
 import { RECOVERY_EMAIL_CALLBACK_URL } from '@/lib/auth/origin-policy';
 import { isWorkspaceRole, validateWorkspacePassword } from '@/lib/auth/policy';
 import { getWorkspaceUser, recordSecurityEvent } from '@/lib/auth/workspace';
@@ -100,6 +101,20 @@ export async function requestPasswordReset(
 
   if (email.length > 320 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return { message: 'Enter a valid work email address.' };
+  }
+
+  if (!getAuthEmailDeliveryReadiness().ready) {
+    await recordSecurityEvent({
+      action: 'password_reset_requested',
+      targetEmail: email,
+      outcome: 'failed',
+      metadata: { reason: 'auth_email_configuration_unverified' },
+    });
+
+    return {
+      message:
+        'Password recovery is temporarily unavailable. Contact your workspace administrator.',
+    };
   }
 
   const supabase = await createSupabaseServerClient();

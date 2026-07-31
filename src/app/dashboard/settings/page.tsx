@@ -20,7 +20,7 @@ import { SessionRegistry } from '@/components/settings/session-registry';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { getDashboardAnalytics } from '@/lib/analytics/server';
-import { getApplicationOrigin } from '@/lib/auth/origin';
+import { getAuthEmailDeliveryReadiness } from '@/lib/auth/email-delivery';
 import {
   getAccountSecurityOverview,
   getTeamAccessOverview,
@@ -272,7 +272,10 @@ export default async function SettingsPage({
   const authConfigured = Boolean(
     process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   );
-  const emailLinksConfigured = Boolean(getApplicationOrigin());
+  const emailDelivery = getAuthEmailDeliveryReadiness();
+  const isVercel = process.env.VERCEL === '1';
+  const skewProtectionReady =
+    !isVercel || process.env.VERCEL_SKEW_PROTECTION_ENABLED === '1';
   const readiness: ReadinessItem[] = [
     {
       label: 'Workspace access boundary',
@@ -291,12 +294,24 @@ export default async function SettingsPage({
       icon: UserRoundCheck,
     },
     {
-      label: 'Email callback origin',
+      label: 'Authentication email delivery',
       description:
-        'Invitation and recovery links use a fixed production origin instead of request input.',
-      value: emailLinksConfigured ? 'Pinned' : 'Missing',
-      ready: emailLinksConfigured,
+        'Supabase Site URL, exact redirect allowlist, and hosted email templates have been manually verified.',
+      value: emailDelivery.label,
+      ready: emailDelivery.ready,
       icon: MailCheck,
+    },
+    {
+      label: 'Deployment skew protection',
+      description:
+        'Vercel keeps active browser sessions pinned to compatible Server Actions during deployments.',
+      value: isVercel
+        ? skewProtectionReady
+          ? 'Enabled'
+          : 'Enable in Vercel'
+        : 'Not applicable',
+      ready: skewProtectionReady,
+      icon: ShieldCheck,
     },
     {
       label: 'CRM connection',

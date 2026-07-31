@@ -21,6 +21,10 @@ export function getPendingActivationDelivery(emailConfirmedAt?: string | null) {
   return emailConfirmedAt ? 'activation_recovery' : 'invitation_reissued';
 }
 
+export function getRestoredAccountStatus(previousStatus: unknown) {
+  return previousStatus === 'invited' ? ('invited' as const) : ('active' as const);
+}
+
 export function isDuplicateAuthAccount(error: AuthEmailError | null | undefined) {
   return Boolean(error?.code && duplicateAccountCodes.has(error.code));
 }

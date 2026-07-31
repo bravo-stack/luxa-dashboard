@@ -4,6 +4,7 @@ import {
   getInvitationExceptionCode,
   getInvitationFailureMessage,
   getPendingActivationDelivery,
+  getRestoredAccountStatus,
   getUnexpectedInvitationFailureMessage,
   isDuplicateAuthAccount,
 } from './invitations';
@@ -14,6 +15,12 @@ describe('invitation errors', () => {
     expect(getPendingActivationDelivery('2026-07-29T20:30:00.000Z')).toBe(
       'activation_recovery',
     );
+  });
+
+  it('restores frozen invitees without activating them', () => {
+    expect(getRestoredAccountStatus('invited')).toBe('invited');
+    expect(getRestoredAccountStatus('active')).toBe('active');
+    expect(getRestoredAccountStatus(undefined)).toBe('active');
   });
 
   it('recognizes duplicate Auth identities', () => {

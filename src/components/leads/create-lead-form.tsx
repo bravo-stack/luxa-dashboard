@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 
+import { BuyerFunctionSelect } from './buyer-function-select';
 import { IcpCategorySelect } from './icp-category-select';
 
 const initialState: CreateLeadState = { message: '' };
@@ -124,8 +125,11 @@ export function CreateLeadForm() {
               required
             />
           </Field>
-          <Field label="ICP category" name="icpCategory" optional>
+          <Field label="ICP segment" name="icpCategory" optional>
             <IcpCategorySelect />
+          </Field>
+          <Field label="Buyer function" name="buyerFunction" optional>
+            <BuyerFunctionSelect />
           </Field>
           <Field label="Website" name="website" error={state.errors?.website} optional>
             <Input

@@ -1,6 +1,8 @@
 import { cache } from 'react';
 
 import { getUmamiAnalytics } from '@/lib/analytics/umami';
+import { canAccessLead } from '@/lib/auth/policy';
+import type { WorkspaceRole } from '@/lib/auth/types';
 
 import { dashboardDateRanges, defaultDashboardDateRange } from './config';
 import {
@@ -8,6 +10,7 @@ import {
   getSupabaseDashboardDataset,
   getSupabaseLeadNotes,
   getSupabaseLeadQueue,
+  getSupabaseLeadRecord,
   getSupabaseProspectingHistory,
   type LeadQueueQuery,
 } from './supabase-repository';
@@ -25,6 +28,7 @@ import type {
 } from './types';
 import { leadStatuses } from './types';
 import {
+  getBuyerFunctionLabel,
   getIcpCategoryLabel,
   getLeadPriority,
   isAwaitingReply,
@@ -66,10 +70,6 @@ function sortNewest<T extends { created_at: string }>(items: T[]) {
 
 function getSubmissionsForLead(leadId: string, submissions: AuditSubmission[]) {
   return sortNewest(submissions.filter((submission) => submission.lead_id === leadId));
-}
-
-function getEventsForLead(leadId: string, events: LeadEvent[]) {
-  return sortNewest(events.filter((event) => event.lead_id === leadId));
 }
 
 function getLiveDashboardMetrics(
@@ -287,12 +287,15 @@ export async function getLeadQueue(options: LeadQueueQuery = {}) {
 export async function getLeadDetail(
   id: string,
   prospectingHistoryPage = 1,
-  ownerUserId?: string,
+  viewer?: { id: string; role: WorkspaceRole },
 ): Promise<LeadDetail | null> {
-  const dataset = await getDashboardDataset(ownerUserId);
-  const lead = dataset.leads.find((item) => item.id === id);
+  const record = await getSupabaseLeadRecord(id);
+  const lead = record?.lead;
 
-  if (!lead) {
+  if (
+    !lead ||
+    (viewer && !canAccessLead(viewer.role, viewer.id, lead.owner_user_id, lead.origin))
+  ) {
     return null;
   }
 
@@ -316,26 +319,23 @@ export async function getLeadDetail(
 
   return {
     lead,
-    submissions: getSubmissionsForLead(id, dataset.auditSubmissions),
+    submissions: record ? [record.submission] : [],
     events: sortNewest([
-      ...getEventsForLead(id, dataset.leadEvents),
-      ...getSubmissionsForLead(id, dataset.auditSubmissions).map(
-        (submission): LeadEvent => ({
-          id: `submission-${submission.id}`,
-          lead_id: id,
-          created_at: submission.created_at,
-          event_type:
-            submission.submission_type === 'platform_audit'
-              ? 'lead_audit_submitted'
-              : 'lead_quick_start_submitted',
-          event_name: 'Submission received',
-          source: submission.source || 'Website',
-          metadata: {
-            submission_type: submission.submission_type,
-            project_type: submission.project_type,
-          },
-        }),
-      ),
+      ...(record ? [record.submission] : []).map((submission): LeadEvent => ({
+        id: `submission-${submission.id}`,
+        lead_id: id,
+        created_at: submission.created_at,
+        event_type:
+          submission.submission_type === 'platform_audit'
+            ? 'lead_audit_submitted'
+            : 'lead_quick_start_submitted',
+        event_name: 'Submission received',
+        source: submission.source || 'Website',
+        metadata: {
+          submission_type: submission.submission_type,
+          project_type: submission.project_type,
+        },
+      })),
       ...notes.map((note): LeadEvent => ({
         id: `note-${note.id}`,
         lead_id: id,
@@ -480,6 +480,7 @@ export async function getLeadExportRows() {
       company: lead.company,
       website: lead.website ?? '',
       icp_category: lead.icpCategory ? getIcpCategoryLabel(lead.icpCategory) : '',
+      buyer_function: lead.buyerFunction ? getBuyerFunctionLabel(lead.buyerFunction) : '',
       linkedin_profile_url: lead.linkedinProfileUrl ?? '',
       focus_name: lead.focusName ?? '',
       focus_title: lead.focusTitle ?? '',

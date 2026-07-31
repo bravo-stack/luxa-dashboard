@@ -26,15 +26,44 @@ export const connectionStatuses = [
 export type ConnectionStatus = (typeof connectionStatuses)[number];
 
 export const icpCategories = [
-  { value: 'tier_1_strategic', label: 'Tier 1 — Strategic account' },
-  { value: 'tier_2_core', label: 'Tier 2 — Core ICP' },
-  { value: 'tier_3_growth', label: 'Tier 3 — Growth ICP' },
-  { value: 'tier_4_emerging', label: 'Tier 4 — Emerging fit' },
-  { value: 'partner_channel', label: 'Partner / channel' },
+  { value: 'hospital', label: 'Hospitals' },
+  { value: 'school', label: 'Schools' },
+  { value: 'logistics', label: 'Logistics companies' },
+  { value: 'digital_marketing_agency', label: 'Digital marketing agencies' },
+  { value: 'clinic', label: 'Clinics' },
+  { value: 'online_learning_platform', label: 'Online learning platforms' },
+  { value: 'supply_chain', label: 'Supply chain businesses' },
+  { value: 'factory_manufacturing', label: 'Factories & manufacturing' },
+  {
+    value: 'real_estate_property_management',
+    label: 'Real estate & property management',
+  },
+  { value: 'oil_gas', label: 'Oil & gas firms' },
+  { value: 'other', label: 'Other / needs review' },
   { value: 'not_icp', label: 'Not ICP / disqualified' },
 ] as const;
 
 export type IcpCategory = (typeof icpCategories)[number]['value'];
+
+export const buyerFunctions = [
+  { value: 'executive_leadership', label: 'Executive leadership' },
+  { value: 'operations', label: 'Operations' },
+  { value: 'human_resources', label: 'Human resources' },
+  { value: 'sales_revenue', label: 'Sales & revenue' },
+  { value: 'marketing', label: 'Marketing' },
+  { value: 'information_technology', label: 'IT / technology' },
+  { value: 'finance_procurement', label: 'Finance & procurement' },
+  { value: 'learning_development', label: 'Learning & development' },
+  { value: 'other', label: 'Other / unknown' },
+] as const;
+
+export type BuyerFunction = (typeof buyerFunctions)[number]['value'];
+
+export const leadDeletionRequestStatuses = ['pending', 'approved', 'rejected'] as const;
+
+export type LeadDeletionRequestStatus = (typeof leadDeletionRequestStatuses)[number];
+
+export type LeadOwnershipScope = 'all' | 'mine' | 'shared';
 
 export type LeadPriority = 'standard' | 'review_next' | 'contact_overdue' | 'high_fit';
 
@@ -65,6 +94,7 @@ export interface Lead {
   website?: string;
   phone?: string;
   icpCategory?: string;
+  buyerFunction?: string;
   linkedinProfileUrl?: string;
   focusName?: string;
   focusTitle?: string;
@@ -138,6 +168,7 @@ export interface LeadNote {
 export type LeadProspectingHistory = Pick<
   Lead,
   | 'icpCategory'
+  | 'buyerFunction'
   | 'linkedinProfileUrl'
   | 'focusName'
   | 'focusTitle'
@@ -154,6 +185,22 @@ export type LeadProspectingHistory = Pick<
   created_at: string;
   captureType: 'created' | 'updated' | 'backfilled';
 };
+
+export interface LeadDeletionRequest {
+  id: string;
+  leadId?: string;
+  leadName: string;
+  leadEmail: string;
+  leadCompany: string;
+  requestedAt: string;
+  requestedBy?: string;
+  requestedByName: string;
+  reason: string;
+  status: LeadDeletionRequestStatus;
+  reviewedAt?: string;
+  reviewedByName?: string;
+  reviewNote?: string;
+}
 
 export interface MetricSummary {
   key: string;

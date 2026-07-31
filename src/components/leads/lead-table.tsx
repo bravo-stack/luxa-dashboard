@@ -18,6 +18,7 @@ import {
   Columns3,
   Mail,
   MoreHorizontal,
+  UserPlus,
 } from 'lucide-react';
 
 import { EmptyState } from '@/components/dashboard/empty-state';
@@ -39,9 +40,11 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { persistLeadStatus } from '@/lib/dashboard/client';
+import type { WorkspaceRole } from '@/lib/auth/types';
+import { claimLead, persistLeadStatus } from '@/lib/dashboard/client';
 import {
   type LeadListItem,
+  type LeadOwnershipScope,
   type LeadPriority,
   type LeadStatus,
   leadStatuses,
@@ -49,6 +52,7 @@ import {
 import {
   formatDate,
   getIcpCategoryLabel,
+  getLeadOwnershipLabel,
   originLabels,
   priorityLabels,
   statusLabels,
@@ -69,6 +73,9 @@ type LeadTableProps = {
   initialSearch?: string;
   initialFilters: LeadFilterState;
   initialSort: LeadSortKey;
+  viewerRole: WorkspaceRole;
+  currentUserId: string;
+  ownershipScope: LeadOwnershipScope;
 };
 
 const priorityDotClasses: Record<LeadPriority, string> = {
@@ -109,6 +116,9 @@ export function LeadTable({
   initialSearch = '',
   initialFilters,
   initialSort,
+  viewerRole,
+  currentUserId,
+  ownershipScope,
 }: LeadTableProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -125,6 +135,7 @@ export function LeadTable({
     next_follow_up: true,
     timeline: false,
     origin: false,
+    ownership: true,
   });
   const [mutationError, setMutationError] = React.useState('');
   const [isPending, startTransition] = React.useTransition();
@@ -216,6 +227,18 @@ export function LeadTable({
     replaceQueueUrl(search, clearedFilters, 'newest');
   }
 
+  function handleOwnershipScope(nextScope: LeadOwnershipScope) {
+    const params = new URLSearchParams(searchParams.toString());
+
+    if (nextScope === 'all') params.delete('scope');
+    else params.set('scope', nextScope);
+    params.delete('page');
+    startTransition(() => {
+      const query = params.toString();
+      router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    });
+  }
+
   const handleStatusChange = React.useCallback(
     (leadId: string, status: LeadStatus) => {
       const previousStatus = rows.find((lead) => lead.id === leadId)?.status;
@@ -249,39 +272,28 @@ export function LeadTable({
     [router, rows],
   );
 
-  const handleSpamLead = React.useCallback(
+  const handleClaimLead = React.useCallback(
     (leadId: string) => {
-      const previousStatus = rows.find((lead) => lead.id === leadId)?.status;
-
-      if (!previousStatus || previousStatus === 'spam') {
-        return;
-      }
-
       setMutationError('');
-      setRows((currentRows) =>
-        currentRows.map((lead) =>
-          lead.id === leadId ? { ...lead, status: 'spam' } : lead,
-        ),
-      );
       startTransition(async () => {
         try {
-          await persistLeadStatus(leadId, 'spam');
-
-          router.refresh();
-        } catch (error: unknown) {
+          await claimLead(leadId);
           setRows((currentRows) =>
             currentRows.map((lead) =>
-              lead.id === leadId ? { ...lead, status: previousStatus } : lead,
+              lead.id === leadId ? { ...lead, owner_user_id: currentUserId } : lead,
             ),
           );
+          router.refresh();
+        } catch (error: unknown) {
           setMutationError(
-            'The lead could not be marked as spam. Refresh the page and try again.',
+            error instanceof Error
+              ? error.message
+              : 'The lead could not be claimed. Refresh and try again.',
           );
-          console.error(error);
         }
       });
     },
-    [router, rows],
+    [currentUserId, router],
   );
 
   const columns = React.useMemo<ColumnDef<LeadListItem>[]>(
@@ -319,7 +331,7 @@ export function LeadTable({
       },
       {
         id: 'icp_category',
-        header: 'ICP category',
+        header: 'ICP segment',
         cell: ({ row }) => (
           <TableValue
             value={
@@ -402,6 +414,27 @@ export function LeadTable({
         cell: ({ row }) => <LeadStatusBadge status={row.original.status} />,
       },
       {
+        id: 'ownership',
+        header: 'Ownership',
+        cell: ({ row }) => {
+          const lead = row.original;
+          const isMine = lead.owner_user_id === currentUserId;
+          const isShared = !lead.owner_user_id && lead.origin === 'website';
+
+          return (
+            <span
+              className={
+                isShared
+                  ? 'font-semibold text-primary'
+                  : 'text-sm font-medium text-foreground'
+              }
+            >
+              {isMine ? 'Mine' : getLeadOwnershipLabel(lead)}
+            </span>
+          );
+        },
+      },
+      {
         id: 'priority',
         header: 'Attention',
         cell: ({ row }) => (
@@ -432,6 +465,12 @@ export function LeadTable({
         enableHiding: false,
         cell: ({ row }) => {
           const lead = row.original;
+          const canEditLead =
+            viewerRole === 'admin' || lead.owner_user_id === currentUserId;
+          const canClaimLead =
+            viewerRole === 'sales_exec' &&
+            !lead.owner_user_id &&
+            lead.origin === 'website';
 
           return (
             <div onClick={(event) => event.stopPropagation()}>
@@ -460,24 +499,40 @@ export function LeadTable({
                   >
                     Copy email
                   </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuLabel>Status</DropdownMenuLabel>
-                  {leadStatuses.map((status) => (
-                    <DropdownMenuItem
-                      key={status}
-                      onSelect={() => handleStatusChange(lead.id, status)}
-                    >
-                      {statusLabels[status]}
-                    </DropdownMenuItem>
-                  ))}
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    className="text-warning focus:bg-warning/10 focus:text-warning"
-                    onSelect={() => handleSpamLead(lead.id)}
-                  >
-                    <Archive className="size-4" />
-                    Mark as spam
-                  </DropdownMenuItem>
+                  {canClaimLead ? (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onSelect={() => handleClaimLead(lead.id)}>
+                        <UserPlus className="size-4" />
+                        Claim lead
+                      </DropdownMenuItem>
+                    </>
+                  ) : null}
+                  {canEditLead ? (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuLabel>Status</DropdownMenuLabel>
+                      {leadStatuses
+                        .filter((status) =>
+                          ['new', 'contacted', 'qualified'].includes(status),
+                        )
+                        .map((status) => (
+                          <DropdownMenuItem
+                            key={status}
+                            onSelect={() => handleStatusChange(lead.id, status)}
+                          >
+                            {statusLabels[status]}
+                          </DropdownMenuItem>
+                        ))}
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem asChild>
+                        <Link href={`/dashboard/leads/${lead.id}`}>
+                          <Archive className="size-4" />
+                          Review and mark spam
+                        </Link>
+                      </DropdownMenuItem>
+                    </>
+                  ) : null}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -485,7 +540,7 @@ export function LeadTable({
         },
       },
     ],
-    [handleSpamLead, handleStatusChange, isPending],
+    [currentUserId, handleClaimLead, handleStatusChange, isPending, viewerRole],
   );
 
   // eslint-disable-next-line react-hooks/incompatible-library
@@ -506,6 +561,33 @@ export function LeadTable({
       aria-label="Lead operating queue"
       aria-busy={isPending}
     >
+      {viewerRole === 'sales_exec' ? (
+        <div className="overflow-x-auto rounded-xl border border-border bg-card p-1.5">
+          <div
+            className="flex min-w-max items-center gap-1"
+            aria-label="Lead ownership view"
+          >
+            {(
+              [
+                ['all', 'All available'],
+                ['mine', 'My leads'],
+                ['shared', 'Shared funnel'],
+              ] as const
+            ).map(([scope, label]) => (
+              <Button
+                key={scope}
+                type="button"
+                variant={ownershipScope === scope ? 'secondary' : 'ghost'}
+                size="sm"
+                disabled={isPending}
+                onClick={() => handleOwnershipScope(scope)}
+              >
+                {label}
+              </Button>
+            ))}
+          </div>
+        </div>
+      ) : null}
       <div className="flex flex-col gap-3 xl:flex-row">
         <LeadSearch value={search} onValueChange={setSearch} />
         <DropdownMenu>
@@ -635,6 +717,10 @@ export function LeadTable({
           table.getRowModel().rows.map((row) => {
             const lead = row.original;
             const submission = getLatestSubmission(lead);
+            const canClaimThisLead =
+              viewerRole === 'sales_exec' &&
+              !lead.owner_user_id &&
+              lead.origin === 'website';
 
             return (
               <article
@@ -655,6 +741,11 @@ export function LeadTable({
                     </Link>
                     <p className="mt-1 truncate text-sm text-muted-foreground">
                       {lead.company}
+                    </p>
+                    <p className="mt-1 text-xs font-semibold text-primary">
+                      {lead.owner_user_id === currentUserId
+                        ? 'Mine'
+                        : getLeadOwnershipLabel(lead)}
                     </p>
                   </div>
                   <LeadStatusBadge status={lead.status} />
@@ -693,6 +784,17 @@ export function LeadTable({
                         <Mail className="size-4" />
                       </a>
                     </Button>
+                    {canClaimThisLead ? (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        disabled={isPending}
+                        onClick={() => handleClaimLead(lead.id)}
+                      >
+                        <UserPlus aria-hidden="true" />
+                        Claim
+                      </Button>
+                    ) : null}
                     <Button asChild variant="secondary" size="sm">
                       <Link href={`/dashboard/leads/${lead.id}`}>Open lead</Link>
                     </Button>

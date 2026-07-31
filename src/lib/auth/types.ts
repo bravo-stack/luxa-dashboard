@@ -13,6 +13,9 @@ export const workspacePermissions = [
   'leads.update_all',
   'leads.update_assigned',
   'leads.assign',
+  'leads.claim',
+  'leads.request_delete',
+  'leads.approve_delete',
   'leads.export',
   'members.manage',
   'settings.manage',
@@ -60,4 +63,8 @@ export type SecurityEventAction =
   | 'sessions_revoked'
   | 'account_frozen'
   | 'account_unfrozen'
-  | 'lead_assigned';
+  | 'lead_assigned'
+  | 'lead_claimed'
+  | 'lead_deletion_requested'
+  | 'lead_deletion_approved'
+  | 'lead_deletion_rejected';

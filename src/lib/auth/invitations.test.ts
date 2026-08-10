@@ -30,9 +30,10 @@ describe('invitation errors', () => {
   });
 
   it('explains production email rate limits', () => {
-    expect(getInvitationFailureMessage({ code: 'over_email_send_rate_limit' })).toContain(
-      'rate-limited',
-    );
+    const message = getInvitationFailureMessage({ code: 'over_email_send_rate_limit' });
+
+    expect(message).toContain('wait up to an hour');
+    expect(message).toContain('Authentication → Rate Limits');
   });
 
   it('distinguishes configuration and temporary provider failures', () => {

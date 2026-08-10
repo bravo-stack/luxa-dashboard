@@ -31,7 +31,7 @@ export function isDuplicateAuthAccount(error: AuthEmailError | null | undefined)
 
 export function getInvitationFailureMessage(error: AuthEmailError | null | undefined) {
   if (error?.code === 'over_email_send_rate_limit') {
-    return 'Email delivery is temporarily rate-limited. Wait a few minutes and retry. Configure custom SMTP in Supabase Auth for production volume.';
+    return "Email delivery has reached the project's Supabase Auth limit. If you're using Supabase's built-in email service, wait up to an hour before retrying. For production invitations, configure custom SMTP and review Authentication → Rate Limits.";
   }
 
   if (error?.code && deliveryConfigurationCodes.has(error.code)) {

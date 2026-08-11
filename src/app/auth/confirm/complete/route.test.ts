@@ -54,8 +54,15 @@ describe('email confirmation completion', () => {
       auth: { verifyOtp: mocks.verifyOtp },
     });
     mocks.isSameOriginRequest.mockImplementation(
-      (requestUrl: string, origin: string | null) =>
-        Boolean(origin) && new URL(requestUrl).origin === new URL(origin!).origin,
+      (requestUrl: string, origin: string | null) => {
+        if (!origin) return false;
+
+        try {
+          return new URL(requestUrl).origin === new URL(origin).origin;
+        } catch {
+          return false;
+        }
+      },
     );
     mocks.parseEmailConfirmation.mockImplementation(
       (tokenHash: unknown, type: unknown) =>
@@ -81,8 +88,21 @@ describe('email confirmation completion', () => {
     );
   });
 
-  it.each([null, 'https://attacker.example'])(
-    'rejects a submission from origin %s',
+  it('accepts a valid form submission when an email-app browser omits Origin', async () => {
+    const response = await POST(confirmationRequest(undefined, null));
+
+    expect(mocks.verifyOtp).toHaveBeenCalledWith({
+      token_hash: 'valid-token-hash',
+      type: 'invite',
+    });
+    expect(response.status).toBe(303);
+    expect(response.headers.get('location')).toBe(
+      `${applicationOrigin}/set-password?mode=invite`,
+    );
+  });
+
+  it.each(['https://attacker.example', 'null', 'not-an-origin'])(
+    'rejects an explicitly untrusted origin %s',
     async (origin) => {
       const response = await POST(confirmationRequest(undefined, origin));
 

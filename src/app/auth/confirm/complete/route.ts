@@ -10,7 +10,12 @@ function redirectAfterPost(path: string) {
 }
 
 export async function POST(request: Request) {
-  if (!isSameOriginRequest(request.url, request.headers.get('origin'))) {
+  const origin = request.headers.get('origin');
+
+  // Some email-app browsers omit Origin on a same-site HTML form POST. The
+  // one-time token remains mandatory; reject only an explicitly cross-origin
+  // submission so those browsers can complete a legitimate confirmation.
+  if (origin && !isSameOriginRequest(request.url, origin)) {
     return new NextResponse('Forbidden', { status: 403 });
   }
 

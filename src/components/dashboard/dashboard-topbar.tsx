@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { LogOut, Search, Settings2 } from 'lucide-react';
 
 import { logout } from '@/app/actions';
+import { LuxaLogo } from '@/components/brand/luxa-logo';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -49,11 +50,14 @@ export function DashboardTopbar({ identity }: { identity: DashboardIdentity }) {
     <div className="sticky top-0 z-30 border-b border-border bg-background/96 lg:ml-0">
       <div className="mx-auto flex min-h-16 max-w-375 items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
         <div className="ml-12 flex min-w-0 items-center gap-4 lg:ml-0">
-          <div className="min-w-0">
-            <p className="text-xs font-medium text-muted-foreground">Luxa</p>
-            <h1 className="truncate text-base font-semibold text-foreground">
-              {getPageTitle(pathname)}
-            </h1>
+          <div className="flex min-w-0 items-center gap-2.5">
+            <LuxaLogo size={28} className="lg:hidden" />
+            <div className="min-w-0">
+              <p className="text-xs font-medium text-muted-foreground">Luxa</p>
+              <h1 className="truncate text-base font-semibold text-foreground">
+                {getPageTitle(pathname)}
+              </h1>
+            </div>
           </div>
           <div className="hidden min-w-80 items-center md:flex">
             <form action="/dashboard/leads" className="relative w-full">

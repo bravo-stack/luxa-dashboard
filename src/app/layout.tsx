@@ -24,6 +24,11 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: 'Luxa',
   description: 'Premium software and business systems command center.',
+  icons: {
+    icon: '/favicon.ico',
+    shortcut: '/favicon.ico',
+    apple: '/luxa-logo.png',
+  },
 };
 
 export default function RootLayout({

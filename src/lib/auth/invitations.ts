@@ -25,6 +25,10 @@ export function getRestoredAccountStatus(previousStatus: unknown) {
   return previousStatus === 'invited' ? ('invited' as const) : ('active' as const);
 }
 
+export function getPendingInvitationExistsMessage(email: string) {
+  return `Invitation already sent to ${email}. Use “Resend invitation” in People and security posture if they need a new link.`;
+}
+
 export function isDuplicateAuthAccount(error: AuthEmailError | null | undefined) {
   return Boolean(error?.code && duplicateAccountCodes.has(error.code));
 }

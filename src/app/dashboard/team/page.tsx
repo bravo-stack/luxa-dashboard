@@ -31,6 +31,7 @@ export default async function TeamPage() {
   const salesMembers = overview.members.filter((member) => member.role === 'sales_exec');
   const rosterMembers = overview.members.map((member) => ({
     ...member,
+    invitedAtLabel: formatDate(member.invitedAt),
     lastSignInLabel: formatDate(member.lastSignInAt),
   }));
   const metrics: MetricSummary[] = [
@@ -164,7 +165,7 @@ export default async function TeamPage() {
         </div>
       </section>
 
-      <TeamRoster members={rosterMembers} />
+      <TeamRoster members={rosterMembers} referenceTime={new Date().toISOString()} />
     </>
   );
 }

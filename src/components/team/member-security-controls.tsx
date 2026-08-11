@@ -201,7 +201,7 @@ export function MemberSecurityControls({
               <form onSubmit={resendActivationEmail} className="space-y-4 py-6">
                 <div>
                   <h3 className="text-sm font-semibold text-foreground">
-                    Send a new activation link
+                    Resend invitation
                   </h3>
                   <p className="mt-2 text-sm leading-6 text-muted-foreground">
                     Replace an expired or already-opened invitation with a fresh,
@@ -210,7 +210,7 @@ export function MemberSecurityControls({
                 </div>
                 <ActionButton variant="secondary" pending={resendPending}>
                   <MailPlus className="size-3.5" aria-hidden="true" />
-                  Send activation again
+                  Resend invitation
                 </ActionButton>
               </form>
               <FreezeAccessForm

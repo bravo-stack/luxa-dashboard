@@ -1,24 +1,45 @@
 'use client';
 
 import { useState } from 'react';
-import { ShieldCheck, UsersRound } from 'lucide-react';
+import {
+  ArrowLeft,
+  ArrowRight,
+  CalendarClock,
+  ShieldCheck,
+  UsersRound,
+} from 'lucide-react';
 
 import { MemberSecurityControls } from '@/components/team/member-security-controls';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { TeamMemberOverview } from '@/lib/auth/team';
 import {
   filterTeamRosterMembers,
   getTeamRosterCounts,
+  isTeamInviteDateFilter,
   isTeamRosterFilter,
+  paginateTeamRosterMembers,
+  type TeamInviteDateFilter,
+  teamInviteDateFilterOptions,
   type TeamRosterFilter,
   teamRosterFilterOptions,
 } from '@/lib/auth/team-roster-filter';
 import type { WorkspaceStatus } from '@/lib/auth/types';
 
 export type TeamRosterMember = TeamMemberOverview & {
+  invitedAtLabel: string;
   lastSignInLabel: string;
 };
+
+const rosterPageSize = 8;
 
 const emptyStateCopy: Record<TeamRosterFilter, { title: string; description: string }> = {
   all: {
@@ -97,6 +118,19 @@ function MemberRow({ member }: { member: TeamRosterMember }) {
       </div>
       <div className="min-w-0">
         <p className="text-xs text-muted-foreground">
+          Invite sent
+          {member.invitedAt ? (
+            <time
+              dateTime={member.invitedAt}
+              className="mt-1 block truncate font-medium text-foreground"
+            >
+              {member.invitedAtLabel}
+            </time>
+          ) : (
+            <span className="mt-1 block font-medium text-foreground">Not recorded</span>
+          )}
+        </p>
+        <p className="mt-3 text-xs text-muted-foreground">
           Last sign-in
           <span className="mt-1 block truncate font-medium text-foreground">
             {member.lastSignInLabel}
@@ -119,18 +153,37 @@ function MemberRow({ member }: { member: TeamRosterMember }) {
   );
 }
 
-export function TeamRoster({ members }: { members: TeamRosterMember[] }) {
+export function TeamRoster({
+  members,
+  referenceTime,
+}: {
+  members: TeamRosterMember[];
+  referenceTime: string;
+}) {
   const [filter, setFilter] = useState<TeamRosterFilter>('all');
+  const [inviteDateFilter, setInviteDateFilter] = useState<TeamInviteDateFilter>('any');
+  const [page, setPage] = useState(1);
   const counts = getTeamRosterCounts(members);
-  const filteredMembers = filterTeamRosterMembers(members, filter);
+  const filteredMembers = filterTeamRosterMembers(
+    members,
+    filter,
+    inviteDateFilter,
+    new Date(referenceTime).getTime(),
+  );
+  const pagination = paginateTeamRosterMembers(filteredMembers, page, rosterPageSize);
   const emptyState = emptyStateCopy[filter];
+  const firstVisible = pagination.items.length ? pagination.startIndex + 1 : 0;
+  const lastVisible = pagination.startIndex + pagination.items.length;
 
   return (
     <section className="min-w-0 overflow-hidden rounded-xl border border-border bg-card shadow-[0_18px_55px_rgba(18,24,40,0.045)]">
       <Tabs
         value={filter}
         onValueChange={(value) => {
-          if (isTeamRosterFilter(value)) setFilter(value);
+          if (isTeamRosterFilter(value)) {
+            setFilter(value);
+            setPage(1);
+          }
         }}
       >
         <div className="border-b border-border px-5 py-5">
@@ -144,34 +197,68 @@ export function TeamRoster({ members }: { members: TeamRosterMember[] }) {
             People and security posture
           </h2>
 
-          <div className="-mx-1 mt-4 [scrollbar-width:none] overflow-x-auto px-1 pb-1 [&::-webkit-scrollbar]:hidden">
-            <TabsList
-              className="h-auto min-w-max justify-start rounded-lg bg-muted/65 p-1"
-              aria-label="Filter people by account status"
-            >
-              {teamRosterFilterOptions.map((option) => (
-                <TabsTrigger
-                  key={option.value}
-                  value={option.value}
-                  className="group min-h-9 gap-2 px-3 text-xs"
+          <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+            <div className="-mx-1 min-w-0 [scrollbar-width:none] overflow-x-auto px-1 pb-1 [&::-webkit-scrollbar]:hidden">
+              <TabsList
+                className="h-auto min-w-max justify-start rounded-lg bg-muted/65 p-1"
+                aria-label="Filter people by account status"
+              >
+                {teamRosterFilterOptions.map((option) => (
+                  <TabsTrigger
+                    key={option.value}
+                    value={option.value}
+                    className="group min-h-9 gap-2 px-3 text-xs"
+                  >
+                    {option.label}
+                    <span className="rounded-sm bg-background/75 px-1.5 py-0.5 text-[0.625rem] font-semibold text-muted-foreground tabular-nums group-data-[state=active]:bg-primary/10 group-data-[state=active]:text-primary">
+                      {counts[option.value]}
+                    </span>
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </div>
+            <div className="w-full sm:w-56">
+              <label
+                id="invite-date-filter-label"
+                className="mb-1.5 flex items-center gap-1.5 text-[0.6875rem] font-semibold text-muted-foreground"
+              >
+                <CalendarClock className="size-3.5" aria-hidden="true" />
+                Invite sent
+              </label>
+              <Select
+                value={inviteDateFilter}
+                onValueChange={(value) => {
+                  if (isTeamInviteDateFilter(value)) {
+                    setInviteDateFilter(value);
+                    setPage(1);
+                  }
+                }}
+              >
+                <SelectTrigger
+                  className="h-9 text-xs"
+                  aria-labelledby="invite-date-filter-label"
                 >
-                  {option.label}
-                  <span className="rounded-sm bg-background/75 px-1.5 py-0.5 text-[0.625rem] font-semibold text-muted-foreground tabular-nums group-data-[state=active]:bg-primary/10 group-data-[state=active]:text-primary">
-                    {counts[option.value]}
-                  </span>
-                </TabsTrigger>
-              ))}
-            </TabsList>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {teamInviteDateFilterOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
 
         <TabsContent value={filter} className="mt-0">
           <p className="sr-only" aria-live="polite">
-            Showing {filteredMembers.length} of {members.length} people
+            Showing {pagination.items.length} of {filteredMembers.length} matching people
           </p>
           {filteredMembers.length ? (
             <div className="divide-y divide-border">
-              {filteredMembers.map((member) => (
+              {pagination.items.map((member) => (
                 <MemberRow key={member.id} member={member} />
               ))}
             </div>
@@ -185,10 +272,64 @@ export function TeamRoster({ members }: { members: TeamRosterMember[] }) {
                 {emptyState.title}
               </p>
               <p className="mx-auto mt-1 max-w-sm text-xs leading-5 text-muted-foreground">
-                {emptyState.description}
+                {inviteDateFilter === 'any'
+                  ? emptyState.description
+                  : 'No people match this status and invitation date range.'}
               </p>
+              {inviteDateFilter !== 'any' ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="mt-3"
+                  onClick={() => {
+                    setInviteDateFilter('any');
+                    setPage(1);
+                  }}
+                >
+                  Clear invite date
+                </Button>
+              ) : null}
             </div>
           )}
+          {filteredMembers.length ? (
+            <nav
+              className="flex flex-col gap-3 border-t border-border bg-muted/20 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
+              aria-label="People pages"
+            >
+              <p className="text-xs text-muted-foreground tabular-nums">
+                Showing {firstVisible}–{lastVisible} of {filteredMembers.length} matching
+                people
+              </p>
+              <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-end">
+                <span className="text-xs text-muted-foreground tabular-nums">
+                  Page {pagination.currentPage} of {pagination.totalPages}
+                </span>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={pagination.currentPage === 1}
+                    onClick={() => setPage(pagination.currentPage - 1)}
+                  >
+                    <ArrowLeft aria-hidden="true" />
+                    Previous
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={pagination.currentPage === pagination.totalPages}
+                    onClick={() => setPage(pagination.currentPage + 1)}
+                  >
+                    Next
+                    <ArrowRight aria-hidden="true" />
+                  </Button>
+                </div>
+              </div>
+            </nav>
+          ) : null}
         </TabsContent>
       </Tabs>
     </section>

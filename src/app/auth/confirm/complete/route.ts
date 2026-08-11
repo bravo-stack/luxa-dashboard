@@ -11,11 +11,12 @@ function redirectAfterPost(path: string) {
 
 export async function POST(request: Request) {
   const origin = request.headers.get('origin');
+  const hasVerifiableOrigin = Boolean(origin && origin !== 'null');
 
-  // Some email-app browsers omit Origin on a same-site HTML form POST. The
-  // one-time token remains mandatory; reject only an explicitly cross-origin
-  // submission so those browsers can complete a legitimate confirmation.
-  if (origin && !isSameOriginRequest(request.url, origin)) {
+  // Email-app webviews may omit Origin or send the standards-defined opaque
+  // value "null". The one-time token remains mandatory; reject only a
+  // verifiable, explicitly cross-origin submission.
+  if (hasVerifiableOrigin && !isSameOriginRequest(request.url, origin)) {
     return new NextResponse('Forbidden', { status: 403 });
   }
 

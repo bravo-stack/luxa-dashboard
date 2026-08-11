@@ -56,8 +56,9 @@ creates the SSR cookie session and redirects to `/set-password`.
 
 The completion endpoint rejects an explicitly cross-origin form submission. It
 also accepts a valid one-time token when an in-app email browser omits the
-optional `Origin` header, which prevents legitimate invitation and recovery
-flows from failing with `403 Forbidden`.
+optional `Origin` header or sends the standards-defined opaque value `null`,
+which prevents legitimate invitation and recovery flows from failing with an
+HTTP 403 response.
 
 This is also a defense against a stale Supabase Site URL or redirect allowlist.
 Do not replace these links with direct verification endpoints or browser

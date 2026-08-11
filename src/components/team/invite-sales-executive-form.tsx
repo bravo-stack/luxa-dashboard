@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useEffect, useState } from 'react';
 import { CheckCircle2, Loader2, MailPlus } from 'lucide-react';
 import { useFormStatus } from 'react-dom';
 
@@ -9,16 +9,28 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { getUnexpectedInvitationFailureMessage } from '@/lib/auth/invitations';
 
-const initialState: TeamActionState = { message: '' };
+type InviteFormState = TeamActionState & {
+  submissionId: number;
+};
+
+const initialState: InviteFormState = { message: '', submissionId: 0 };
+const successFadeDelayMs = 4_750;
+const successDismissDelayMs = 5_000;
 
 async function submitInvitation(
-  state: TeamActionState,
+  state: InviteFormState,
   formData: FormData,
-): Promise<TeamActionState> {
+): Promise<InviteFormState> {
   try {
-    return await inviteSalesExecutive(state, formData);
+    return {
+      ...(await inviteSalesExecutive(state, formData)),
+      submissionId: state.submissionId + 1,
+    };
   } catch (error) {
-    return { message: getUnexpectedInvitationFailureMessage(error) };
+    return {
+      message: getUnexpectedInvitationFailureMessage(error),
+      submissionId: state.submissionId + 1,
+    };
   }
 }
 
@@ -48,6 +60,27 @@ function SubmitButton({ disabled }: { disabled: boolean }) {
 
 export function InviteSalesExecutiveForm({ disabled = false }: { disabled?: boolean }) {
   const [state, formAction] = useActionState(submitInvitation, initialState);
+  const [fadingSubmissionId, setFadingSubmissionId] = useState<number | null>(null);
+  const [dismissedSubmissionId, setDismissedSubmissionId] = useState<number | null>(null);
+  const messageVisible =
+    Boolean(state.message) && dismissedSubmissionId !== state.submissionId;
+  const messageFading = state.success && fadingSubmissionId === state.submissionId;
+
+  useEffect(() => {
+    if (!state.success || !state.message) return;
+
+    const fadeTimer = window.setTimeout(() => {
+      setFadingSubmissionId(state.submissionId);
+    }, successFadeDelayMs);
+    const dismissTimer = window.setTimeout(() => {
+      setDismissedSubmissionId(state.submissionId);
+    }, successDismissDelayMs);
+
+    return () => {
+      window.clearTimeout(fadeTimer);
+      window.clearTimeout(dismissTimer);
+    };
+  }, [state.message, state.submissionId, state.success]);
 
   return (
     <form action={formAction} className="grid gap-4">
@@ -119,11 +152,13 @@ export function InviteSalesExecutiveForm({ disabled = false }: { disabled?: bool
           Invitations unlock after the workspace access migration is applied.
         </p>
       ) : null}
-      {state.message ? (
+      {messageVisible ? (
         <p
           className={
             state.success
-              ? 'flex items-center gap-2 text-xs font-medium text-success'
+              ? `flex items-center gap-2 text-xs font-medium text-success transition-[opacity,transform] duration-200 ease-[cubic-bezier(0.25,1,0.5,1)] motion-reduce:transform-none motion-reduce:transition-none ${
+                  messageFading ? '-translate-y-0.5 opacity-0' : 'opacity-100'
+                }`
               : 'text-xs font-medium text-destructive'
           }
           aria-live="polite"

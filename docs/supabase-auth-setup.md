@@ -40,11 +40,17 @@ configuration. A generated link containing `redirect_to=http://localhost:3000`
 means Supabase rejected the requested callback and fell back to its Site URL.
 Correct the hosted project settings before setting the flag.
 
-The custom templates deliberately send `token_hash` to the server-side
-`/auth/confirm` handler at the canonical production origin. This is a second
-defense against a stale Supabase Site URL or redirect allowlist. Do not replace
-those links with browser URL-fragment links; URL fragments are not available to
-the server and do not establish the SSR cookie session used by this application.
+The custom templates deliberately send `token_hash` to the server-rendered
+`/auth/confirm` review page at the canonical production origin. Opening that URL
+must not verify or consume the token: automated email scanners can follow links
+before recipients see them. Only the recipient's explicit form submission to
+`POST /auth/confirm/complete` may call `verifyOtp`, after which the application
+creates the SSR cookie session and redirects to `/set-password`.
+
+This is also a defense against a stale Supabase Site URL or redirect allowlist.
+Do not replace these links with direct verification endpoints or browser
+URL-fragment links; fragments are not available to the server and do not
+establish the SSR cookie session used by this application.
 
 If Supabase's default Invite or Recovery template is active, its verification
 endpoint redirects to `/auth/email-callback`. Luxa can complete that browser

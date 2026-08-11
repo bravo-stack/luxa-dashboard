@@ -101,7 +101,20 @@ describe('email confirmation completion', () => {
     );
   });
 
-  it.each(['https://attacker.example', 'null', 'not-an-origin'])(
+  it('accepts the opaque Origin sent by sandboxed email-app browsers', async () => {
+    const response = await POST(confirmationRequest(undefined, 'null'));
+
+    expect(mocks.verifyOtp).toHaveBeenCalledWith({
+      token_hash: 'valid-token-hash',
+      type: 'invite',
+    });
+    expect(response.status).toBe(303);
+    expect(response.headers.get('location')).toBe(
+      `${applicationOrigin}/set-password?mode=invite`,
+    );
+  });
+
+  it.each(['https://attacker.example', 'not-an-origin'])(
     'rejects an explicitly untrusted origin %s',
     async (origin) => {
       const response = await POST(confirmationRequest(undefined, origin));

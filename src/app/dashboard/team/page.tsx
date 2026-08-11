@@ -1,21 +1,13 @@
 import { redirect } from 'next/navigation';
-import {
-  Activity,
-  KeyRound,
-  MailPlus,
-  ShieldCheck,
-  UserRoundCheck,
-  UsersRound,
-} from 'lucide-react';
+import { Activity, KeyRound, MailPlus, UserRoundCheck } from 'lucide-react';
 
 import { DashboardHeader } from '@/components/dashboard/dashboard-header';
 import { MetricRail } from '@/components/dashboard/metric-rail';
 import { InviteSalesExecutiveForm } from '@/components/team/invite-sales-executive-form';
-import { MemberSecurityControls } from '@/components/team/member-security-controls';
 import { TeamPerformanceChart } from '@/components/team/team-performance-chart';
+import { TeamRoster } from '@/components/team/team-roster';
 import { Badge } from '@/components/ui/badge';
 import { getTeamAccessOverview } from '@/lib/auth/team';
-import type { WorkspaceStatus } from '@/lib/auth/types';
 import { getWorkspaceUser } from '@/lib/auth/workspace';
 import type { MetricSummary } from '@/lib/dashboard/types';
 
@@ -30,12 +22,6 @@ function formatDate(value: string | null) {
   return value ? dateFormatter.format(new Date(value)) : 'Never';
 }
 
-function statusBadge(status: WorkspaceStatus) {
-  if (status === 'active') return <Badge variant="teal">Active</Badge>;
-  if (status === 'frozen') return <Badge variant="destructive">Frozen</Badge>;
-  return <Badge variant="warm">Invite pending</Badge>;
-}
-
 export default async function TeamPage() {
   const user = await getWorkspaceUser();
 
@@ -43,6 +29,10 @@ export default async function TeamPage() {
 
   const overview = await getTeamAccessOverview();
   const salesMembers = overview.members.filter((member) => member.role === 'sales_exec');
+  const rosterMembers = overview.members.map((member) => ({
+    ...member,
+    lastSignInLabel: formatDate(member.lastSignInAt),
+  }));
   const metrics: MetricSummary[] = [
     {
       key: 'active_members',
@@ -174,102 +164,7 @@ export default async function TeamPage() {
         </div>
       </section>
 
-      <section className="min-w-0 overflow-hidden rounded-xl border border-border bg-card shadow-[0_18px_55px_rgba(18,24,40,0.045)]">
-        <div className="border-b border-border px-5 py-5">
-          <div className="flex items-center gap-2">
-            <UsersRound className="size-4 text-primary" aria-hidden="true" />
-            <p className="text-[0.6875rem] font-semibold tracking-[0.12em] text-primary uppercase">
-              Roster
-            </p>
-          </div>
-          <h2 className="mt-2 text-lg font-semibold tracking-[-0.02em] text-foreground">
-            People and security posture
-          </h2>
-        </div>
-        <div className="divide-y divide-border">
-          {overview.members.map((member) => (
-            <article
-              key={member.id}
-              className="grid min-w-0 gap-x-6 gap-y-5 px-5 py-5 sm:grid-cols-2 xl:grid-cols-[minmax(15rem,1.2fr)_repeat(3,minmax(7rem,0.55fr))_minmax(10rem,0.8fr)] xl:items-center"
-            >
-              <div className="min-w-0 sm:col-span-2 xl:col-span-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="truncate text-sm font-semibold text-foreground">
-                    {member.displayName}
-                  </h3>
-                  {statusBadge(member.status)}
-                  {member.role === 'admin' ? (
-                    <Badge variant="outline">Admin</Badge>
-                  ) : null}
-                </div>
-                <p className="mt-1 truncate text-xs text-muted-foreground">
-                  {member.email}
-                </p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {member.jobTitle || 'No title set'}
-                </p>
-              </div>
-              <div className="min-w-0">
-                <p className="text-[0.625rem] font-semibold tracking-[0.1em] text-muted-foreground uppercase">
-                  Pipeline
-                </p>
-                <p className="mt-1 text-sm font-semibold text-foreground tabular-nums">
-                  {member.performance.open} open · {member.performance.won} won
-                </p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {member.performance.overdue} overdue
-                </p>
-              </div>
-              <div className="min-w-0">
-                <p className="text-[0.625rem] font-semibold tracking-[0.1em] text-muted-foreground uppercase">
-                  Follow-up health
-                </p>
-                <p className="mt-1 text-sm font-semibold text-foreground tabular-nums">
-                  {member.performance.followUpHealth}%
-                </p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {member.performance.notesLast7Days} notes / 7d
-                </p>
-              </div>
-              <div className="min-w-0">
-                <p className="text-[0.625rem] font-semibold tracking-[0.1em] text-muted-foreground uppercase">
-                  Security
-                </p>
-                <p className="mt-1 text-sm font-semibold text-foreground">
-                  {member.activeSessions} active session
-                  {member.activeSessions === 1 ? '' : 's'}
-                </p>
-                <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <ShieldCheck className="size-3.5" aria-hidden="true" />
-                  {member.mfaEnabled ? 'MFA enrolled' : 'MFA not enrolled'}
-                </p>
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs text-muted-foreground">
-                  Last sign-in
-                  <span className="mt-1 block truncate font-medium text-foreground">
-                    {formatDate(member.lastSignInAt)}
-                  </span>
-                </p>
-                {member.role === 'sales_exec' ? (
-                  <div className="mt-3">
-                    <MemberSecurityControls
-                      displayName={member.displayName}
-                      email={member.email}
-                      userId={member.id}
-                      status={member.status}
-                    />
-                  </div>
-                ) : (
-                  <p className="mt-3 text-xs text-muted-foreground">
-                    Protected admin account
-                  </p>
-                )}
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
+      <TeamRoster members={rosterMembers} />
     </>
   );
 }

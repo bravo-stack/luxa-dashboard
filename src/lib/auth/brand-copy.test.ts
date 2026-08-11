@@ -10,7 +10,10 @@ function readTemplate(name: string) {
 
 describe('auth email branding', () => {
   it.each(templateNames)('uses Luxa as the product name in %s', (templateName) => {
-    expect(readTemplate(templateName)).not.toMatch(/Luxa[ -]Operations?/i);
+    const template = readTemplate(templateName);
+
+    expect(template).not.toMatch(/Luxa[ -]Operations?/i);
+    expect(template).toContain('https://luxa-dashboard.vercel.app/luxa-logo.png');
   });
 
   it('attributes invitations to Luxa Solutions without personal inviter data', () => {

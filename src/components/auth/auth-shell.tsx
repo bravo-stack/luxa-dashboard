@@ -1,6 +1,8 @@
 import { Activity, ArrowUpRight, ShieldCheck } from 'lucide-react';
 import type { ReactNode } from 'react';
 
+import { LuxaLogo } from '@/components/brand/luxa-logo';
+
 type AuthShellProps = {
   eyebrow: string;
   title: string;
@@ -29,9 +31,7 @@ export function AuthShell({
 
           <header className="relative flex items-center justify-between px-10 py-8 xl:px-14">
             <div className="flex items-center gap-3">
-              <span className="grid size-9 place-items-center rounded-md bg-primary text-sm font-bold text-primary-foreground">
-                L
-              </span>
+              <LuxaLogo />
               <div>
                 <p className="text-sm font-semibold tracking-[-0.01em]">Luxa</p>
                 <p className="text-[0.6875rem] text-sidebar-foreground/50">
@@ -71,9 +71,7 @@ export function AuthShell({
         <div className="flex min-h-screen flex-col px-5 py-6 sm:px-10 lg:px-12 xl:px-16">
           <header className="flex items-center justify-between lg:justify-end">
             <div className="flex items-center gap-3 lg:hidden">
-              <span className="grid size-9 place-items-center rounded-md bg-primary text-sm font-bold text-primary-foreground">
-                L
-              </span>
+              <LuxaLogo />
               <span className="text-sm font-semibold">Luxa</span>
             </div>
             <p className="flex items-center gap-2 text-xs text-muted-foreground">

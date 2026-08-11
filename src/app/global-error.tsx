@@ -35,15 +35,12 @@ const GLOBAL_ERROR_STYLES = `
     text-transform: uppercase;
   }
   .luxa-global-error__mark {
-    display: grid;
+    display: block;
     width: 36px;
     height: 36px;
-    place-items: center;
     border-radius: 6px;
-    background: #176c57;
-    color: #ffffff;
-    font-size: 14px;
-    letter-spacing: 0;
+    background: #000000;
+    object-fit: cover;
   }
   .luxa-global-error h1 {
     margin: 28px 0 12px;
@@ -102,7 +99,6 @@ const GLOBAL_ERROR_STYLES = `
     .luxa-global-error p { color: #aab2bf; }
     .luxa-global-error__brand,
     .luxa-global-error button.luxa-global-error__secondary { color: #72d5b4; }
-    .luxa-global-error__mark,
     .luxa-global-error button {
       border-color: #72d5b4;
       background: #72d5b4;
@@ -140,7 +136,15 @@ export default function GlobalError({
         <main className="luxa-global-error">
           <section className="luxa-global-error__card">
             <div className="luxa-global-error__brand">
-              <span className="luxa-global-error__mark">L</span>
+              {/* Keep the root error boundary independent from the image optimizer. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                className="luxa-global-error__mark"
+                src="/luxa-logo.png"
+                alt=""
+                width="36"
+                height="36"
+              />
               Luxa protected recovery
             </div>
             <h1>The workspace needs a moment.</h1>

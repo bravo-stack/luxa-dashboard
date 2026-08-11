@@ -19,6 +19,7 @@ import {
   Workflow,
 } from 'lucide-react';
 
+import { LuxaLogo } from '@/components/brand/luxa-logo';
 import { Button } from '@/components/ui/button';
 import {
   Sheet,
@@ -107,9 +108,7 @@ function SidebarContent({
           onClick={onNavigate}
           className="flex items-center gap-3 rounded-md px-2 py-2 transition-colors hover:bg-sidebar-accent"
         >
-          <span className="grid size-8 place-items-center rounded-md bg-primary text-sm font-bold text-primary-foreground shadow-sm">
-            L
-          </span>
+          <LuxaLogo size={32} />
           <span className="grid min-w-0">
             <span className="text-sm font-semibold tracking-[-0.01em] text-sidebar-foreground">
               Luxa

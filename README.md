@@ -1,4 +1,4 @@
-# Luxa operations workspace
+# Luxa
 
 Private Next.js workspace for lead operations and privacy-safe growth intelligence.
 

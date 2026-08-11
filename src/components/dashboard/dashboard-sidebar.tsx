@@ -114,9 +114,7 @@ function SidebarContent({
             <span className="text-sm font-semibold tracking-[-0.01em] text-sidebar-foreground">
               Luxa
             </span>
-            <span className="text-[0.6875rem] text-sidebar-foreground/55">
-              Operations
-            </span>
+            <span className="text-[0.6875rem] text-sidebar-foreground/55">Workspace</span>
           </span>
         </Link>
       </div>

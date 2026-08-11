@@ -35,7 +35,7 @@ export function AuthShell({
               <div>
                 <p className="text-sm font-semibold tracking-[-0.01em]">Luxa</p>
                 <p className="text-[0.6875rem] text-sidebar-foreground/50">
-                  Internal operations
+                  Private workspace
                 </p>
               </div>
             </div>
@@ -101,7 +101,7 @@ export function AuthShell({
 
           <footer className="flex items-center justify-between border-t border-border pt-5 text-[0.6875rem] text-muted-foreground">
             <span>Private access only</span>
-            <span>Luxa Operations · 2026</span>
+            <span>Luxa · 2026</span>
           </footer>
         </div>
       </section>

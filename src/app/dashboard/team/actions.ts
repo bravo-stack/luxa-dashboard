@@ -2,7 +2,6 @@
 
 import { revalidatePath } from 'next/cache';
 
-import { sendPendingActivationEmail } from '@/lib/auth/activation-email';
 import {
   getAuthEmailDeliveryReadiness,
   unsafeAuthEmailConfigurationMessage,
@@ -10,6 +9,7 @@ import {
 import {
   getInvitationExceptionCode,
   getInvitationFailureMessage,
+  getPendingInvitationExistsMessage,
   getRestoredAccountStatus,
   getUnexpectedInvitationFailureMessage,
 } from '@/lib/auth/invitations';
@@ -96,20 +96,15 @@ async function runInviteSalesExecutive(
   );
 
   if (existingMember) {
-    const target = {
-      userId: String(existingMember.user_id),
-      email: String(existingMember.email),
-    };
-
     if (existingMember.role !== 'sales_exec') {
       return { message: 'This email already belongs to a workspace administrator.' };
     }
 
     if (existingMember.status === 'invited') {
-      return sendPendingActivationEmail({
-        actorUserId: admin.id,
-        target,
-      });
+      return {
+        message: getPendingInvitationExistsMessage(email),
+        errors: { email: 'This email already has a pending invitation.' },
+      };
     }
 
     return {

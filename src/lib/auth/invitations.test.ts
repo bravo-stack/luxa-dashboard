@@ -4,6 +4,7 @@ import {
   getInvitationExceptionCode,
   getInvitationFailureMessage,
   getPendingActivationDelivery,
+  getPendingInvitationExistsMessage,
   getRestoredAccountStatus,
   getUnexpectedInvitationFailureMessage,
   isDuplicateAuthAccount,
@@ -21,6 +22,12 @@ describe('invitation errors', () => {
     expect(getRestoredAccountStatus('invited')).toBe('invited');
     expect(getRestoredAccountStatus('active')).toBe('active');
     expect(getRestoredAccountStatus(undefined)).toBe('active');
+  });
+
+  it('directs duplicate pending invitations to the explicit resend action', () => {
+    expect(getPendingInvitationExistsMessage('alex@example.com')).toBe(
+      'Invitation already sent to alex@example.com. Use “Resend invitation” in People and security posture if they need a new link.',
+    );
   });
 
   it('recognizes duplicate Auth identities', () => {

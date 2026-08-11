@@ -14,9 +14,12 @@ Before deploying this feature:
    - `https://luxa-dashboard.vercel.app/auth/email-callback?mode=recovery`
 4. Remove localhost from the production project allowlist.
 5. In Authentication → Email Templates, set:
-   - Invite user: `supabase/templates/invite.html`
-   - Reset password: `supabase/templates/recovery.html`
-   - Password changed notification: `supabase/templates/password-changed.html`
+   - Invite user subject: `You're invited to Luxa`; body:
+     `supabase/templates/invite.html`
+   - Reset password subject: `Reset your Luxa password`; body:
+     `supabase/templates/recovery.html`
+   - Password changed subject: `Your Luxa password changed`; body:
+     `supabase/templates/password-changed.html`
 6. Enable the password-changed security notification.
 7. Keep public sign-up disabled.
 8. In Vercel Production environment variables, set
@@ -31,6 +34,10 @@ Production invitation and recovery emails use literal callback URLs under
 `https://luxa-dashboard.vercel.app`. They do not read request headers,
 deployment URLs, `NODE_ENV`, `NEXT_PUBLIC_APP_URL`, `APP_URL`, or
 `AUTH_EMAIL_CALLBACK_ORIGIN`.
+
+User-facing product branding is always `Luxa`. Invitation copy attributes the
+invitation to `Luxa Solutions`; never add an administrator name or email address
+to template data or copy.
 
 Run `npm run access:verify` in the deployment configuration after applying the
 migration. It must report `ok: true` before invitations are enabled.

@@ -4,22 +4,90 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Reset your Luxa password</title>
+    <style>
+      body,
+      table,
+      td,
+      a {
+        -webkit-text-size-adjust: 100%;
+        -ms-text-size-adjust: 100%;
+      }
+
+      table,
+      td {
+        mso-table-lspace: 0;
+        mso-table-rspace: 0;
+      }
+
+      @media only screen and (max-width: 600px) {
+        .email-canvas {
+          padding: 12px 8px !important;
+        }
+
+        .email-card {
+          width: 100% !important;
+          max-width: 100% !important;
+          table-layout: fixed !important;
+        }
+
+        .email-header {
+          padding: 16px 18px !important;
+        }
+
+        .email-main {
+          padding: 28px 18px 12px !important;
+        }
+
+        .email-title {
+          font-size: 27px !important;
+          line-height: 1.14 !important;
+          letter-spacing: -0.5px !important;
+        }
+
+        .email-body {
+          margin-top: 16px !important;
+          line-height: 1.6 !important;
+          overflow-wrap: anywhere !important;
+          word-break: break-word !important;
+        }
+
+        .email-action {
+          padding: 8px 18px 24px !important;
+        }
+
+        .email-button {
+          box-sizing: border-box !important;
+          display: block !important;
+          width: 100% !important;
+          padding: 14px 16px !important;
+          text-align: center !important;
+        }
+
+        .email-footer {
+          padding: 18px !important;
+        }
+      }
+    </style>
   </head>
   <body
     style="margin: 0; background: #f5f4f0; color: #202631; font-family: Arial, sans-serif"
   >
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
       <tr>
-        <td align="center" style="padding: 40px 16px">
+        <td class="email-canvas" align="center" style="padding: 40px 16px">
           <table
             role="presentation"
             width="100%"
             cellspacing="0"
             cellpadding="0"
+            class="email-card"
             style="max-width: 600px; border: 1px solid #dedbd2; background: #fffefa"
           >
             <tr>
-              <td style="padding: 28px 32px; border-bottom: 1px solid #dedbd2">
+              <td
+                class="email-header"
+                style="padding: 28px 32px; border-bottom: 1px solid #dedbd2"
+              >
                 <span
                   style="
                     display: inline-block;
@@ -39,12 +107,12 @@
                     font-weight: 700;
                     letter-spacing: -0.2px;
                   "
-                  >Luxa Operations</span
+                  >Luxa</span
                 >
               </td>
             </tr>
             <tr>
-              <td style="padding: 40px 32px 20px">
+              <td class="email-main" style="padding: 40px 32px 20px">
                 <p
                   style="
                     margin: 0 0 14px;
@@ -58,6 +126,7 @@
                   Secure account recovery
                 </p>
                 <h1
+                  class="email-title"
                   style="
                     margin: 0;
                     color: #202631;
@@ -69,6 +138,7 @@
                   Reset your password.
                 </h1>
                 <p
+                  class="email-body"
                   style="
                     margin: 20px 0 0;
                     color: #596273;
@@ -82,8 +152,9 @@
               </td>
             </tr>
             <tr>
-              <td style="padding: 12px 32px 32px">
+              <td class="email-action" style="padding: 12px 32px 32px">
                 <a
+                  class="email-button"
                   href="https://luxa-dashboard.vercel.app/auth/confirm?token_hash={{ .TokenHash }}&type=recovery"
                   style="
                     display: inline-block;
@@ -113,6 +184,7 @@
             </tr>
             <tr>
               <td
+                class="email-footer"
                 style="
                   padding: 24px 32px;
                   border-top: 1px solid #dedbd2;

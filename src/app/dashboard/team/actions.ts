@@ -138,7 +138,6 @@ async function runInviteSalesExecutive(
     data: {
       full_name: displayName,
       job_title: jobTitle || 'Sales executive',
-      invited_by_name: admin.displayName,
     },
   });
 

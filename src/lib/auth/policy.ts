@@ -10,6 +10,8 @@ const rolePermissions: Record<WorkspaceRole, ReadonlySet<WorkspacePermission>> =
   admin: new Set([
     'dashboard.access',
     'analytics.read',
+    'campaigns.read',
+    'campaigns.manage',
     'leads.read_all',
     'leads.read_assigned',
     'leads.create',

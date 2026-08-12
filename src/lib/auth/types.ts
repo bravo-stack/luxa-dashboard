@@ -7,6 +7,8 @@ export type WorkspaceStatus = (typeof workspaceStatuses)[number];
 export const workspacePermissions = [
   'dashboard.access',
   'analytics.read',
+  'campaigns.read',
+  'campaigns.manage',
   'leads.read_all',
   'leads.read_assigned',
   'leads.create',
@@ -67,4 +69,9 @@ export type SecurityEventAction =
   | 'lead_claimed'
   | 'lead_deletion_requested'
   | 'lead_deletion_approved'
-  | 'lead_deletion_rejected';
+  | 'lead_deletion_rejected'
+  | 'campaign_created'
+  | 'campaign_updated'
+  | 'campaign_archived'
+  | 'campaign_link_created'
+  | 'campaign_link_updated';

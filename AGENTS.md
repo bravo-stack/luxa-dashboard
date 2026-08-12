@@ -9,11 +9,11 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 For every implementation task:
 
-1. Create a focused feature or fix branch from `main`.
-2. Keep all work for the task on that branch.
+1. Work on the `staging` branch. Create it from `main` only when it does not yet exist.
+2. Keep all work for the task on `staging` and preserve unrelated user changes.
 3. Run the repository quality gates before completion.
 4. Commit the completed work with a conventional commit message.
-5. Push the branch and open a pull request targeting `main`.
+5. Push `staging` and open a pull request from `staging` to `main`.
+6. Include the pull-request URL in the final handoff.
 
-Do not leave completed implementation work uncommitted or commit it directly to
-`main`.
+Do not leave completed implementation work uncommitted or commit it directly to `main`.

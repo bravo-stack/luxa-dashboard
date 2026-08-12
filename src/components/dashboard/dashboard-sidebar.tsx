@@ -11,6 +11,7 @@ import {
   ExternalLink,
   Home,
   LayoutDashboard,
+  Link2,
   Menu,
   MessageSquareText,
   Settings2,
@@ -57,6 +58,7 @@ const primaryNav = [
     roles: ['admin', 'sales_exec'],
   },
   { label: 'Analytics', href: '/dashboard/analytics', icon: BarChart3, roles: ['admin'] },
+  { label: 'Campaigns', href: '/dashboard/campaigns', icon: Link2, roles: ['admin'] },
   { label: 'Team', href: '/dashboard/team', icon: ShieldCheck, roles: ['admin'] },
   {
     label: 'Settings',

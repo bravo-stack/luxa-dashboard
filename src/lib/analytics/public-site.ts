@@ -24,6 +24,7 @@ export const publicSiteEventNames = [
   'email_clicked',
   'selected_work_clicked',
   'pricing_clicked',
+  'campaign_link_arrived',
 ] as const satisfies readonly AnalyticsEventName[];
 
 export const leadStartEventNames = [

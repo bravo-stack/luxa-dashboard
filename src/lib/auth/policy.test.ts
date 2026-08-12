@@ -14,6 +14,13 @@ describe('workspace authorization policy', () => {
     expect(hasWorkspacePermission('sales_exec', 'leads.export')).toBe(false);
   });
 
+  it('keeps campaign creation and reporting admin-only', () => {
+    expect(hasWorkspacePermission('admin', 'campaigns.read')).toBe(true);
+    expect(hasWorkspacePermission('admin', 'campaigns.manage')).toBe(true);
+    expect(hasWorkspacePermission('sales_exec', 'campaigns.read')).toBe(false);
+    expect(hasWorkspacePermission('sales_exec', 'campaigns.manage')).toBe(false);
+  });
+
   it('allows assigned leads and unclaimed website leads without exposing other owners', () => {
     expect(canAccessLead('sales_exec', 'user-1', 'user-1')).toBe(true);
     expect(canAccessLead('sales_exec', 'user-1', 'user-2')).toBe(false);

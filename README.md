@@ -70,3 +70,9 @@ access and sales-operations migrations and email templates are configured. See
 
 The analytics layer fetches signal groups independently. Optional endpoint failures
 remain visible in Launch readiness without blanking the rest of the dashboard.
+
+Administrators manage privacy-safe tracked audit links in `/dashboard/campaigns`.
+Campaign definitions and daily redirect-request aggregates live in Supabase, while
+Umami supplies loaded arrivals and audit starts. See
+`docs/campaign-link-attribution.md` for the cross-application contract and rollout
+order.

@@ -169,6 +169,7 @@ const eventLabels: Record<EventName, string> = {
   email_clicked: 'Email clicks',
   selected_work_clicked: 'Selected-work clicks',
   pricing_clicked: 'Pricing clicks',
+  campaign_link_arrived: 'Campaign-link arrivals',
   lead_form_started: 'Previous form starts',
   lead_form_step_completed: 'Previous form steps',
   lead_form_submitted: 'Previous form submissions',
@@ -1125,5 +1126,69 @@ export async function getUmamiAnalytics(
     realtime: realtimeSummary(realtime, activeVisitors),
     availability: signalAvailability(signals),
     source: 'umami',
+  };
+}
+
+export type CampaignLinkSignals = {
+  available: boolean;
+  arrivalsByLink: Record<string, number>;
+  startsByFirstLink: Record<string, number>;
+  startsByLastLink: Record<string, number>;
+};
+
+function propertyValueMap(values: PropertyValue[]) {
+  return Object.fromEntries(values.map((item) => [item.value, item.total]));
+}
+
+export async function getCampaignLinkSignals(
+  startAt: number,
+  endAt: number,
+): Promise<CampaignLinkSignals> {
+  const config = getConfig();
+  const unavailable: CampaignLinkSignals = {
+    available: false,
+    arrivalsByLink: {},
+    startsByFirstLink: {},
+    startsByLastLink: {},
+  };
+
+  if (!config) return unavailable;
+
+  const [arrivals, firstStarts, lastStarts] = await Promise.allSettled([
+    getPropertyValuesForEvents(
+      config,
+      startAt,
+      endAt,
+      ['campaign_link_arrived'],
+      'link_id',
+    ),
+    getPropertyValuesForEvents(
+      config,
+      startAt,
+      endAt,
+      allLeadStartEventNames,
+      'first_touch_link_id',
+    ),
+    getPropertyValuesForEvents(
+      config,
+      startAt,
+      endAt,
+      allLeadStartEventNames,
+      'last_touch_link_id',
+    ),
+  ]);
+
+  const available = [arrivals, firstStarts, lastStarts].some(
+    (signal) => signal.status === 'fulfilled',
+  );
+
+  return {
+    available,
+    arrivalsByLink:
+      arrivals.status === 'fulfilled' ? propertyValueMap(arrivals.value) : {},
+    startsByFirstLink:
+      firstStarts.status === 'fulfilled' ? propertyValueMap(firstStarts.value) : {},
+    startsByLastLink:
+      lastStarts.status === 'fulfilled' ? propertyValueMap(lastStarts.value) : {},
   };
 }

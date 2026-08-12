@@ -10,6 +10,7 @@ export const analyticsEventNames = [
   'email_clicked',
   'selected_work_clicked',
   'pricing_clicked',
+  'campaign_link_arrived',
   'dashboard_viewed',
   'lead_status_changed',
   'lead_note_added',
@@ -39,6 +40,12 @@ export const allowedAnalyticsProperties = [
   'utm_source',
   'utm_medium',
   'utm_campaign',
+  'campaign_id',
+  'link_id',
+  'first_touch_campaign_id',
+  'first_touch_link_id',
+  'last_touch_campaign_id',
+  'last_touch_link_id',
   'step',
 ] as const;
 

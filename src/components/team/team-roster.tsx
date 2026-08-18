@@ -1,9 +1,11 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import {
   ArrowLeft,
   ArrowRight,
+  ArrowUpRight,
   CalendarClock,
   ShieldCheck,
   UsersRound,
@@ -71,9 +73,22 @@ function MemberRow({ member }: { member: TeamRosterMember }) {
     <article className="grid min-w-0 gap-x-6 gap-y-5 px-5 py-5 sm:grid-cols-2 xl:grid-cols-[minmax(15rem,1.2fr)_repeat(3,minmax(7rem,0.55fr))_minmax(10rem,0.8fr)] xl:items-center">
       <div className="min-w-0 sm:col-span-2 xl:col-span-1">
         <div className="flex flex-wrap items-center gap-2">
-          <h3 className="truncate text-sm font-semibold text-foreground">
-            {member.displayName}
-          </h3>
+          {member.role === 'sales_exec' ? (
+            <Link
+              href={`/dashboard/team/${member.id}`}
+              className="group inline-flex min-w-0 items-center gap-1.5 rounded-sm text-sm font-semibold text-foreground hover:text-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+            >
+              <span className="truncate">{member.displayName}</span>
+              <ArrowUpRight
+                className="size-3.5 shrink-0 text-muted-foreground group-hover:text-primary"
+                aria-hidden="true"
+              />
+            </Link>
+          ) : (
+            <h3 className="truncate text-sm font-semibold text-foreground">
+              {member.displayName}
+            </h3>
+          )}
           {statusBadge(member.status)}
           {member.role === 'admin' ? <Badge variant="outline">Admin</Badge> : null}
         </div>
@@ -138,6 +153,12 @@ function MemberRow({ member }: { member: TeamRosterMember }) {
         </p>
         {member.role === 'sales_exec' ? (
           <div className="mt-3">
+            <Button asChild variant="ghost" size="sm" className="mb-2 -ml-2">
+              <Link href={`/dashboard/team/${member.id}`}>
+                View lead activity
+                <ArrowRight aria-hidden="true" />
+              </Link>
+            </Button>
             <MemberSecurityControls
               displayName={member.displayName}
               email={member.email}

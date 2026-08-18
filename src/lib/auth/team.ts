@@ -130,6 +130,12 @@ export type TeamAccessOverview = {
   dataReady: boolean;
 };
 
+export type SalesLeadNoteActivity = {
+  id: string;
+  leadId: string;
+  createdAt: string;
+};
+
 function emptyPerformance(): MemberPerformance {
   return {
     assigned: 0,
@@ -475,5 +481,71 @@ export async function getAssignableSalesExecutives() {
     id: String(member.user_id),
     displayName: String(member.display_name),
     email: String(member.email),
+  }));
+}
+
+export async function getSalesLeadCreators() {
+  await requirePermission('leads.read_all');
+  const supabaseAdmin = getSupabaseAdminClient();
+  const { data, error } = await supabaseAdmin
+    .from('workspace_members')
+    .select('user_id,display_name,email,status')
+    .eq('role', 'sales_exec')
+    .order('display_name', { ascending: true });
+
+  if (error) {
+    if (isMissingWorkspaceTable(error)) return [];
+    throw new Error(`Sales lead creator query failed: ${error.message}`);
+  }
+
+  return (data ?? []).flatMap((member) => {
+    if (!isWorkspaceStatus(member.status)) return [];
+
+    return [
+      {
+        id: String(member.user_id),
+        displayName: String(member.display_name),
+        email: String(member.email),
+        status: member.status,
+      },
+    ];
+  });
+}
+
+export async function getWorkspaceMemberRole(userId: string) {
+  await requirePermission('leads.read_all');
+  const supabaseAdmin = getSupabaseAdminClient();
+  const { data, error } = await supabaseAdmin
+    .from('workspace_members')
+    .select('role')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (error) {
+    if (isMissingWorkspaceTable(error)) return null;
+    throw new Error(`Workspace member role query failed: ${error.message}`);
+  }
+
+  return isWorkspaceRole(data?.role) ? data.role : null;
+}
+
+export async function getSalesExecutiveLeadNoteActivity(userId: string) {
+  await requirePermission('members.manage');
+  const supabaseAdmin = getSupabaseAdminClient();
+  const { data, error } = await supabaseAdmin
+    .from('lead_submission_notes')
+    .select('id,lead_id,created_at')
+    .eq('created_by', userId)
+    .order('created_at', { ascending: false })
+    .limit(50);
+
+  if (error) {
+    throw new Error(`Sales lead activity query failed: ${error.message}`);
+  }
+
+  return (data ?? []).map((item): SalesLeadNoteActivity => ({
+    id: String(item.id),
+    leadId: String(item.lead_id),
+    createdAt: String(item.created_at),
   }));
 }

@@ -1,5 +1,6 @@
 import {
   buyerFunctions,
+  type ConnectionStatus,
   icpCategories,
   type Lead,
   type LeadOrigin,
@@ -21,6 +22,16 @@ export const originLabels: Record<LeadOrigin, string> = {
   manual: 'Manual entry',
   import: 'Imported',
   integration: 'Integration',
+};
+
+export const connectionStatusLabels: Record<ConnectionStatus, string> = {
+  not_researched: 'Not researched',
+  identified: 'Contact identified',
+  not_connected: 'Not connected',
+  connection_sent: 'Connection sent',
+  connected: 'Connected',
+  contacted: 'Contacted',
+  replied: 'Replied',
 };
 
 export function getLeadOwnershipLabel(lead: Lead) {

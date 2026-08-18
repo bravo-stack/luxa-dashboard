@@ -1,22 +1,26 @@
 import Link from 'next/link';
 import {
   Download,
-  FileCheck2,
+  Eye,
   MailQuestion,
   Plus,
   ShieldCheck,
   TrendingUp,
+  UserRoundSearch,
   UsersRound,
 } from 'lucide-react';
 
 import { DashboardHeader } from '@/components/dashboard/dashboard-header';
 import { MetricRail } from '@/components/dashboard/metric-rail';
+import { AdminLeadSections } from '@/components/leads/admin-lead-sections';
 import { LeadStatusGuide } from '@/components/leads/lead-status-guide';
 import { LeadTable } from '@/components/leads/lead-table';
 import { Button } from '@/components/ui/button';
+import { getSalesLeadCreators } from '@/lib/auth/team';
 import { getWorkspaceUser } from '@/lib/auth/workspace';
+import { partitionAdminLeadWorkspace } from '@/lib/dashboard/admin-lead-oversight';
 import { getLeadDeletionRequestOverview } from '@/lib/dashboard/lead-deletion';
-import { getLeadQueue } from '@/lib/dashboard/queries';
+import { getLeadQueue, getLeads } from '@/lib/dashboard/queries';
 import {
   type LeadOrigin,
   leadOrigins,
@@ -28,25 +32,126 @@ import {
 
 export const dynamic = 'force-dynamic';
 
+type LeadSearchParams = {
+  q?: string;
+  status?: string;
+  budget?: string;
+  timeline?: string;
+  origin?: string;
+  date?: string;
+  sort?: string;
+  page?: string;
+  scope?: string;
+};
+
 export default async function LeadsPage({
   searchParams,
 }: {
-  searchParams: Promise<{
-    q?: string;
-    status?: string;
-    budget?: string;
-    timeline?: string;
-    origin?: string;
-    date?: string;
-    sort?: string;
-    page?: string;
-    scope?: string;
-  }>;
+  searchParams: Promise<LeadSearchParams>;
 }) {
-  const [params, user] = await Promise.all([searchParams, getWorkspaceUser()]);
+  const user = await getWorkspaceUser();
 
   if (!user) return null;
 
+  if (user.role === 'admin') {
+    const [leads, salesMembers, deletionOverview] = await Promise.all([
+      getLeads(),
+      getSalesLeadCreators(),
+      getLeadDeletionRequestOverview('pending'),
+    ]);
+    const { adminLeads, salesLeadGroups } = partitionAdminLeadWorkspace(
+      leads,
+      salesMembers,
+    );
+    const salesLeadCount = salesLeadGroups.reduce(
+      (total, group) => total + group.leads.length,
+      0,
+    );
+    const activeLeadCount = leads.filter(
+      (lead) => !['won', 'lost', 'spam'].includes(lead.status),
+    ).length;
+    const scheduledFollowUps = leads.filter(
+      (lead) => lead.nextFollowUpDate && !['won', 'lost', 'spam'].includes(lead.status),
+    ).length;
+    const metrics: MetricSummary[] = [
+      {
+        key: 'admin_managed',
+        label: 'Admin-managed',
+        value: adminLeads.length,
+        trend: 'Editable',
+        trendDirection: 'flat',
+        note: 'Direct and inbound leads',
+      },
+      {
+        key: 'sales_created',
+        label: 'Sales-created',
+        value: salesLeadCount,
+        trend: 'Read only',
+        trendDirection: salesLeadCount ? 'up' : 'flat',
+        note: 'Executive-authored leads',
+      },
+      {
+        key: 'active',
+        label: 'Active pipeline',
+        value: activeLeadCount,
+        trend: 'Live',
+        trendDirection: 'flat',
+        note: 'Excludes closed and spam',
+      },
+      {
+        key: 'follow_up',
+        label: 'Follow-ups set',
+        value: scheduledFollowUps,
+        trend: scheduledFollowUps ? 'Scheduled' : 'Clear',
+        trendDirection: scheduledFollowUps ? 'up' : 'flat',
+        note: 'Across active leads',
+      },
+    ];
+
+    return (
+      <>
+        <DashboardHeader
+          eyebrow="Lead operations / administration"
+          title="Lead oversight"
+          description="Run the admin lead desk and inspect sales-created opportunities from a clear, read-only oversight lane."
+          actions={
+            <>
+              <Button asChild variant="outline">
+                <Link href="/dashboard/leads/deletion-requests">
+                  <ShieldCheck className="size-4" />
+                  Deletion review
+                  {deletionOverview.pendingCount ? (
+                    <span className="rounded-full bg-destructive px-1.5 py-0.5 text-[0.625rem] font-bold text-destructive-foreground">
+                      {deletionOverview.pendingCount}
+                    </span>
+                  ) : null}
+                </Link>
+              </Button>
+              <Button asChild variant="outline">
+                <Link href="/api/dashboard/leads/export">
+                  <Download className="size-4" />
+                  Export leads
+                </Link>
+              </Button>
+              <Button asChild>
+                <Link href="/dashboard/leads/new">
+                  <Plus className="size-4" />
+                  Add admin lead
+                </Link>
+              </Button>
+            </>
+          }
+        />
+        <MetricRail
+          metrics={metrics}
+          icons={[ShieldCheck, Eye, TrendingUp, UserRoundSearch]}
+        />
+        <AdminLeadSections adminLeads={adminLeads} salesLeadGroups={salesLeadGroups} />
+      </>
+    );
+  }
+
+  const params = await searchParams;
   const page = Number.parseInt(params.page ?? '1', 10);
   const requestedStatus = params.status ?? '';
   const requestedOrigin = params.origin ?? '';
@@ -62,9 +167,7 @@ export default async function LeadsPage({
   const date = ['today', '7d', 'older'].includes(requestedDate) ? requestedDate : 'all';
   const sort = params.sort === 'oldest' ? 'oldest' : 'newest';
   const ownershipScope: LeadOwnershipScope =
-    user.role === 'sales_exec' && (params.scope === 'mine' || params.scope === 'shared')
-      ? params.scope
-      : 'all';
+    params.scope === 'mine' || params.scope === 'shared' ? params.scope : 'all';
   const queueOptions = {
     search: params.q,
     status,
@@ -74,7 +177,7 @@ export default async function LeadsPage({
     date,
     sort,
     page: Number.isFinite(page) ? page : 1,
-    viewerUserId: user.role === 'sales_exec' ? user.id : undefined,
+    viewerUserId: user.id,
     ownershipScope,
   } as const;
   let queue = await getLeadQueue(queueOptions);
@@ -88,49 +191,12 @@ export default async function LeadsPage({
   } else if (queue.page > queue.totalPages) {
     queue = await getLeadQueue({ ...queueOptions, page: queue.totalPages });
   }
-  const deletionOverview =
-    user.role === 'admin'
-      ? await getLeadDeletionRequestOverview('pending')
-      : { pendingCount: 0 };
+
   const activeLeadCount = Object.entries(queue.statusCounts).reduce(
-    (total, [status, count]) => total + (status === 'spam' ? 0 : count),
+    (total, [leadStatus, count]) => total + (leadStatus === 'spam' ? 0 : count),
     0,
   );
-  const adminMetrics: MetricSummary[] = [
-    {
-      key: 'active',
-      label: 'Active leads',
-      value: activeLeadCount,
-      trend: 'Live',
-      trendDirection: 'flat',
-      note: 'Excludes spam',
-    },
-    {
-      key: 'qualified',
-      label: 'Qualified',
-      value: queue.statusCounts.qualified + queue.statusCounts.won,
-      trend: 'Live',
-      trendDirection: 'flat',
-      note: 'Qualified or won',
-    },
-    {
-      key: 'awaiting',
-      label: 'Awaiting reply',
-      value: queue.statusCounts.new + queue.statusCounts.qualified,
-      trend: 'Review',
-      trendDirection: 'down',
-      note: 'Needs contact',
-    },
-    {
-      key: 'audits',
-      label: 'Platform audits',
-      value: queue.platformAuditCount,
-      trend: 'High intent',
-      trendDirection: 'up',
-      note: 'Deep context',
-    },
-  ];
-  const salesMetrics: MetricSummary[] = [
+  const metrics: MetricSummary[] = [
     {
       key: 'shared',
       label: 'Shared funnel',
@@ -147,59 +213,42 @@ export default async function LeadsPage({
       trendDirection: 'flat',
       note: 'Assigned to you',
     },
-    ...adminMetrics.slice(0, 2),
+    {
+      key: 'active',
+      label: 'Active leads',
+      value: activeLeadCount,
+      trend: 'Live',
+      trendDirection: 'flat',
+      note: 'Excludes spam',
+    },
+    {
+      key: 'qualified',
+      label: 'Qualified',
+      value: queue.statusCounts.qualified + queue.statusCounts.won,
+      trend: 'Live',
+      trendDirection: 'flat',
+      note: 'Qualified or won',
+    },
   ];
-  const leadMetrics = user.role === 'admin' ? adminMetrics : salesMetrics;
 
   return (
     <>
       <DashboardHeader
         eyebrow="Lead operations"
-        title={user.role === 'admin' ? 'Lead command center' : 'Sales lead workspace'}
-        description={
-          user.role === 'admin'
-            ? 'A fast operating queue for qualification, outreach, status movement, and the context behind every opportunity.'
-            : 'Work your owned opportunities or claim new inbound leads from the shared funnel pool.'
-        }
+        title="Sales lead workspace"
+        description="Work your owned opportunities or claim new inbound leads from the shared funnel pool."
         actions={
-          <>
-            {user.role === 'admin' ? (
-              <>
-                <Button asChild variant="outline">
-                  <Link href="/dashboard/leads/deletion-requests">
-                    <ShieldCheck className="size-4" />
-                    Deletion review
-                    {deletionOverview.pendingCount ? (
-                      <span className="rounded-full bg-destructive px-1.5 py-0.5 text-[0.625rem] font-bold text-destructive-foreground">
-                        {deletionOverview.pendingCount}
-                      </span>
-                    ) : null}
-                  </Link>
-                </Button>
-                <Button asChild variant="outline">
-                  <Link href="/api/dashboard/leads/export">
-                    <Download className="size-4" />
-                    Export leads
-                  </Link>
-                </Button>
-              </>
-            ) : null}
-            <Button asChild>
-              <Link href="/dashboard/leads/new">
-                <Plus className="size-4" />
-                New lead
-              </Link>
-            </Button>
-          </>
+          <Button asChild>
+            <Link href="/dashboard/leads/new">
+              <Plus className="size-4" />
+              New lead
+            </Link>
+          </Button>
         }
       />
       <MetricRail
-        metrics={leadMetrics}
-        icons={
-          user.role === 'admin'
-            ? [UsersRound, TrendingUp, MailQuestion, FileCheck2]
-            : [UsersRound, ShieldCheck, TrendingUp, MailQuestion]
-        }
+        metrics={metrics}
+        icons={[UsersRound, ShieldCheck, TrendingUp, MailQuestion]}
       />
       <LeadStatusGuide />
       <LeadTable
@@ -211,13 +260,7 @@ export default async function LeadsPage({
         budgets={queue.budgets}
         timelines={queue.timelines}
         initialSearch={params.q?.slice(0, 200) ?? ''}
-        initialFilters={{
-          status,
-          budget,
-          timeline,
-          origin,
-          date,
-        }}
+        initialFilters={{ status, budget, timeline, origin, date }}
         initialSort={sort}
         viewerRole={user.role}
         currentUserId={user.id}

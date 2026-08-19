@@ -14,6 +14,7 @@ import {
   primaryAuditFunnelSteps,
   publicSiteEventNames,
 } from '@/lib/analytics/public-site';
+import { type ConcurrencyLimiter, createConcurrencyLimiter } from '@/lib/async';
 import type {
   ActivityCell,
   AnalyticsSummary,
@@ -143,6 +144,7 @@ type UmamiConfig = {
   apiUrl: string;
   websiteId: string;
   headers: HeadersInit;
+  schedule: ConcurrencyLimiter;
 };
 
 type Signal<T> = {
@@ -156,6 +158,8 @@ const rangeDays: Record<DateRangeKey, number> = {
   '30d': 30,
   '90d': 90,
 };
+
+const UMAMI_REQUEST_CONCURRENCY = 4;
 
 const eventLabels: Record<EventName, string> = {
   page_viewed: 'Tracked page views',
@@ -225,6 +229,7 @@ function getConfig(): UmamiConfig | null {
   return {
     apiUrl,
     websiteId,
+    schedule: createConcurrencyLimiter(UMAMI_REQUEST_CONCURRENCY),
     headers: apiKey
       ? { Accept: 'application/json', 'x-umami-api-key': apiKey }
       : { Accept: 'application/json', Authorization: `Bearer ${token}` },
@@ -254,21 +259,23 @@ async function requestJson<T>(
   path: string,
   body?: Record<string, unknown>,
 ): Promise<T> {
-  const response = await fetch(`${config.apiUrl}${path}`, {
-    method: body ? 'POST' : 'GET',
-    headers: body
-      ? { ...config.headers, 'Content-Type': 'application/json' }
-      : config.headers,
-    body: body ? JSON.stringify(body) : undefined,
-    cache: 'no-store',
-    signal: AbortSignal.timeout(12_000),
+  return config.schedule(async () => {
+    const response = await fetch(`${config.apiUrl}${path}`, {
+      method: body ? 'POST' : 'GET',
+      headers: body
+        ? { ...config.headers, 'Content-Type': 'application/json' }
+        : config.headers,
+      body: body ? JSON.stringify(body) : undefined,
+      cache: 'no-store',
+      signal: AbortSignal.timeout(12_000),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Umami request failed with ${response.status}`);
+    }
+
+    return (await response.json()) as T;
   });
-
-  if (!response.ok) {
-    throw new Error(`Umami request failed with ${response.status}`);
-  }
-
-  return (await response.json()) as T;
 }
 
 function unwrapArray<T>(value: T[] | { data?: T[] }): T[] {
